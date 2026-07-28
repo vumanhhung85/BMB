@@ -1,0 +1,13 @@
+{
+  "name": "Boom Music Box",
+  "short_name": "Boom",
+  "description": "Tìm chi nhánh karaoke mini gần bạn và giữ phòng trước.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#14061F",
+  "theme_color": "#14061F",
+  "lang": "vi",
+  "icons": [
+    { "src": "assets/logo_boombox.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any" }
+  ]
+}
