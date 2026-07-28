@@ -281,7 +281,7 @@ async function doLogin(){
 }
 
 function enterApp(){
-  $('login').style.display='none'; $('app').style.display='';
+  $('login').style.display='none'; $('app').style.display='block';
   $('hBranch').textContent = SESSION.branchName || 'Toàn hệ thống';
   $('hRole').textContent = SESSION.fullName || SESSION.user;
   $('hBadge').textContent = SESSION.role === 'admin' ? 'Quản trị' : 'Quản lý chi nhánh';
