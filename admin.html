@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Bảng điều khiển — Boom Music Box</title>
-<link rel="icon" href="Logo_BoomBox.png">
+<link rel="icon" href="Logo_BoomBox.png" id="favicon">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -234,6 +234,7 @@ const CFG = {
 };
 
 let SESSION = null, DATA = [], TAB = 'pending', idleTimer, idleAt;
+let lastPendingSeen = null;   // null = chưa xác định mốc ban đầu (không báo động ngay lúc mới đăng nhập)
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').toLowerCase();
@@ -289,8 +290,69 @@ function enterApp(){
   if(SESSION.role === 'admin') $('fBranch').style.display='';
   resetIdle();
   ['click','keydown','scroll','touchstart'].forEach(e=>document.addEventListener(e,resetIdle,{passive:true}));
+  requestNotifyPermission();
   loadBookings();
   setInterval(()=>loadBookings(false,true), 60000);   // tự làm mới mỗi phút
+}
+
+/* ─── CẢNH BÁO ĐƠN MỚI: âm thanh + biểu tượng trang + thông báo hệ thống ─── */
+function requestNotifyPermission(){
+  if(!('Notification' in window) || Notification.permission !== 'default') return;
+  setTimeout(()=>{ Notification.requestPermission(); }, 1200);  // hỏi nhẹ nhàng, không chặn màn hình đăng nhập
+}
+
+function playPing(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = 880;
+    g.gain.setValueAtTime(.001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.22, ctx.currentTime + .01);
+    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .45);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + .46);
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.setValueAtTime(1320, ctx.currentTime + .13);
+  }catch(e){}
+}
+
+function updateFavicon(count){
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, 64, 64);
+    if(count > 0){
+      const label = count > 99 ? '99+' : String(count);
+      const r = label.length > 2 ? 21 : 17;
+      ctx.beginPath(); ctx.arc(64-r+2, r-2, r, 0, Math.PI*2);
+      ctx.fillStyle = '#FF5C7A'; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = '#14061F'; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 26px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(label, 64-r+2, r-1);
+    }
+    $('favicon').href = c.toDataURL('image/png');
+  };
+  img.src = 'Logo_BoomBox.png';
+}
+
+function checkNewBookings(count){
+  updateFavicon(count);
+  if(lastPendingSeen !== null && count > lastPendingSeen){
+    const soMoi = count - lastPendingSeen;
+    playPing();
+    toast(soMoi === 1 ? '🎤 Có 1 đơn giữ phòng mới!' : '🎤 Có ' + soMoi + ' đơn giữ phòng mới!', 'ok');
+    if('Notification' in window && Notification.permission === 'granted'){
+      const n = new Notification('🎤 Boom Music Box — Đơn mới', {
+        body: soMoi === 1 ? 'Có 1 đơn giữ phòng đang chờ duyệt.' : 'Có ' + soMoi + ' đơn giữ phòng đang chờ duyệt.',
+        icon: 'Logo_BoomBox.png', tag: 'boom-booking'
+      });
+      n.onclick = () => { window.focus(); n.close(); };
+    }
+  }
+  lastPendingSeen = count;
 }
 
 function resetIdle(){
@@ -305,10 +367,11 @@ setInterval(()=>{
 },20000);
 
 function logout(reason){
-  SESSION = null; DATA = []; sessionStorage.removeItem(CFG.PREFIX+'s');
+  SESSION = null; DATA = []; lastPendingSeen = null; sessionStorage.removeItem(CFG.PREFIX+'s');
   clearTimeout(idleTimer);
   $('app').style.display='none'; $('login').style.display='grid';
   $('uPass').value='';
+  $('favicon').href = 'Logo_BoomBox.png';
   if(reason) showLoginMsg(reason);
 }
 
@@ -330,6 +393,7 @@ async function loadBookings(manual, silent){
     const bs=[...new Set(DATA.map(d=>d.branchName))].sort();
     $('fBranch').innerHTML='<option value="">Tất cả chi nhánh</option>'+bs.map(b=>'<option>'+esc(b)+'</option>').join('');
   }
+  checkNewBookings(DATA.filter(d=>d.status==='pending').length);
   draw();
 }
 
