@@ -8,6 +8,6 @@
   "theme_color": "#14061F",
   "lang": "vi",
   "icons": [
-    { "src": "Logo_BoomBox.png", "sizes": "512x512", "type": "png", "purpose": "any" }
+    { "src": "Logo_BoomBox.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }
