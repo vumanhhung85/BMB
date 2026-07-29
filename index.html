@@ -788,6 +788,7 @@ async function boot() {
   buildBranchSelect();
   initMap();
   render();
+  openFromLink();
 
   $('q').addEventListener('input', debounce(render, 220));
   $('bPhone').addEventListener('input', e => e.target.value = e.target.value.replace(/[^\d]/g,''));
@@ -838,7 +839,19 @@ function initMap() {
   });
 }
 
-/* ─── ĐỊNH VỊ ─── */
+/* ─── LINK RIÊNG TỪNG CHI NHÁNH ───
+   boommusicbox.com/?chi_nhanh=CN03  → tự mở form giữ phòng, chọn sẵn chi nhánh đó.
+   Dùng dán vào mục "Website" / "Đặt lịch hẹn" trên từng Google Business Profile. */
+function openFromLink() {
+  const p = new URLSearchParams(location.search);
+  const id = (p.get('chi_nhanh') || p.get('cn') || '').toUpperCase().trim();
+  if (!id) return;
+  const b = BRANCHES.find(x => x.id === id);
+  if (!b) { toast('Không tìm thấy chi nhánh trong đường dẫn này.', 'bad'); return; }
+  map.setView([b.lat, b.lng], 14);
+  setTimeout(() => openBooking(b.id), 300);
+}
+
 function findNearest() {
   if (!navigator.geolocation) return toast('Trình duyệt không hỗ trợ định vị.', 'bad');
   $('geoIcon').innerHTML = '<span class="spin"></span>';
