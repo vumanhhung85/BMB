@@ -15,6 +15,8 @@
 <meta name="apple-mobile-web-app-title" content="BMB Quản trị">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- SheetJS — đọc/ghi file Excel ngay trong trình duyệt, dùng cho nút Nhập/Xuất chi nhánh ở tab Cài đặt -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --yellow:#FFD21A;--gold:#F5A11B;--purple:#8B2FBE;--grape:#4B1272;--magenta:#D633C6;
@@ -407,6 +409,133 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     </div>
 
     <div class="form-card">
+      <h3 style="font-size:18px;margin-bottom:6px">Quản lý chi nhánh</h3>
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Mã chi nhánh (vd: CN03) là khoá liên kết duy nhất giữa chi nhánh và tài khoản phụ trách — đổi tên/địa chỉ không ảnh hưởng liên kết. Tạm ngưng hoặc đóng hẳn 1 chi nhánh (mất mặt bằng, sửa chữa…) để khách không chọn được nữa khi đặt phòng hoặc báo sự cố.</p>
+
+      <div class="toolbar" style="margin-bottom:12px">
+        <input id="qChiNhanh" placeholder="Tìm mã, tên, địa chỉ…" style="flex:1;min-width:180px" oninput="drawChiNhanhList()">
+        <select id="fChiNhanhTrangThai" onchange="drawChiNhanhList()">
+          <option value="">Mọi trạng thái</option>
+          <option value="hoat_dong">Đang hoạt động</option>
+          <option value="tam_ngung">Tạm ngưng</option>
+          <option value="dong_cua">Đã đóng cửa</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="btn btn-y btn-sm" onclick="openThemChiNhanh()">+ Thêm chi nhánh</button>
+        <button class="btn btn-ghost btn-sm" onclick="xuatMauChiNhanh()">⬇️ Xuất file mẫu Excel</button>
+        <button class="btn btn-ghost btn-sm" onclick="xuatChiNhanhHienTai()">⬇️ Xuất danh sách hiện tại</button>
+        <button class="btn btn-ghost btn-sm" onclick="$('fileNhapChiNhanh').click()">⬆️ Nhập từ Excel</button>
+        <input type="file" id="fileNhapChiNhanh" accept=".xlsx,.xls" style="display:none" onchange="onFileNhapChiNhanh(event)">
+      </div>
+
+      <div id="listChiNhanh" style="margin-bottom:14px"><div class="sk"></div><div class="sk"></div></div>
+
+      <div class="form-card" id="formChiNhanh" style="display:none;margin-top:14px;padding:16px">
+        <h3 id="cnTieuDe" style="font-size:15px;margin-bottom:12px">Thêm chi nhánh mới</h3>
+        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+          <div class="field">
+            <label for="cnId">Mã chi nhánh</label>
+            <input id="cnId" placeholder="Để trống để tự tạo mã (CNxx)" maxlength="20">
+          </div>
+          <div class="field">
+            <label for="cnPriority">Độ ưu tiên hiển thị (số nhỏ hơn hiện trước)</label>
+            <input id="cnPriority" type="number" min="1" step="1" placeholder="vd: 10">
+          </div>
+        </div>
+        <div class="field">
+          <label for="cnName">Tên chi nhánh <span class="req" style="color:var(--bad)">*</span></label>
+          <input id="cnName" placeholder="vd: Boom Music Box Hoàng Diệu 2" maxlength="100">
+        </div>
+        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+          <div class="field">
+            <label for="cnShort">Tên rút gọn</label>
+            <input id="cnShort" placeholder="vd: Hoàng Diệu 2" maxlength="60">
+          </div>
+          <div class="field">
+            <label for="cnType">Loại hình</label>
+            <input id="cnType" placeholder="vd: Karaoke mini" maxlength="40">
+          </div>
+        </div>
+        <div class="field">
+          <label for="cnAddress">Địa chỉ <span class="req" style="color:var(--bad)">*</span></label>
+          <input id="cnAddress" placeholder="Số nhà, đường, phường/xã, tỉnh/thành" maxlength="200">
+        </div>
+        <div class="field">
+          <label for="cnRegion">Khu vực</label>
+          <input id="cnRegion" placeholder="vd: TP.HCM" maxlength="60">
+        </div>
+        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+          <div class="field">
+            <label for="cnPhone">SĐT (dùng để gọi)</label>
+            <input id="cnPhone" placeholder="vd: 0901234567" maxlength="15">
+          </div>
+          <div class="field">
+            <label for="cnPhoneDisplay">SĐT hiển thị</label>
+            <input id="cnPhoneDisplay" placeholder="vd: 090.123.4567" maxlength="20">
+          </div>
+        </div>
+        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr 1fr">
+          <div class="field">
+            <label for="cnOpen">Giờ mở cửa</label>
+            <input id="cnOpen" type="time">
+          </div>
+          <div class="field">
+            <label for="cnClose">Giờ đóng cửa</label>
+            <input id="cnClose" type="time">
+          </div>
+          <div class="field">
+            <label for="cnHours">Giờ hoạt động (mô tả)</label>
+            <input id="cnHours" placeholder="vd: 10:00 - 06:00 hôm sau" maxlength="60">
+          </div>
+        </div>
+        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+          <div class="field">
+            <label for="cnLat">Vĩ độ (lat)</label>
+            <input id="cnLat" type="number" step="any" placeholder="vd: 10.762622">
+          </div>
+          <div class="field">
+            <label for="cnLng">Kinh độ (lng)</label>
+            <input id="cnLng" type="number" step="any" placeholder="vd: 106.660172">
+          </div>
+        </div>
+        <div class="switch-row">
+          <div>
+            <b>Toạ độ chính xác</b>
+            <div style="font-size:12.5px;color:var(--txt-mute)">Tắt nếu toạ độ chỉ là ước lượng khu vực, chưa ghim đúng vị trí thật</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="cnGeoExact"><span class="track"></span></label>
+        </div>
+        <div class="field">
+          <label for="cnMaps">Link Google Maps</label>
+          <input id="cnMaps" placeholder="https://maps.google.com/…" maxlength="300">
+        </div>
+        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr 1fr">
+          <div class="field"><label for="cnFacebook">Facebook</label><input id="cnFacebook" maxlength="300"></div>
+          <div class="field"><label for="cnTiktok">TikTok</label><input id="cnTiktok" maxlength="300"></div>
+          <div class="field"><label for="cnInstagram">Instagram</label><input id="cnInstagram" maxlength="300"></div>
+        </div>
+        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+          <div class="field"><label for="cnPrice">Mức giá</label><input id="cnPrice" placeholder="vd: 100.000 - 300.000đ/giờ" maxlength="100"></div>
+          <div class="field"><label for="cnEmail">Email chi nhánh</label><input id="cnEmail" type="email" maxlength="80"></div>
+        </div>
+        <div class="field">
+          <label for="cnPhoto">Link ảnh</label>
+          <input id="cnPhoto" placeholder="https://…" maxlength="300">
+        </div>
+        <div class="field">
+          <label for="cnNote">Ghi chú nội bộ</label>
+          <input id="cnNote" maxlength="300">
+        </div>
+        <div class="bk-act" style="margin-top:6px">
+          <button class="btn btn-y btn-sm" onclick="submitChiNhanh()">Lưu</button>
+          <button class="btn btn-ghost btn-sm" onclick="$('formChiNhanh').style.display='none'">Huỷ</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
       <h3 style="font-size:18px;margin-bottom:6px">Danh mục loại sự cố</h3>
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm loại sự cố hay gặp, sửa mức độ ưu tiên mặc định, hoặc ẩn loại không còn dùng — áp dụng ngay cho form Báo sự cố, không cần sửa code.</p>
       <div id="listLoaiSuCo" style="margin-bottom:14px"></div>
@@ -458,8 +587,42 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
 
     <div class="form-card">
       <h3 style="font-size:18px;margin-bottom:6px">Quản lý tài khoản</h3>
-      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Đổi mật khẩu hoặc vô hiệu hoá tài khoản khi nhân viên nghỉ việc — có hiệu lực ngay, đăng xuất khỏi mọi thiết bị của người đó lập tức.</p>
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm tài khoản mới cho quản lý chi nhánh hoặc kỹ thuật, sửa thông tin, đổi mật khẩu, vô hiệu hoá tạm thời hoặc xoá hẳn — có hiệu lực ngay, đăng xuất khỏi mọi thiết bị của người đó lập tức khi vô hiệu hoá/đổi mật khẩu/xoá.</p>
+      <button class="btn btn-y btn-sm" style="margin-bottom:14px" onclick="openThemTaiKhoan()">+ Thêm tài khoản</button>
       <div id="listTaiKhoan"></div>
+
+      <div class="form-card" id="formTaiKhoan" style="display:none;margin-top:14px;padding:16px">
+        <h3 id="tkTieuDe" style="font-size:15px;margin-bottom:12px">Thêm tài khoản mới</h3>
+        <div class="field">
+          <label for="tkTaikhoan">Tên đăng nhập <span class="req" style="color:var(--bad)">*</span></label>
+          <input id="tkTaikhoan" placeholder="chỉ chữ thường/số, vd: kythuat3" maxlength="40" autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="tkHoten">Họ tên <span class="req" style="color:var(--bad)">*</span></label>
+          <input id="tkHoten" maxlength="60">
+        </div>
+        <div class="field">
+          <label>Vai trò <span class="req" style="color:var(--bad)">*</span></label>
+          <div id="tkVaiTroPick" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+        <div class="field" id="tkChiNhanhWrap">
+          <label for="tkChiNhanh">Chi nhánh phụ trách <span class="req" style="color:var(--bad)">*</span></label>
+          <select id="tkChiNhanh"><option value="">— Chọn chi nhánh —</option></select>
+          <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Với kỹ thuật viên: chọn chi nhánh xuất phát (điểm tham chiếu tính khoảng cách điều phối), không nhất thiết là chi nhánh cố định.</div>
+        </div>
+        <div class="field">
+          <label for="tkEmail">Email (dùng cho tính năng quên mật khẩu)</label>
+          <input id="tkEmail" type="email" maxlength="80">
+        </div>
+        <div class="field" id="tkMatKhauWrap">
+          <label for="tkMatKhau">Mật khẩu ban đầu</label>
+          <input id="tkMatKhau" placeholder="Để trống để tự tạo mật khẩu ngẫu nhiên" maxlength="60">
+        </div>
+        <div class="bk-act" style="margin-top:6px">
+          <button class="btn btn-y btn-sm" onclick="submitTaiKhoan()">Lưu</button>
+          <button class="btn btn-ghost btn-sm" onclick="$('formTaiKhoan').style.display='none'">Huỷ</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -472,7 +635,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
    BOOM MUSIC BOX — bảng điều khiển chi nhánh
    ══════════════════════════════════════════════ */
 const CFG = {
-  API: 'https://script.google.com/macros/s/AKfycbyJd-5nGPtfObYNN3fbv1l_tGqVAPZo3W68d0pwwJTbQ2JljRkjzkcFPY3dkb6pVpFG/exec',
+  API: 'https://script.google.com/macros/s/AKfycbydBJaQENLVZULfBVCDiK933EHrUeo6PsRLm3gCkGPdHUVVyzV1j6k3unNbgKCTeS8d/exec',
   PREFIX: 'bmb_adm_'
 };
 
@@ -647,6 +810,241 @@ async function loadKyThuat(){
   }catch(e){}
 }
 
+/* ═══════════════ QUẢN LÝ CHI NHÁNH (mới, 14/08/2026) ═══════════════
+   CHINHANH_LIST = danh sách ĐẦY ĐỦ (kể cả tạm ngưng/đóng cửa), chỉ admin xem được, dùng riêng cho
+   bảng quản lý trong Cài đặt. Khác với BRANCHES (đã lọc active) dùng cho dropdown đặt phòng/báo sự cố. */
+let CHINHANH_LIST = [];
+const CN_TRANGTHAI_LABEL = {hoat_dong:'Đang hoạt động', tam_ngung:'Tạm ngưng', dong_cua:'Đã đóng cửa'};
+const CN_TRANGTHAI_PRI = {hoat_dong:4, tam_ngung:2, dong_cua:1};
+
+/* Danh sách cột dùng CHUNG cho xuất mẫu / xuất hiện tại / đọc file nhập — sửa ở đây là đủ cả 3 nơi. */
+const CN_FIELD_MAP = [
+  {key:'id', label:'Mã chi nhánh (để trống nếu là CN mới)'},
+  {key:'name', label:'Tên chi nhánh'},
+  {key:'short', label:'Tên rút gọn'},
+  {key:'type', label:'Loại hình'},
+  {key:'address', label:'Địa chỉ'},
+  {key:'region', label:'Khu vực'},
+  {key:'phone', label:'SĐT (dùng để gọi)'},
+  {key:'phoneDisplay', label:'SĐT hiển thị'},
+  {key:'hours', label:'Giờ hoạt động (mô tả)'},
+  {key:'open', label:'Giờ mở cửa (HH:mm)'},
+  {key:'close', label:'Giờ đóng cửa (HH:mm)'},
+  {key:'lat', label:'Vĩ độ (lat)'},
+  {key:'lng', label:'Kinh độ (lng)'},
+  {key:'geoExact', label:'Toạ độ chính xác (Có/Không)'},
+  {key:'maps', label:'Link Google Maps'},
+  {key:'facebook', label:'Facebook'},
+  {key:'tiktok', label:'TikTok'},
+  {key:'instagram', label:'Instagram'},
+  {key:'price', label:'Mức giá'},
+  {key:'note', label:'Ghi chú nội bộ'},
+  {key:'photo', label:'Link ảnh'},
+  {key:'email', label:'Email chi nhánh'},
+  {key:'priority', label:'Độ ưu tiên hiển thị (số)'},
+  {key:'trangThai', label:'Trạng thái (Đang hoạt động / Tạm ngưng / Đã đóng cửa)'},
+  {key:'lyDoNgung', label:'Lý do (nếu tạm ngưng/đóng cửa)'}
+];
+
+async function loadChiNhanhList(){
+  $('listChiNhanh').innerHTML = '<div class="sk"></div><div class="sk"></div>';
+  try{
+    const j = await api({action:'chinhanh_list'});
+    if(!j.ok) throw new Error(j.error);
+    CHINHANH_LIST = j.data;
+    drawChiNhanhList();
+  }catch(e){ $('listChiNhanh').innerHTML = '<div class="empty">Không tải được danh sách chi nhánh.</div>'; }
+}
+
+function drawChiNhanhList(){
+  const q = norm($('qChiNhanh').value);
+  const f = $('fChiNhanhTrangThai').value;
+  let list = CHINHANH_LIST.filter(c => (!f || c.trangThai===f) && (!q || norm(c.id+' '+c.name+' '+c.address).includes(q)));
+  list = list.slice().sort((a,b)=> (a.priority||999) - (b.priority||999) || a.name.localeCompare(b.name));
+  if(!list.length){ $('listChiNhanh').innerHTML = '<div class="empty">Không tìm thấy chi nhánh nào.</div>'; return; }
+  $('listChiNhanh').innerHTML = list.map(c => `
+    <div class="sc" data-p="${CN_TRANGTHAI_PRI[c.trangThai]||4}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <div class="sc-name" style="font-size:15px">${esc(c.name)} <span class="st-pill">${esc(c.id)}</span> <span class="pri pri-${CN_TRANGTHAI_PRI[c.trangThai]||4}">${CN_TRANGTHAI_LABEL[c.trangThai]||c.trangThai}</span></div>
+        <div style="font-size:12.5px;color:var(--txt-mute)">${esc(c.address)}${c.phoneDisplay?' · '+esc(c.phoneDisplay):''}</div>
+        ${c.lyDoNgung ? '<div style="font-size:12px;color:var(--txt-mute);margin-top:2px">↳ '+esc(c.lyDoNgung)+'</div>' : ''}
+      </div>
+      <div class="sc-act" style="margin:0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select onchange="capNhatTrangThaiChiNhanh('${esc(c.id)}', this.value)" style="padding:8px 10px;border-radius:999px;background:var(--plum2);border:1px solid var(--line-soft);font-size:12.5px">
+          <option value="hoat_dong" ${c.trangThai==='hoat_dong'?'selected':''}>Đang hoạt động</option>
+          <option value="tam_ngung" ${c.trangThai==='tam_ngung'?'selected':''}>Tạm ngưng</option>
+          <option value="dong_cua" ${c.trangThai==='dong_cua'?'selected':''}>Đã đóng cửa</option>
+        </select>
+        <button class="btn btn-y btn-sm" onclick="openSuaChiNhanh('${esc(c.id)}')">Sửa</button>
+        <button class="btn btn-bad btn-sm" onclick="xoaChiNhanhUI('${esc(c.id)}')">Xoá</button>
+      </div>
+    </div>`).join('');
+}
+
+async function capNhatTrangThaiChiNhanh(id, trangThai){
+  let lyDo = '';
+  if(trangThai !== 'hoat_dong'){
+    lyDo = prompt('Lý do (không bắt buộc) — vd: "Trả mặt bằng T8/2026" hoặc "Đang sửa chữa":') || '';
+  }
+  try{
+    const j = await api({action:'chinhanh_trangthai', id, trangThai, lyDo});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã cập nhật trạng thái chi nhánh.','ok');
+  }catch(e){ toast('Không cập nhật được.','bad'); }
+  await loadChiNhanhList();
+  await loadBranches();
+}
+
+async function xoaChiNhanhUI(id){
+  if(!confirm('Xoá hẳn chi nhánh "'+id+'"? Đơn/sự cố cũ vẫn giữ nguyên nhưng chi nhánh sẽ biến mất khỏi mọi danh sách chọn. Không thể hoàn tác.')) return;
+  try{
+    const j = await api({action:'chinhanh_xoa', id});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã xoá chi nhánh.','ok');
+    await loadChiNhanhList();
+    await loadBranches();
+  }catch(e){ toast('Không xoá được.','bad'); }
+}
+
+function openThemChiNhanh(){
+  $('cnTieuDe').textContent = 'Thêm chi nhánh mới';
+  ['cnId','cnName','cnShort','cnType','cnAddress','cnRegion','cnPhone','cnPhoneDisplay','cnHours',
+   'cnLat','cnLng','cnMaps','cnFacebook','cnTiktok','cnInstagram','cnPrice','cnEmail','cnPhoto','cnNote','cnPriority']
+    .forEach(id=>$(id).value='');
+  $('cnOpen').value='10:00'; $('cnClose').value='06:00';
+  $('cnGeoExact').checked = false;
+  $('cnId').disabled = false;
+  $('formChiNhanh').style.display='block';
+  $('formChiNhanh').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function openSuaChiNhanh(id){
+  const c = CHINHANH_LIST.find(x=>x.id===id); if(!c) return;
+  $('cnTieuDe').textContent = 'Sửa chi nhánh — '+c.id;
+  $('cnId').value = c.id; $('cnId').disabled = true;
+  $('cnName').value=c.name; $('cnShort').value=c.short; $('cnType').value=c.type;
+  $('cnAddress').value=c.address; $('cnRegion').value=c.region;
+  $('cnPhone').value=c.phone; $('cnPhoneDisplay').value=c.phoneDisplay; $('cnHours').value=c.hours;
+  $('cnOpen').value=c.open||'10:00'; $('cnClose').value=c.close||'06:00';
+  $('cnLat').value = c.lat ?? ''; $('cnLng').value = c.lng ?? '';
+  $('cnGeoExact').checked = !!c.geoExact;
+  $('cnMaps').value=c.maps; $('cnFacebook').value=c.facebook; $('cnTiktok').value=c.tiktok; $('cnInstagram').value=c.instagram;
+  $('cnPrice').value=c.price; $('cnEmail').value=c.email; $('cnPhoto').value=c.photo; $('cnNote').value=c.note;
+  $('cnPriority').value = (c.priority && c.priority!==999) ? c.priority : '';
+  $('formChiNhanh').style.display='block';
+  $('formChiNhanh').scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function submitChiNhanh(){
+  const name = $('cnName').value.trim();
+  const address = $('cnAddress').value.trim();
+  if(!name) return toast('Nhập tên chi nhánh.','bad');
+  if(!address) return toast('Nhập địa chỉ.','bad');
+  const payload = {
+    action:'chinhanh_luu', id:$('cnId').value.trim(), name, short:$('cnShort').value.trim(), type:$('cnType').value.trim(),
+    address, region:$('cnRegion').value.trim(), phone:$('cnPhone').value.trim(), phoneDisplay:$('cnPhoneDisplay').value.trim(),
+    hours:$('cnHours').value.trim(), open:$('cnOpen').value, close:$('cnClose').value,
+    lat:$('cnLat').value.trim(), lng:$('cnLng').value.trim(), geoExact:$('cnGeoExact').checked,
+    maps:$('cnMaps').value.trim(), facebook:$('cnFacebook').value.trim(), tiktok:$('cnTiktok').value.trim(),
+    instagram:$('cnInstagram').value.trim(), price:$('cnPrice').value.trim(), email:$('cnEmail').value.trim(),
+    photo:$('cnPhoto').value.trim(), note:$('cnNote').value.trim(), priority:$('cnPriority').value.trim()
+  };
+  try{
+    const j = await api(payload);
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã lưu chi nhánh.','ok');
+    $('formChiNhanh').style.display='none';
+    await loadChiNhanhList();
+    await loadBranches();
+  }catch(e){
+    const map = {BAD_NAME:'Thiếu tên chi nhánh.', BAD_ADDRESS:'Thiếu địa chỉ.'};
+    toast(map[e.message] || 'Không lưu được.','bad');
+  }
+}
+
+/* ─── xuất / nhập Excel ─── */
+function today8(){ const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
+
+function xuatMauChiNhanh(){
+  const sample = [{
+    'Mã chi nhánh (để trống nếu là CN mới)':'', 'Tên chi nhánh':'Boom Music Box Ví Dụ', 'Tên rút gọn':'Ví Dụ',
+    'Loại hình':'Karaoke mini', 'Địa chỉ':'123 Đường ABC, Phường X, TP.HCM', 'Khu vực':'TP.HCM',
+    'SĐT (dùng để gọi)':'0901234567', 'SĐT hiển thị':'090.123.4567', 'Giờ hoạt động (mô tả)':'10:00 - 06:00 hôm sau',
+    'Giờ mở cửa (HH:mm)':'10:00', 'Giờ đóng cửa (HH:mm)':'06:00', 'Vĩ độ (lat)':10.762622, 'Kinh độ (lng)':106.660172,
+    'Toạ độ chính xác (Có/Không)':'Có', 'Link Google Maps':'https://maps.google.com/?q=...',
+    'Facebook':'', 'TikTok':'', 'Instagram':'', 'Mức giá':'100.000 - 300.000đ/giờ', 'Ghi chú nội bộ':'',
+    'Link ảnh':'', 'Email chi nhánh':'', 'Độ ưu tiên hiển thị (số)':10,
+    'Trạng thái (Đang hoạt động / Tạm ngưng / Đã đóng cửa)':'Đang hoạt động', 'Lý do (nếu tạm ngưng/đóng cửa)':''
+  }];
+  const header = CN_FIELD_MAP.map(f=>f.label);
+  const ws = XLSX.utils.json_to_sheet(sample, {header});
+  ws['!cols'] = header.map(()=>({wch:24}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Chi nhánh');
+  XLSX.writeFile(wb, 'mau-nhap-chi-nhanh.xlsx');
+}
+
+function xuatChiNhanhHienTai(){
+  if(!CHINHANH_LIST.length) return toast('Chưa có chi nhánh nào để xuất.','bad');
+  const header = CN_FIELD_MAP.map(f=>f.label);
+  const data = CHINHANH_LIST.map(c=>{
+    const o = {};
+    CN_FIELD_MAP.forEach(f=>{
+      let v = c[f.key];
+      if(f.key==='geoExact') v = v ? 'Có' : 'Không';
+      else if(f.key==='trangThai') v = CN_TRANGTHAI_LABEL[v] || v;
+      o[f.label] = v ?? '';
+    });
+    return o;
+  });
+  const ws = XLSX.utils.json_to_sheet(data, {header});
+  ws['!cols'] = header.map(()=>({wch:24}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Chi nhánh');
+  XLSX.writeFile(wb, 'danh-sach-chi-nhanh-'+today8()+'.xlsx');
+}
+
+async function onFileNhapChiNhanh(ev){
+  const file = ev.target.files[0];
+  ev.target.value = '';
+  if(!file) return;
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, {defval:''});
+    if(!raw.length) return toast('File không có dữ liệu.','bad');
+
+    const labelToKey = {};
+    CN_FIELD_MAP.forEach(f=>labelToKey[f.label]=f.key);
+    const rowsOut = raw.map(r=>{
+      const o = {};
+      Object.keys(r).forEach(label=>{
+        const key = labelToKey[label.trim()];
+        if(!key) return;
+        let v = r[label];
+        if(key==='geoExact') v = /^(có|co|y|yes|true|1)$/i.test(String(v).trim());
+        else if(key==='trangThai'){
+          const s = norm(String(v).trim());
+          v = s.includes('tam ngung') ? 'tam_ngung' : (s.includes('dong')) ? 'dong_cua' : 'hoat_dong';
+        }
+        else if(key==='lat' || key==='lng' || key==='priority') v = (v===''? '' : Number(v));
+        else v = String(v).trim();
+        o[key] = v;
+      });
+      return o;
+    }).filter(o=>o.name);
+
+    if(!rowsOut.length) return toast('Không có dòng hợp lệ (thiếu cột "Tên chi nhánh").','bad');
+    if(!confirm('Nhập '+rowsOut.length+' dòng chi nhánh từ file này? Dòng có mã trùng chi nhánh có sẵn sẽ được CẬP NHẬT, dòng còn lại sẽ THÊM MỚI.')) return;
+
+    const j = await api({action:'chinhanh_nhap', rows: rowsOut});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã thêm '+j.them+', cập nhật '+j.sua+' chi nhánh.'+(j.loi&&j.loi.length?' ('+j.loi.length+' dòng lỗi, xem console)':''), 'ok');
+    if(j.loi && j.loi.length) console.warn('Lỗi nhập chi nhánh:', j.loi);
+    await loadChiNhanhList();
+    await loadBranches();
+  }catch(e){ toast('Không đọc được file. Kiểm tra đúng định dạng file mẫu Excel.','bad'); }
+}
+
 /* ─── CẢNH BÁO ĐƠN MỚI: âm thanh + biểu tượng trang + thông báo hệ thống ─── */
 function requestNotifyPermission(){
   if(!('Notification' in window) || Notification.permission !== 'default') return;
@@ -772,7 +1170,7 @@ function switchTab(el){
 
   if(isBaoTri) drawSuCo();
   else if(isReport) drawReport();
-  else if(isCaiDat){ fillCfgInputs(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); }
+  else if(isCaiDat){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); }
   else draw();
 }
 
@@ -1284,8 +1682,10 @@ function drawTaiKhoanList(){
         <div style="font-size:12.5px;color:var(--txt-mute)">@${esc(u.taikhoan)}${u.chinhanhTen?' · '+esc(u.chinhanhTen):''}${u.email?' · '+esc(u.email):''}</div>
       </div>
       <div class="sc-act" style="margin:0">
+        <button class="btn btn-y btn-sm" onclick="openSuaTaiKhoan('${esc(u.taikhoan)}')">Sửa</button>
         <button class="btn btn-y btn-sm" onclick="adminDoiMatKhau('${esc(u.taikhoan)}')">Đổi mật khẩu</button>
         <button class="btn ${u.kichhoat?'btn-bad':'btn-ok'} btn-sm" onclick="adminToggleKichHoat('${esc(u.taikhoan)}',${!u.kichhoat})">${u.kichhoat?'Vô hiệu hoá':'Bật lại'}</button>
+        <button class="btn btn-bad btn-sm" onclick="xoaTaiKhoanUI('${esc(u.taikhoan)}')">Xoá</button>
       </div>
     </div>`).join('');
 }
@@ -1309,6 +1709,94 @@ async function adminToggleKichHoat(taikhoan, bat){
     toast(bat?'Đã bật lại tài khoản.':'Đã vô hiệu hoá tài khoản.','ok');
     loadTaiKhoanList();
   }catch(e){ toast(e.message || 'Không thực hiện được.','bad'); }
+}
+
+async function xoaTaiKhoanUI(taikhoan){
+  if(!confirm('Xoá hẳn tài khoản "'+taikhoan+'"? Không thể hoàn tác.')) return;
+  try{
+    const j = await api({action:'taikhoan_xoa', taikhoan});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã xoá tài khoản.','ok');
+    await loadTaiKhoanList();
+  }catch(e){ toast(e.message==='CANNOT_DELETE_SELF'?'Không thể tự xoá chính mình.':'Không xoá được.','bad'); }
+}
+
+/* ─── thêm / sửa tài khoản ─── */
+const VAITRO_LIST = [
+  {v:'manager', l:'Quản lý chi nhánh'}, {v:'kythuat', l:'Kỹ thuật chung'},
+  {v:'kythuat_mang', l:'Kỹ thuật mạng'}, {v:'admin', l:'Quản trị hệ thống'}
+];
+let tkVaiTroChon = 'manager', tkTaikhoanCu = '';
+
+function renderTkVaiTroPick(){
+  $('tkVaiTroPick').innerHTML = VAITRO_LIST.map(r=>{
+    const on = r.v===tkVaiTroChon;
+    return '<button type="button" class="btn btn-sm '+(on?'btn-y':'btn-ghost')+'" onclick="tkVaiTroChon=\''+r.v+'\';renderTkVaiTroPick()">'+r.l+'</button>';
+  }).join('');
+  $('tkChiNhanhWrap').style.display = tkVaiTroChon==='admin' ? 'none' : 'block';
+}
+
+function fillTkChiNhanhSelect(selId){
+  $('tkChiNhanh').innerHTML = '<option value="">— Chọn chi nhánh —</option>' +
+    CHINHANH_LIST.slice().sort((a,b)=>a.name.localeCompare(b.name))
+      .map(c=>'<option value="'+esc(c.id)+'"'+(c.id===selId?' selected':'')+'>'+esc(c.name)+' ('+esc(c.id)+')</option>').join('');
+}
+
+function openThemTaiKhoan(){
+  tkTaikhoanCu = ''; tkVaiTroChon = 'manager';
+  $('tkTieuDe').textContent = 'Thêm tài khoản mới';
+  $('tkTaikhoan').value=''; $('tkTaikhoan').disabled=false;
+  $('tkHoten').value=''; $('tkEmail').value=''; $('tkMatKhau').value='';
+  $('tkMatKhauWrap').style.display='block';
+  fillTkChiNhanhSelect('');
+  renderTkVaiTroPick();
+  $('formTaiKhoan').style.display='block';
+  $('formTaiKhoan').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function openSuaTaiKhoan(taikhoan){
+  const u = TAIKHOAN_LIST.find(x=>x.taikhoan===taikhoan); if(!u) return;
+  tkTaikhoanCu = taikhoan; tkVaiTroChon = u.vaitro || 'manager';
+  $('tkTieuDe').textContent = 'Sửa tài khoản — @'+u.taikhoan;
+  $('tkTaikhoan').value = u.taikhoan; $('tkTaikhoan').disabled = true;
+  $('tkHoten').value = u.hoten; $('tkEmail').value = u.email;
+  $('tkMatKhauWrap').style.display='none';
+  fillTkChiNhanhSelect(u.chinhanhId||'');
+  renderTkVaiTroPick();
+  $('formTaiKhoan').style.display='block';
+  $('formTaiKhoan').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+async function submitTaiKhoan(){
+  const taikhoan = $('tkTaikhoan').value.trim().toLowerCase();
+  const hoten = $('tkHoten').value.trim();
+  if(!taikhoan || taikhoan.length<3) return toast('Tên đăng nhập tối thiểu 3 ký tự.','bad');
+  if(!hoten) return toast('Nhập họ tên.','bad');
+  if(tkVaiTroChon!=='admin' && !$('tkChiNhanh').value) return toast('Chọn chi nhánh phụ trách.','bad');
+
+  const payload = {
+    taikhoan, hoten, vaitro:tkVaiTroChon, chinhanhId: tkVaiTroChon==='admin' ? '' : $('tkChiNhanh').value,
+    email:$('tkEmail').value.trim()
+  };
+  try{
+    let j;
+    if(tkTaikhoanCu){
+      j = await api({action:'taikhoan_sua', ...payload});
+    }else{
+      payload.matkhau = $('tkMatKhau').value.trim();
+      j = await api({action:'taikhoan_them', ...payload});
+    }
+    if(!j.ok) throw new Error(j.error);
+    if(!tkTaikhoanCu) toast('Đã tạo tài khoản '+j.taikhoan+'. Mật khẩu: '+j.matkhau+' — ghi lại ngay, gửi cho người dùng.','ok');
+    else toast('Đã lưu thay đổi.','ok');
+    $('formTaiKhoan').style.display='none';
+    await loadTaiKhoanList();
+  }catch(e){
+    const map = {DUP_USER:'Tên đăng nhập đã tồn tại.', BAD_BRANCH:'Chọn chi nhánh phụ trách.',
+      BRANCH_NOT_FOUND:'Không tìm thấy chi nhánh đã chọn.', BAD_ROLE:'Vai trò không hợp lệ.',
+      BAD_USER:'Tên đăng nhập tối thiểu 3 ký tự.', BAD_NAME:'Nhập họ tên.', BAD_PASS:'Mật khẩu tối thiểu 4 ký tự.'};
+    toast(map[e.message] || 'Không lưu được.','bad');
+  }
 }
 
 /* ─── danh mục loại sự cố ─── */
