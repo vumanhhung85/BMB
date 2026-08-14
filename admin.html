@@ -222,6 +222,15 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .kebab-item.bad{color:#FF8FA6}
 .kebab-item.ok{color:var(--ok)}
 
+/* ─── modal "Lịch sử xử lý" (mới, 14/08/2026) — dùng chung 1 overlay cho mọi ticket sự cố ─── */
+#modalOverlay{position:fixed;inset:0;background:rgba(10,4,20,.72);backdrop-filter:blur(3px);
+  z-index:200;align-items:center;justify-content:center;padding:20px}
+.ls-timeline{position:relative;padding-left:22px}
+.ls-timeline::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:var(--line-soft)}
+.ls-item{position:relative;padding-bottom:16px}
+.ls-item:last-child{padding-bottom:0}
+.ls-dot{position:absolute;left:-22px;top:3px;width:11px;height:11px;border-radius:50%;background:var(--yellow);border:2px solid var(--plum2)}
+
 table{width:100%;border-collapse:collapse;font-size:13.5px}
 th,td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line-soft)}
 th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em}
@@ -284,14 +293,9 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       </div>
     </div>
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" aria-selected="true"  data-t="pending"  onclick="switchTab(this)">Chờ duyệt <span class="n zero" id="nPending"></span></button>
-      <button class="tab" role="tab" aria-selected="false" data-t="approved" onclick="switchTab(this)">Đã duyệt</button>
-      <button class="tab" role="tab" aria-selected="false" data-t="done"     onclick="switchTab(this)">Đã tới hát</button>
-      <button class="tab" role="tab" aria-selected="false" data-t="rejected" onclick="switchTab(this)">Từ chối</button>
-      <button class="tab" role="tab" aria-selected="false" data-t="all"      onclick="switchTab(this)">Tất cả</button>
-      <button class="tab" role="tab" aria-selected="false" data-t="report"   onclick="switchTab(this)">Báo cáo</button>
+      <button class="tab" role="tab" aria-selected="true"  data-t="dat-phong" onclick="switchTab(this)">📋 Đặt phòng <span class="n zero" id="nPending"></span></button>
       <button class="tab" role="tab" aria-selected="false" data-t="baotri"   onclick="switchTab(this)">🛠️ Bảo trì <span class="n zero" id="nSuCo"></span></button>
-      <button class="tab" role="tab" aria-selected="false" data-t="caidat"   onclick="switchTab(this)" id="tabCaiDat" style="display:none">⚙️ Cài đặt</button>
+      <button class="tab" role="tab" aria-selected="false" data-t="caidat"   onclick="switchTab(this)" id="tabCaiDat">⚙️ Cài đặt</button>
     </div>
   </div>
 </header>
@@ -301,6 +305,13 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
 
   <div class="toolbar" id="toolbar">
     <input id="qSearch" placeholder="Tìm tên, số điện thoại hoặc mã…" style="flex:1;min-width:190px" oninput="draw()">
+    <select id="fStatus" onchange="draw()">
+      <option value="">Mọi trạng thái</option>
+      <option value="pending">Chờ duyệt</option>
+      <option value="approved">Đã duyệt</option>
+      <option value="done">Đã tới hát</option>
+      <option value="rejected">Từ chối</option>
+    </select>
     <select id="fBranch" onchange="draw()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
     <select id="fDate" onchange="draw()">
       <option value="">Mọi ngày</option>
@@ -308,6 +319,8 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       <option value="tomorrow">Ngày mai</option>
       <option value="week">7 ngày tới</option>
     </select>
+    <button class="btn btn-y btn-sm" id="btnViewList" onclick="toggleBookingView('list')">📋 Danh sách</button>
+    <button class="btn btn-ghost btn-sm" id="btnViewReport" onclick="toggleBookingView('report')">📊 Báo cáo</button>
     <button class="btn btn-ghost btn-sm" onclick="loadBookings(true)" id="refreshBtn">🔄 Làm mới</button>
     <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇️ Xuất Excel</button>
   </div>
@@ -426,6 +439,21 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
 
   <!-- ══════════ CÀI ĐẶT ══════════ -->
   <div id="caidat" style="display:none">
+    <div class="form-card" style="max-width:560px">
+      <h3 style="font-size:18px;margin-bottom:6px">Đổi mật khẩu của tôi</h3>
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Áp dụng cho tài khoản đang đăng nhập (<span id="tkmTaiKhoanHienTai" style="color:var(--txt)"></span>). Đổi xong sẽ tự đăng xuất các thiết bị khác, không đăng xuất thiết bị đang dùng.</p>
+      <div class="field">
+        <label for="tkmMatKhauCu">Mật khẩu hiện tại</label>
+        <input id="tkmMatKhauCu" type="password" maxlength="60" autocomplete="current-password">
+      </div>
+      <div class="field">
+        <label for="tkmMatKhauMoi">Mật khẩu mới (tối thiểu 4 ký tự)</label>
+        <input id="tkmMatKhauMoi" type="password" maxlength="60" autocomplete="new-password">
+      </div>
+      <button class="btn btn-y btn-sm" onclick="tuDoiMatKhau()">Đổi mật khẩu</button>
+    </div>
+
+    <div id="caidatAdmin" style="display:none">
     <div class="form-card" style="max-width:560px">
       <h3 style="font-size:18px;margin-bottom:6px">Chức năng giữ phòng đặt chỗ</h3>
       <p style="color:var(--txt-mute);font-size:13.5px">Khi tắt, trang khách sẽ ẩn nút "Giữ phòng" và máy chủ từ chối mọi đơn mới gửi lên. Đơn cũ vẫn xem và xử lý bình thường trong các tab bên trên.</p>
@@ -666,7 +694,8 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         </div>
         <div class="field" id="tkMatKhauWrap">
           <label for="tkMatKhau">Mật khẩu ban đầu</label>
-          <input id="tkMatKhau" placeholder="Để trống để tự tạo mật khẩu ngẫu nhiên" maxlength="60">
+          <input id="tkMatKhau" placeholder="Boom@2026" maxlength="60">
+          <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Để trống sẽ dùng mật khẩu mặc định <b>Boom@2026</b> — nên đổi lại ngay sau lần đăng nhập đầu tiên.</div>
         </div>
         <div class="bk-act" style="margin-top:6px">
           <button class="btn btn-y btn-sm" onclick="submitTaiKhoan()">Lưu</button>
@@ -674,8 +703,19 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         </div>
       </div>
     </div>
+    </div>
   </div>
 </div>
+</div>
+
+<div id="modalOverlay" style="display:none" onclick="if(event.target===this) closeLichSu()">
+  <div class="form-card" style="max-width:520px;width:100%;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 id="lsTieuDe" style="font-size:16px">Lịch sử xử lý</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeLichSu()">✕</button>
+    </div>
+    <div id="lsBody"></div>
+  </div>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -689,7 +729,7 @@ const CFG = {
   PREFIX: 'bmb_adm_'
 };
 
-let SESSION = null, DATA = [], TAB = 'pending';
+let SESSION = null, DATA = [], TAB = 'dat-phong';
 let PUBLIC_SETTINGS = { soThietBiToiDa: 3, idleTimeoutPhut: 720 };
 let idleTimer, idleAt;
 
@@ -727,6 +767,29 @@ const TRANG_THAI_LABEL = {
   da_nhan:'Kỹ thuật đã nhận', dang_xu_ly:'Đang xử lý', cho_xac_nhan:'Chờ chi nhánh xác nhận',
   cho_dong:'Chờ đóng ticket', dong:'Đã đóng'
 };
+/** Định dạng "hh:mm dd/mm/yy" từ chuỗi ISO server trả về (yyyy-MM-ddTHH:mm:ss, giờ Việt Nam, không
+ *  có hậu tố Z nên trình duyệt hiểu đúng là giờ địa phương, không lệch múi giờ). */
+function fmtVN(iso){
+  if(!iso) return '';
+  const d = new Date(String(iso));
+  if(isNaN(d)) return String(iso).replace('T',' ').slice(0,16);
+  const p2 = n => String(n).padStart(2,'0');
+  return p2(d.getHours())+':'+p2(d.getMinutes())+' '+p2(d.getDate())+'/'+p2(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(2);
+}
+/** Khoảng cách thời gian giữa 2 mốc ISO, dạng ngắn gọn (vd "2g 15p", "3 ngày 4g") — dùng để biết
+ *  chi nhánh xác nhận sau khi kỹ thuật báo xong bao lâu, phục vụ tính KPI thời gian xử lý. */
+function fmtKhoangCach(fromIso, toIso){
+  if(!fromIso || !toIso) return '';
+  const ms = new Date(String(toIso)) - new Date(String(fromIso));
+  if(isNaN(ms) || ms<0) return '';
+  const mins = Math.round(ms/60000);
+  if(mins<1) return '<1 phút';
+  if(mins<60) return mins+' phút';
+  const h = Math.floor(mins/60), m = mins%60;
+  if(h<24) return h+'g'+(m?' '+m+'p':'');
+  const dd = Math.floor(h/24);
+  return dd+' ngày '+(h%24)+'g';
+}
 function haversine(a,b,c,d){
   const R=6371,p=Math.PI/180;
   const x=Math.sin((c-a)*p/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin((d-b)*p/2)**2;
@@ -820,23 +883,30 @@ async function enterApp(){
   $('hBadge').className = 'badge' + (SESSION.role==='admin' ? ' admin' : '');
   if(SESSION.role === 'admin'){
     $('fBranch').style.display='';
-    $('tabCaiDat').style.display='';
     $('fSuCoChiNhanh').style.display='';
+    $('caidatAdmin').style.display='';
     loadKyThuat();
     loadBookingSetting();
   }
   if(SESSION.role === 'manager' || SESSION.role === 'admin'){
     $('btnTaoSuCo').style.display='';
   }
+  // Kỹ thuật viên chỉ làm việc trong tab Bảo trì — không liên quan tới đặt phòng, nên ẩn hẳn tab
+  // "Đặt phòng" và không tải dữ liệu đơn (đỡ 1 lượt gọi API mỗi lần vào + mỗi 30 giây tự làm mới).
+  if(isKyThuat()){
+    document.querySelector('.tab[data-t="dat-phong"]').style.display='none';
+    switchTab(document.querySelector('.tab[data-t="baotri"]'));
+  } else {
+    loadBookings();
+    setInterval(()=>loadBookings(false,true), 30000);   // tự làm mới mỗi 30 giây
+  }
   requestNotifyPermission();
   loadPublicSettings();
   resetIdle();
   ['click','keydown','scroll','touchstart'].forEach(e=>document.addEventListener(e,resetIdle,{passive:true}));
   loadBranches();
-  loadBookings();
   await loadLoaiSuCo();
   loadSuCo();
-  setInterval(()=>loadBookings(false,true), 30000);   // tự làm mới mỗi 30 giây
   setInterval(()=>loadSuCo(true), 30000);
 }
 
@@ -1240,35 +1310,53 @@ async function loadBookings(manual, silent){
   draw();
 }
 
+let BOOKING_VIEW = 'list';   // 'list' | 'report' — view con bên trong tab Đặt phòng
+
 function switchTab(el){
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected','false'));
   el.setAttribute('aria-selected','true');
   TAB = el.dataset.t;
-  const isReport = TAB==='report', isBaoTri = TAB==='baotri', isCaiDat = TAB==='caidat';
-  const isBooking = !isReport && !isBaoTri && !isCaiDat;
+  const isBaoTri = TAB==='baotri', isCaiDat = TAB==='caidat';
+  const isBooking = !isBaoTri && !isCaiDat;
+  const isReportView = isBooking && BOOKING_VIEW==='report';
 
   $('stats').style.display = isBooking ? '' : 'none';
-  $('list').style.display = isBooking?'':'none';
-  $('report').style.display = isReport?'':'none';
-  $('toolbar').style.display = isBooking?'flex':'none';
-  $('baotri').style.display = isBaoTri?'':'none';
-  $('toolbarSuCo').style.display = isBaoTri?'flex':'none';
-  $('caidat').style.display = isCaiDat?'':'none';
+  $('toolbar').style.display = isBooking ? 'flex' : 'none';
+  $('list').style.display = (isBooking && !isReportView) ? '' : 'none';
+  $('report').style.display = isReportView ? '' : 'none';
+  $('baotri').style.display = isBaoTri ? '' : 'none';
+  $('toolbarSuCo').style.display = isBaoTri ? 'flex' : 'none';
+  $('caidat').style.display = isCaiDat ? '' : 'none';
 
   if(isBaoTri) drawSuCo();
-  else if(isReport) drawReport();
-  else if(isCaiDat){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); }
+  else if(isCaiDat){
+    $('tkmTaiKhoanHienTai').textContent = '@'+SESSION.user;
+    if(SESSION.role==='admin'){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); }
+  }
+  else if(isReportView) drawReport();
   else draw();
+}
+
+/** Chuyển giữa xem Danh sách và xem Báo cáo, cả 2 đều nằm trong tab Đặt phòng — không phải 2 tab
+ *  riêng như trước (gộp lại theo yêu cầu chỉ còn 3 tab chính: Đặt phòng / Bảo trì / Cài đặt). */
+function toggleBookingView(view){
+  BOOKING_VIEW = view;
+  $('btnViewList').className = 'btn btn-sm ' + (view==='list' ? 'btn-y' : 'btn-ghost');
+  $('btnViewReport').className = 'btn btn-sm ' + (view==='report' ? 'btn-y' : 'btn-ghost');
+  const isReportView = view==='report';
+  $('list').style.display = isReportView ? 'none' : '';
+  $('report').style.display = isReportView ? '' : 'none';
+  if(isReportView) drawReport(); else draw();
 }
 
 function filtered(){
   const q = norm($('qSearch').value.trim());
-  const fb = $('fBranch').value, fd = $('fDate').value;
+  const fs = $('fStatus').value, fb = $('fBranch').value, fd = $('fDate').value;
   const today = new Date().toISOString().slice(0,10);
   const tmr = new Date(Date.now()+864e5).toISOString().slice(0,10);
   const wk  = new Date(Date.now()+7*864e5).toISOString().slice(0,10);
   return DATA.filter(d=>{
-    if(TAB!=='all' && TAB!=='report' && d.status!==TAB) return false;
+    if(fs && d.status!==fs) return false;
     if(fb && d.branchName!==fb) return false;
     if(fd==='today' && d.date!==today) return false;
     if(fd==='tomorrow' && d.date!==tmr) return false;
@@ -1292,15 +1380,16 @@ function draw(){
     '<div class="stat g"><div class="k">Đã duyệt hôm nay</div><div class="v">'+tD.filter(d=>d.status==='approved').length+'</div></div>'+
     '<div class="stat"><div class="k">Khách hôm nay</div><div class="v">'+tD.filter(d=>d.status!=='rejected').reduce((s,d)=>s+(+d.guests||0),0)+'</div></div>';
 
-  if(TAB==='report') return drawReport();
   if(TAB==='baotri' || TAB==='caidat') return;   // panel riêng, không dùng #list đặt phòng
+  if(BOOKING_VIEW==='report') return drawReport();
 
+  const fs = $('fStatus').value;
   const rows = filtered();
   $('list').innerHTML = rows.length ? rows.map(bkHTML).join('') :
-    '<div class="empty"><div class="big">'+(TAB==='pending'?'✅':'📭')+'</div>'+
+    '<div class="empty"><div class="big">'+(fs==='pending'?'✅':'📭')+'</div>'+
     '<b style="font-family:\'Baloo 2\';font-size:19px;display:block;margin-bottom:6px">'+
-    (TAB==='pending'?'Không còn đơn nào chờ duyệt':'Chưa có đơn nào ở mục này')+'</b><p>'+
-    (TAB==='pending'?'Đơn mới sẽ hiện ở đây và trang tự làm mới mỗi phút.':'Thử đổi bộ lọc ngày hoặc xoá từ khoá tìm kiếm.')+'</p></div>';
+    (fs==='pending'?'Không còn đơn nào chờ duyệt':'Chưa có đơn nào ở mục này')+'</b><p>'+
+    (fs==='pending'?'Đơn mới sẽ hiện ở đây và trang tự làm mới mỗi phút.':'Thử đổi bộ lọc ngày hoặc xoá từ khoá tìm kiếm.')+'</p></div>';
 }
 
 function bkHTML(d){
@@ -1581,7 +1670,7 @@ function drawSuCo(){
 
 function sucoHTML(t){
   const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac;
-  const created = String(t.taoLuc||'').replace('T',' ').slice(0,16);
+  const created = fmtVN(t.taoLuc);
   let acts = '';
 
   if(SESSION.role==='admin'){
@@ -1598,8 +1687,18 @@ function sucoHTML(t){
     acts += '<button class="btn btn-ok btn-sm" onclick="xacNhan(\''+t.maSuCo+'\',true)">✅ Đã xong</button>'+
             '<button class="btn btn-bad btn-sm" onclick="xacNhan(\''+t.maSuCo+'\',false)">❌ Chưa xong</button>';
   }
+  acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\')">🕘 Lịch sử</button>';
 
   const photos = (imgs, label) => imgs.length ? '<div class="sc-photos">'+imgs.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="'+label+'" loading="lazy"></a>').join('')+'</div>' : '';
+
+  // Mốc thời gian xử lý xong + chi nhánh xác nhận — hiện cả 2 kèm khoảng cách giữa chúng để thấy
+  // ngay chi nhánh xác nhận chậm hay nhanh sau khi kỹ thuật báo xong, không cần mở Lịch sử mới biết.
+  const moc = (t.xongLuc || t.xacNhanLuc) ? '<div class="sc-grid">'+
+      (t.xongLuc ? '<div class="r"><i>Xử lý xong</i><b>'+fmtVN(t.xongLuc)+'</b></div>' : '')+
+      (t.xacNhanLuc ? '<div class="r"><i>Chi nhánh xác nhận</i><b>'+fmtVN(t.xacNhanLuc)+
+        (fmtKhoangCach(t.xongLuc,t.xacNhanLuc) ? ' <span style="font-weight:500;color:var(--txt-mute)">(sau '+fmtKhoangCach(t.xongLuc,t.xacNhanLuc)+')</span>' : '')+
+        '</b></div>' : '')+
+    '</div>' : '';
 
   return '<article class="sc" data-p="'+t.mucDo+'">'+
     '<div class="sc-top"><div>'+
@@ -1612,9 +1711,44 @@ function sucoHTML(t){
     (t.kyThuatTen ? '<div class="sc-grid"><div class="r"><i>Kỹ thuật</i><b>'+esc(t.kyThuatTen)+'</b></div></div>' : '') +
     (t.moTaBoSung ? '<div class="sc-note">↩️ Chi nhánh báo chưa xong: '+esc(t.moTaBoSung)+'</div>' : '') +
     photos(t.anhHoanThanh,'ảnh hoàn thành') +
-    (acts ? '<div class="sc-act">'+acts+'</div>' : '') +
+    moc +
+    '<div class="sc-act">'+acts+'</div>' +
     '</article>';
 }
+
+/* ─── xem lịch sử xử lý đầy đủ (mốc thời gian từng bước + ảnh) ─── */
+const HANHDONG_LABEL = {
+  TAO:'📝 Tạo ticket', TIEP_NHAN:'✓ Admin tiếp nhận', DIEU_PHOI:'📍 Điều phối kỹ thuật',
+  NHAN_VIEC:'👷 Kỹ thuật nhận việc', BAT_DAU_XU_LY:'🔧 Bắt đầu xử lý', BAO_XONG:'✅ Kỹ thuật báo xong',
+  XAC_NHAN_XONG:'✅ Chi nhánh xác nhận xong', CHUA_XONG:'↩️ Chi nhánh báo chưa xong', DONG:'🔒 Đóng ticket'
+};
+async function xemLichSu(maSuCo){
+  const t = SUCO.find(x=>x.maSuCo===maSuCo);
+  $('lsTieuDe').textContent = 'Lịch sử xử lý — '+maSuCo;
+  $('lsBody').innerHTML = '<div class="sk" style="height:70px"></div><div class="sk" style="height:70px"></div>';
+  $('modalOverlay').style.display='flex';
+  try{
+    const j = await api({action:'suco_lichsu', maSuCo});
+    if(!j.ok) throw new Error(j.error);
+    const timeline = j.data.length ? '<div class="ls-timeline">'+j.data.map(l=>
+      '<div class="ls-item"><div class="ls-dot"></div><div>'+
+        '<div style="font-weight:700;font-size:13.5px">'+(HANHDONG_LABEL[l.hanhDong]||l.hanhDong)+'</div>'+
+        '<div style="font-size:12px;color:var(--txt-mute)">'+fmtVN(l.luc)+' · '+esc(l.nguoiThucHien)+'</div>'+
+        (l.ghiChu?'<div style="font-size:12.5px;margin-top:3px">'+esc(l.ghiChu)+'</div>':'')+
+      '</div></div>'
+    ).join('')+'</div>' : '<div class="empty" style="padding:24px 0">Chưa có lịch sử.</div>';
+
+    const anhBaoLoi = (t && t.anhBaoLoi && t.anhBaoLoi.length) ?
+      '<h4 style="font-size:13.5px;margin:16px 0 8px">Ảnh báo lỗi</h4><div class="sc-photos">'+
+      t.anhBaoLoi.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" loading="lazy"></a>').join('')+'</div>' : '';
+    const anhXong = (t && t.anhHoanThanh && t.anhHoanThanh.length) ?
+      '<h4 style="font-size:13.5px;margin:16px 0 8px">Ảnh hoàn thành</h4><div class="sc-photos">'+
+      t.anhHoanThanh.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" loading="lazy"></a>').join('')+'</div>' : '';
+
+    $('lsBody').innerHTML = timeline + anhBaoLoi + anhXong;
+  }catch(e){ $('lsBody').innerHTML = '<div class="empty" style="padding:24px 0">Không tải được lịch sử.</div>'; }
+}
+function closeLichSu(){ $('modalOverlay').style.display='none'; }
 
 /* ─── các hành động chuyển trạng thái ─── */
 async function tiepNhan(maSuCo, mucDoHienTai){
@@ -1781,6 +1915,24 @@ function drawTaiKhoanList(){
         </div>
       </div>
     </div>`).join('');
+}
+
+/** Tự đổi mật khẩu của chính tài khoản đang đăng nhập — dùng ở thẻ "Đổi mật khẩu của tôi", mọi
+ *  vai trò đều gọi được, khác adminDoiMatKhau() (admin đặt lại mật khẩu NGƯỜI KHÁC, không cần biết
+ *  mật khẩu cũ). */
+async function tuDoiMatKhau(){
+  const cu = $('tkmMatKhauCu').value;
+  const moi = $('tkmMatKhauMoi').value;
+  if(!cu) return toast('Nhập mật khẩu hiện tại.','bad');
+  if(moi.length < 4) return toast('Mật khẩu mới tối thiểu 4 ký tự.','bad');
+  try{
+    const j = await api({action:'tu_doimk', matkhauCu:cu, matkhauMoi:moi});
+    if(!j.ok) throw new Error(j.error);
+    $('tkmMatKhauCu').value=''; $('tkmMatKhauMoi').value='';
+    toast('Đã đổi mật khẩu. Các thiết bị khác đã bị đăng xuất.','ok');
+  }catch(e){
+    toast(e.message==='BAD_OLD_PASS' ? 'Mật khẩu hiện tại không đúng.' : 'Không đổi được mật khẩu.', 'bad');
+  }
 }
 
 async function adminDoiMatKhau(taikhoan){
