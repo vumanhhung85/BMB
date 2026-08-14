@@ -134,6 +134,18 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .pri-2{background:rgba(255,176,32,.16);color:var(--warn);border:1px solid rgba(255,176,32,.4)}
 .pri-3{background:rgba(255,210,26,.14);color:var(--yellow);border:1px solid rgba(255,210,26,.35)}
 .pri-4{background:rgba(61,220,151,.14);color:var(--ok);border:1px solid rgba(61,220,151,.35)}
+.pri-btn{padding:9px 16px;border-radius:999px;font-size:13.5px;font-weight:700;cursor:pointer;
+  background:transparent;transition:transform .12s ease,box-shadow .12s ease,opacity .12s ease;white-space:nowrap}
+.pri-btn:not(.on){opacity:.45;transform:scale(.97)}
+.pri-btn.on{opacity:1;transform:scale(1.08);box-shadow:0 8px 18px -8px rgba(0,0,0,.75)}
+.pri-btn-1{border:1.5px solid rgba(255,92,122,.5);color:#FF8FA6}
+.pri-btn-1.on{background:var(--bad);color:#2a0410;border-color:var(--bad)}
+.pri-btn-2{border:1.5px solid rgba(255,176,32,.4);color:var(--warn)}
+.pri-btn-2.on{background:var(--warn);color:#2a1700;border-color:var(--warn)}
+.pri-btn-3{border:1.5px solid rgba(255,210,26,.35);color:var(--yellow)}
+.pri-btn-3.on{background:var(--yellow);color:#2a2400;border-color:var(--yellow)}
+.pri-btn-4{border:1.5px solid rgba(61,220,151,.35);color:var(--ok)}
+.pri-btn-4.on{background:var(--ok);color:#00220f;border-color:var(--ok)}
 .st-pill{padding:4px 11px;border-radius:999px;font-size:11.5px;font-weight:600;background:rgba(255,255,255,.08);
   color:var(--txt-dim);border:1px solid var(--line-soft);white-space:nowrap}
 .sc{background:linear-gradient(160deg,rgba(42,21,71,.8),rgba(30,14,51,.8));border:1px solid var(--line-soft);
@@ -155,6 +167,7 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .sc-flag{font-size:12px;color:var(--bad);font-weight:700;margin-bottom:8px}
 .form-card{background:linear-gradient(160deg,rgba(42,21,71,.85),rgba(30,14,51,.85));border:1px solid var(--line);
   border-radius:18px;padding:20px;margin-bottom:18px}
+.photo-pick-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px}
 .photobox{display:flex;gap:9px;flex-wrap:wrap;margin-top:8px}
 .photobox .th{position:relative;width:74px;height:74px;border-radius:10px;overflow:hidden;border:1px solid var(--line-soft)}
 .photobox .th img{width:100%;height:100%;object-fit:cover}
@@ -322,8 +335,13 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <textarea id="scMoTa" rows="3" maxlength="500" placeholder="Mô tả cụ thể tình trạng…" style="width:100%;padding:12px 14px;border-radius:12px;background:rgba(20,6,31,.72);border:1px solid var(--line-soft)"></textarea>
       </div>
       <div class="field">
-        <label for="scAnh">Ảnh đính kèm (tối đa 3 ảnh)</label>
-        <input type="file" id="scAnh" accept="image/*" multiple onchange="onPickAnh(this,'scPhotoBox','SC_ANH')">
+        <label>Ảnh đính kèm (tối đa 3 ảnh)</label>
+        <div class="photo-pick-row">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="$('scAnhCam').click()">📷 Chụp ảnh</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="$('scAnhLib').click()">🖼️ Chọn từ thư viện</button>
+        </div>
+        <input type="file" id="scAnhCam" accept="image/*" capture="environment" style="display:none" onchange="onPickAnh(this,'scPhotoBox','SC_ANH')">
+        <input type="file" id="scAnhLib" accept="image/*" multiple style="display:none" onchange="onPickAnh(this,'scPhotoBox','SC_ANH')">
         <div class="photobox" id="scPhotoBox"></div>
       </div>
       <div class="bk-act" style="margin-top:6px">
@@ -353,8 +371,13 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <textarea id="bxGhiChu" rows="2" maxlength="300" placeholder="Đã thay linh kiện gì, xử lý ra sao…" style="width:100%;padding:12px 14px;border-radius:12px;background:rgba(20,6,31,.72);border:1px solid var(--line-soft)"></textarea>
       </div>
       <div class="field">
-        <label for="bxAnh">Ảnh sau khi xử lý (tối đa 3 ảnh)</label>
-        <input type="file" id="bxAnh" accept="image/*" multiple onchange="onPickAnh(this,'bxPhotoBox','SC_ANH_XONG')">
+        <label>Ảnh sau khi xử lý (tối đa 3 ảnh)</label>
+        <div class="photo-pick-row">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="$('bxAnhCam').click()">📷 Chụp ảnh</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="$('bxAnhLib').click()">🖼️ Chọn từ thư viện</button>
+        </div>
+        <input type="file" id="bxAnhCam" accept="image/*" capture="environment" style="display:none" onchange="onPickAnh(this,'bxPhotoBox','SC_ANH_XONG')">
+        <input type="file" id="bxAnhLib" accept="image/*" multiple style="display:none" onchange="onPickAnh(this,'bxPhotoBox','SC_ANH_XONG')">
         <div class="photobox" id="bxPhotoBox"></div>
       </div>
       <div class="bk-act" style="margin-top:6px">
@@ -380,6 +403,36 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <input type="checkbox" id="bkToggle" checked onchange="toggleBookingSetting()">
           <span class="track"></span>
         </label>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3 style="font-size:18px;margin-bottom:6px">Danh mục loại sự cố</h3>
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm loại sự cố hay gặp, sửa mức độ ưu tiên mặc định, hoặc ẩn loại không còn dùng — áp dụng ngay cho form Báo sự cố, không cần sửa code.</p>
+      <div id="listLoaiSuCo" style="margin-bottom:14px"></div>
+      <button class="btn btn-y btn-sm" onclick="openThemLoaiSuCo()">+ Thêm loại sự cố</button>
+
+      <div class="form-card" id="formLoaiSuCo" style="display:none;margin-top:14px;padding:16px">
+        <h3 id="lscTieuDe" style="font-size:15px;margin-bottom:12px">Thêm loại sự cố mới</h3>
+        <div class="field">
+          <label for="lscTen">Tên hiển thị</label>
+          <input id="lscTen" placeholder="vd: Hỏng máy lạnh phòng VIP" maxlength="80">
+        </div>
+        <div class="field">
+          <label>Mức độ ưu tiên mặc định</label>
+          <div id="lscMucDoPick" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+        <div class="field">
+          <label for="lscLoaiKT">Loại kỹ thuật phụ trách</label>
+          <select id="lscLoaiKT">
+            <option value="chung">Kỹ thuật chung</option>
+            <option value="mang">Kỹ thuật mạng</option>
+          </select>
+        </div>
+        <div class="bk-act" style="margin-top:6px">
+          <button class="btn btn-y btn-sm" onclick="submitLoaiSuCo()">Lưu</button>
+          <button class="btn btn-ghost btn-sm" onclick="$('formLoaiSuCo').style.display='none'">Huỷ</button>
+        </div>
       </div>
     </div>
 
@@ -419,7 +472,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
    BOOM MUSIC BOX — bảng điều khiển chi nhánh
    ══════════════════════════════════════════════ */
 const CFG = {
-  API: 'https://script.google.com/macros/s/AKfycbyJd-5nGPtfObYNN3fbv1l_tGqVAPZo3W68d0pwwJTbQ2JljRkjzkcFPY3dkb6pVpFG/exec',
+  API: 'https://script.google.com/macros/s/AKfycbydBJaQENLVZULfBVCDiK933EHrUeo6PsRLm3gCkGPdHUVVyzV1j6k3unNbgKCTeS8d/exec',
   PREFIX: 'bmb_adm_'
 };
 
@@ -439,25 +492,22 @@ let BRANCHES = [], KYTHUAT = [], SUCO = [], TAIKHOAN_LIST = [];
 let SC_ANH = [], SC_ANH_XONG = [];               // ảnh chờ gửi (base64), reset sau mỗi lần dùng
 let lastSuCoOpenSeen = null;
 
-/* Phải khớp với LOAI_LOI trong Code.gs — sửa 1 bên thì sửa luôn bên kia */
-const LOAI_LOI = {
-  dien_toanbo:      { ten: 'Cúp điện toàn bộ chi nhánh',              mucDo: 1, loaiKT: 'chung' },
-  mang_2duong:       { ten: 'Mất mạng cả 2 đường (chính + dự phòng)', mucDo: 1, loaiKT: 'mang'  },
-  antoan:            { ten: 'Sự cố an toàn / cháy nổ',                mucDo: 1, loaiKT: 'chung' },
-  khoa_chinh:        { ten: 'Hỏng khoá cửa chính, không vào được',    mucDo: 1, loaiKT: 'chung' },
-  mang_1duong:       { ten: 'Mất 1 trong 2 đường mạng',               mucDo: 2, loaiKT: 'mang'  },
-  dieuhoa_nhieu:     { ten: 'Hỏng điều hoà nhiều phòng',              mucDo: 2, loaiKT: 'chung' },
-  thoatnuoc_chung:   { ten: 'Nghẹt hệ thống thoát nước chung',        mucDo: 2, loaiKT: 'chung' },
-  amthanh_trungtam:  { ten: 'Hỏng loa / ampli trung tâm',             mucDo: 2, loaiKT: 'chung' },
-  mic_phong:         { ten: 'Hỏng mic 1 phòng',                       mucDo: 3, loaiKT: 'chung' },
-  tablet_phong:      { ten: 'Hỏng máy tính bảng 1 phòng',             mucDo: 3, loaiKT: 'chung' },
-  bon_cau:           { ten: 'Nghẹt bồn cầu',                          mucDo: 3, loaiKT: 'chung' },
-  ket_cua:           { ten: 'Kẹt cửa phòng',                          mucDo: 3, loaiKT: 'chung' },
-  den_khuvuc:        { ten: 'Hỏng đèn 1 khu vực',                     mucDo: 3, loaiKT: 'chung' },
-  tranh_roi:         { ten: 'Rơi tranh / vật trang trí',              mucDo: 4, loaiKT: 'chung' },
-  noithat_hong:      { ten: 'Hở lam, sơn tróc, trầy nội thất',        mucDo: 4, loaiKT: 'chung' },
-  khac:              { ten: 'Khác — mô tả bên dưới',                  mucDo: 3, loaiKT: 'chung' }
-};
+/* Danh mục loại sự cố — tải từ server (sheet LoaiSuCo), admin thêm/sửa/ẩn được trong Cài đặt.
+   LOAI_LOI giữ dạng {ma: {ten,mucDo,loaiKT}} để phần code hiển thị/tra cứu không cần đổi gì;
+   LOAI_SUCO_LIST giữ mảng đầy đủ (kể cả loại đã ẩn) để dựng danh sách quản lý trong Cài đặt. */
+let LOAI_LOI = {};
+let LOAI_SUCO_LIST = [];
+
+async function loadLoaiSuCo(){
+  try{
+    const j = await api({action:'loaisuco_list'});
+    if(!j.ok) return;
+    LOAI_SUCO_LIST = j.data;
+    LOAI_LOI = {};
+    LOAI_SUCO_LIST.forEach(l => LOAI_LOI[l.ma] = { ten:l.ten, mucDo:l.mucDo, loaiKT:l.loaiKT });
+  }catch(e){}
+}
+
 const MUC_DO_LABEL = {1:'🔴 Khẩn cấp',2:'🟠 Cao',3:'🟡 Trung bình',4:'🟢 Thấp'};
 const TRANG_THAI_LABEL = {
   moi:'Mới báo', da_tiep_nhan:'Đã tiếp nhận', da_dieu_phoi:'Đã điều phối',
@@ -549,7 +599,7 @@ async function doLogin(){
 const ROLE_LABEL = {admin:'Quản trị', manager:'Quản lý chi nhánh', kythuat:'Kỹ thuật viên', kythuat_mang:'Kỹ thuật mạng'};
 const isKyThuat = () => SESSION && (SESSION.role==='kythuat' || SESSION.role==='kythuat_mang');
 
-function enterApp(){
+async function enterApp(){
   $('login').style.display='none'; $('app').style.display='block';
   $('hBranch').textContent = SESSION.branchName || 'Toàn hệ thống';
   $('hRole').textContent = SESSION.fullName || SESSION.user;
@@ -571,6 +621,7 @@ function enterApp(){
   ['click','keydown','scroll','touchstart'].forEach(e=>document.addEventListener(e,resetIdle,{passive:true}));
   loadBranches();
   loadBookings();
+  await loadLoaiSuCo();
   loadSuCo();
   setInterval(()=>loadBookings(false,true), 30000);   // tự làm mới mỗi 30 giây
   setInterval(()=>loadSuCo(true), 30000);
@@ -721,7 +772,7 @@ function switchTab(el){
 
   if(isBaoTri) drawSuCo();
   else if(isReport) drawReport();
-  else if(isCaiDat){ fillCfgInputs(); loadTaiKhoanList(); }
+  else if(isCaiDat){ fillCfgInputs(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); }
   else draw();
 }
 
@@ -936,21 +987,22 @@ function openTaoSuCo(){
   $('scPhong').value=''; $('scMoTa').value='';
   $('fldChiNhanhSuCo').style.display = SESSION.role==='admin' ? '' : 'none';
   if(SESSION.role==='admin') $('scChiNhanh').value='';
-  $('scLoai').innerHTML = Object.entries(LOAI_LOI).map(([k,v])=>'<option value="'+k+'">'+esc(v.ten)+'</option>').join('');
+  $('scLoai').innerHTML = LOAI_SUCO_LIST.filter(l=>l.active).map(l=>'<option value="'+l.ma+'">'+esc(l.ten)+'</option>').join('');
   onLoaiSuCoChange();
   $('formTaoSuCo').style.display='block';
   $('formTaoSuCo').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function closeTaoSuCo(){ $('formTaoSuCo').style.display='none'; }
 function onLoaiSuCoChange(){
-  const loai = LOAI_LOI[$('scLoai').value] || LOAI_LOI.khac;
+  const loai = LOAI_LOI[$('scLoai').value] || { mucDo: 3 };
   scMucDoChon = loai.mucDo;
   renderMucDoPick();
 }
 function renderMucDoPick(){
-  $('scMucDoPick').innerHTML = [1,2,3,4].map(m=>
-    '<button type="button" class="pri pri-'+m+'" style="cursor:pointer;outline:'+(m===scMucDoChon?'2px solid currentColor':'none')+'" onclick="pickMucDo('+m+')">'+MUC_DO_LABEL[m]+'</button>'
-  ).join('');
+  $('scMucDoPick').innerHTML = [1,2,3,4].map(m=>{
+    const on = m===scMucDoChon;
+    return '<button type="button" class="pri-btn pri-btn-'+m+(on?' on':'')+'" onclick="pickMucDo('+m+')">'+(on?'✓ ':'')+MUC_DO_LABEL[m]+'</button>';
+  }).join('');
 }
 function pickMucDo(m){ scMucDoChon = m; renderMucDoPick(); }
 
@@ -1257,6 +1309,67 @@ async function adminToggleKichHoat(taikhoan, bat){
     toast(bat?'Đã bật lại tài khoản.':'Đã vô hiệu hoá tài khoản.','ok');
     loadTaiKhoanList();
   }catch(e){ toast(e.message || 'Không thực hiện được.','bad'); }
+}
+
+/* ─── danh mục loại sự cố ─── */
+function drawLoaiSuCoList(){
+  if(!LOAI_SUCO_LIST.length){ $('listLoaiSuCo').innerHTML = '<div class="empty">Chưa có loại sự cố nào.</div>'; return; }
+  const ktLabel = {chung:'Kỹ thuật chung', mang:'Kỹ thuật mạng'};
+  $('listLoaiSuCo').innerHTML = LOAI_SUCO_LIST.map(l => `
+    <div class="sc" data-p="${l.mucDo}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:8px">
+      <div>
+        <div class="sc-name" style="font-size:14.5px">${esc(l.ten)} <span class="pri pri-${l.mucDo}">${MUC_DO_LABEL[l.mucDo]}</span> <span class="st-pill">${ktLabel[l.loaiKT]}</span>${l.active?'':' <span class="pri pri-1">Đã ẩn</span>'}</div>
+      </div>
+      <div class="sc-act" style="margin:0">
+        <button class="btn btn-y btn-sm" onclick="openSuaLoaiSuCo('${esc(l.ma)}')">Sửa</button>
+        <button class="btn ${l.active?'btn-bad':'btn-ok'} btn-sm" onclick="toggleLoaiSuCoActive('${esc(l.ma)}',${!l.active})">${l.active?'Ẩn':'Hiện'}</button>
+      </div>
+    </div>`).join('');
+}
+
+let lscMucDoChon = 3, lscMaCu = '';
+function renderLscMucDoPick(){
+  $('lscMucDoPick').innerHTML = [1,2,3,4].map(m=>{
+    const on = m===lscMucDoChon;
+    return '<button type="button" class="pri-btn pri-btn-'+m+(on?' on':'')+'" onclick="lscMucDoChon='+m+';renderLscMucDoPick()">'+(on?'✓ ':'')+MUC_DO_LABEL[m]+'</button>';
+  }).join('');
+}
+
+function openThemLoaiSuCo(){
+  lscMaCu = ''; lscMucDoChon = 3;
+  $('lscTieuDe').textContent = 'Thêm loại sự cố mới';
+  $('lscTen').value = ''; $('lscLoaiKT').value = 'chung';
+  renderLscMucDoPick();
+  $('formLoaiSuCo').style.display='block';
+  $('formLoaiSuCo').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function openSuaLoaiSuCo(ma){
+  const l = LOAI_SUCO_LIST.find(x=>x.ma===ma); if(!l) return;
+  lscMaCu = ma; lscMucDoChon = l.mucDo;
+  $('lscTieuDe').textContent = 'Sửa loại sự cố';
+  $('lscTen').value = l.ten; $('lscLoaiKT').value = l.loaiKT;
+  renderLscMucDoPick();
+  $('formLoaiSuCo').style.display='block';
+  $('formLoaiSuCo').scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function submitLoaiSuCo(){
+  const ten = $('lscTen').value.trim();
+  if(!ten) return toast('Nhập tên loại sự cố.','bad');
+  try{
+    const j = await api({action:'loaisuco_luu', ten, mucDo:lscMucDoChon, loaiKT:$('lscLoaiKT').value, maCu:lscMaCu});
+    if(!j.ok) throw new Error(j.error);
+    toast(lscMaCu?'Đã lưu thay đổi.':'Đã thêm loại sự cố mới.','ok');
+    $('formLoaiSuCo').style.display='none';
+    await loadLoaiSuCo(); drawLoaiSuCoList();
+  }catch(e){ toast('Không lưu được.','bad'); }
+}
+async function toggleLoaiSuCoActive(ma, bat){
+  try{
+    const j = await api({action:'loaisuco_trangthai', ma, bat});
+    if(!j.ok) throw new Error(j.error);
+    toast(bat?'Đã hiện lại loại sự cố.':'Đã ẩn loại sự cố.','ok');
+    await loadLoaiSuCo(); drawLoaiSuCoList();
+  }catch(e){ toast('Không thực hiện được.','bad'); }
 }
 
 /* khôi phục phiên khi mở lại trang — dùng localStorage nên còn nguyên kể cả sau khi đóng hẳn trình duyệt/tab,
