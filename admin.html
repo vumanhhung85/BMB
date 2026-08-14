@@ -68,11 +68,11 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .topbar{display:flex;align-items:center;gap:14px;height:66px}
 .topbar img{height:38px}
 .who{margin-left:auto;display:flex;align-items:center;gap:11px;font-size:13.5px}
+.idle{font-size:11.5px;color:var(--txt-mute);display:none}
+@media(min-width:640px){.idle{display:block}}
 .badge{padding:5px 12px;border-radius:999px;font-size:12px;font-weight:700;
   background:rgba(255,210,26,.14);color:var(--yellow);border:1px solid rgba(255,210,26,.3)}
 .badge.admin{background:rgba(214,51,198,.18);color:#FFA8F2;border-color:rgba(214,51,198,.4)}
-.idle{font-size:11.5px;color:var(--txt-mute);display:none}
-@media(min-width:640px){.idle{display:block}}
 
 .tabs{display:flex;gap:6px;overflow-x:auto;padding:14px 0 0;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
@@ -121,6 +121,46 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .bk-note{font-size:13px;color:var(--txt-dim);background:rgba(0,0,0,.22);border-radius:10px;
   padding:9px 12px;margin-bottom:11px;border-left:2px solid var(--purple)}
 .bk-act{display:flex;gap:8px;flex-wrap:wrap}
+/* ── MODULE BẢO TRÌ ── */
+.pri{padding:4px 11px;border-radius:999px;font-size:11.5px;font-weight:700;vertical-align:middle;white-space:nowrap}
+.pri-1{background:rgba(255,92,122,.18);color:#FF8FA6;border:1px solid rgba(255,92,122,.5)}
+.pri-2{background:rgba(255,176,32,.16);color:var(--warn);border:1px solid rgba(255,176,32,.4)}
+.pri-3{background:rgba(255,210,26,.14);color:var(--yellow);border:1px solid rgba(255,210,26,.35)}
+.pri-4{background:rgba(61,220,151,.14);color:var(--ok);border:1px solid rgba(61,220,151,.35)}
+.st-pill{padding:4px 11px;border-radius:999px;font-size:11.5px;font-weight:600;background:rgba(255,255,255,.08);
+  color:var(--txt-dim);border:1px solid var(--line-soft);white-space:nowrap}
+.sc{background:linear-gradient(160deg,rgba(42,21,71,.8),rgba(30,14,51,.8));border:1px solid var(--line-soft);
+  border-radius:16px;padding:16px 18px;position:relative;overflow:hidden;margin-bottom:11px}
+.sc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--txt-mute)}
+.sc[data-p="1"]::before{background:var(--bad)} .sc[data-p="2"]::before{background:var(--warn)}
+.sc[data-p="3"]::before{background:var(--yellow)} .sc[data-p="4"]::before{background:var(--ok)}
+.sc-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:9px}
+.sc-name{font-family:'Baloo 2';font-size:17px;font-weight:700}
+.sc-code{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--yellow);
+  background:rgba(255,210,26,.1);border:1px dashed rgba(255,210,26,.4);padding:3px 9px;border-radius:7px}
+.sc-grid{display:grid;gap:6px 20px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));font-size:13.5px;margin-bottom:10px}
+.sc-grid .r{display:flex;gap:7px} .sc-grid .r i{font-style:normal;color:var(--txt-mute);min-width:70px}
+.sc-note{font-size:13px;color:var(--txt-dim);background:rgba(0,0,0,.22);border-radius:10px;
+  padding:9px 12px;margin-bottom:11px;border-left:2px solid var(--purple)}
+.sc-photos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px}
+.sc-photos a img{width:74px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--line-soft);display:block}
+.sc-act{display:flex;gap:8px;flex-wrap:wrap}
+.sc-flag{font-size:12px;color:var(--bad);font-weight:700;margin-bottom:8px}
+.form-card{background:linear-gradient(160deg,rgba(42,21,71,.85),rgba(30,14,51,.85));border:1px solid var(--line);
+  border-radius:18px;padding:20px;margin-bottom:18px}
+.photobox{display:flex;gap:9px;flex-wrap:wrap;margin-top:8px}
+.photobox .th{position:relative;width:74px;height:74px;border-radius:10px;overflow:hidden;border:1px solid var(--line-soft)}
+.photobox .th img{width:100%;height:100%;object-fit:cover}
+.photobox .th button{position:absolute;top:2px;right:2px;width:19px;height:19px;border-radius:50%;border:0;
+  background:rgba(20,6,31,.85);color:#fff;font-size:12px;cursor:pointer;line-height:1}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0}
+.switch{position:relative;width:52px;height:30px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.switch .track{position:absolute;inset:0;background:rgba(255,255,255,.14);border-radius:999px;cursor:pointer;transition:.2s}
+.switch .track::before{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;background:#fff;
+  border-radius:50%;transition:.2s;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.switch input:checked + .track{background:var(--ok)}
+.switch input:checked + .track::before{transform:translateX(22px)}
 .empty{text-align:center;padding:56px 20px;color:var(--txt-mute)}
 .empty .big{font-size:44px;margin-bottom:10px}
 .sk{height:112px;border-radius:16px;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.1),rgba(255,255,255,.05));
@@ -162,10 +202,11 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
              onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <button class="btn btn-y" style="width:100%" id="loginBtn" onclick="doLogin()">Đăng nhập</button>
+    <div style="text-align:center;margin-top:12px"><a href="#" onclick="promptQuenMatKhau();return false" style="color:var(--txt-mute);font-size:13px">Quên mật khẩu?</a></div>
 
     <div class="msg warn show" style="margin-top:18px;font-size:12.5px">
       <span>🔒</span>
-      <span>Mật khẩu được băm SHA-256 trước khi rời khỏi máy bạn. Phiên tự đóng sau 20 phút không thao tác.</span>
+      <span id="idleNoteTxt">Mật khẩu được băm SHA-256 trước khi rời khỏi máy bạn. Phiên tự đóng nếu không thao tác trong nhiều giờ liền.</span>
     </div>
     <div style="text-align:center;margin-top:16px"><a href="index.html" style="color:var(--txt-mute);font-size:13px">← Về trang chính</a></div>
   </div>
@@ -194,6 +235,8 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       <button class="tab" role="tab" aria-selected="false" data-t="rejected" onclick="switchTab(this)">Từ chối</button>
       <button class="tab" role="tab" aria-selected="false" data-t="all"      onclick="switchTab(this)">Tất cả</button>
       <button class="tab" role="tab" aria-selected="false" data-t="report"   onclick="switchTab(this)">Báo cáo</button>
+      <button class="tab" role="tab" aria-selected="false" data-t="baotri"   onclick="switchTab(this)">🛠️ Bảo trì <span class="n zero" id="nSuCo"></span></button>
+      <button class="tab" role="tab" aria-selected="false" data-t="caidat"   onclick="switchTab(this)" id="tabCaiDat" style="display:none">⚙️ Cài đặt</button>
     </div>
   </div>
 </header>
@@ -218,6 +261,147 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
 
   <div class="list" id="list"></div>
   <div id="report" style="display:none"></div>
+
+  <!-- ══════════ BẢO TRÌ ══════════ -->
+  <div id="baotri" style="display:none">
+    <div class="stats" id="statsSuCo"></div>
+    <div class="toolbar" id="toolbarSuCo" style="display:none">
+      <input id="qSuCo" placeholder="Tìm mã, chi nhánh, mô tả…" style="flex:1;min-width:190px" oninput="drawSuCo()">
+      <select id="fSuCoTrang" onchange="drawSuCo()">
+        <option value="">Mọi trạng thái</option>
+        <option value="moi">Mới báo</option>
+        <option value="da_tiep_nhan">Đã tiếp nhận</option>
+        <option value="da_dieu_phoi">Đã điều phối</option>
+        <option value="da_nhan">Kỹ thuật đã nhận</option>
+        <option value="dang_xu_ly">Đang xử lý</option>
+        <option value="cho_xac_nhan">Chờ chi nhánh xác nhận</option>
+        <option value="cho_dong">Chờ đóng</option>
+        <option value="dong">Đã đóng</option>
+      </select>
+      <select id="fSuCoMuc" onchange="drawSuCo()">
+        <option value="">Mọi mức độ</option>
+        <option value="1">🔴 Khẩn cấp</option>
+        <option value="2">🟠 Cao</option>
+        <option value="3">🟡 Trung bình</option>
+        <option value="4">🟢 Thấp</option>
+      </select>
+      <select id="fSuCoChiNhanh" onchange="drawSuCo()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
+      <button class="btn btn-y btn-sm" onclick="openTaoSuCo()" id="btnTaoSuCo" style="display:none">+ Báo sự cố</button>
+      <button class="btn btn-ghost btn-sm" onclick="loadSuCo(true)" id="refreshSuCoBtn">🔄 Làm mới</button>
+    </div>
+
+    <div class="form-card" id="formTaoSuCo" style="display:none">
+      <h3 style="font-size:18px;margin-bottom:14px">Báo sự cố mới</h3>
+      <div class="field" id="fldChiNhanhSuCo" style="display:none">
+        <label for="scChiNhanh">Chi nhánh <span class="req" style="color:var(--bad)">*</span></label>
+        <select id="scChiNhanh"><option value="">— Chọn chi nhánh —</option></select>
+      </div>
+      <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+        <div class="field">
+          <label for="scLoai">Loại sự cố <span class="req" style="color:var(--bad)">*</span></label>
+          <select id="scLoai" onchange="onLoaiSuCoChange()"></select>
+        </div>
+        <div class="field">
+          <label for="scPhong">Phòng (nếu có)</label>
+          <input id="scPhong" placeholder="vd: Phòng 3, VIP2…" maxlength="40">
+        </div>
+      </div>
+      <div class="field">
+        <label>Mức độ ưu tiên</label>
+        <div id="scMucDoPick" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
+      <div class="field">
+        <label for="scMoTa">Mô tả chi tiết</label>
+        <textarea id="scMoTa" rows="3" maxlength="500" placeholder="Mô tả cụ thể tình trạng…" style="width:100%;padding:12px 14px;border-radius:12px;background:rgba(20,6,31,.72);border:1px solid var(--line-soft)"></textarea>
+      </div>
+      <div class="field">
+        <label for="scAnh">Ảnh đính kèm (tối đa 3 ảnh)</label>
+        <input type="file" id="scAnh" accept="image/*" multiple onchange="onPickAnh(this,'scPhotoBox','SC_ANH')">
+        <div class="photobox" id="scPhotoBox"></div>
+      </div>
+      <div class="bk-act" style="margin-top:6px">
+        <button class="btn btn-y" id="scSubmit" onclick="submitSuCo()">Gửi báo cáo</button>
+        <button class="btn btn-ghost" onclick="closeTaoSuCo()">Huỷ</button>
+      </div>
+    </div>
+
+    <div class="form-card" id="formDieuPhoi" style="display:none">
+      <h3 style="font-size:18px;margin-bottom:4px">Điều phối kỹ thuật</h3>
+      <p style="color:var(--txt-mute);font-size:13px;margin-bottom:14px" id="dpTicketInfo"></p>
+      <div class="field">
+        <label for="dpKyThuat">Chọn kỹ thuật viên (sắp xếp theo khoảng cách gần nhất)</label>
+        <select id="dpKyThuat"></select>
+      </div>
+      <div class="bk-act" style="margin-top:6px">
+        <button class="btn btn-y" id="dpSubmit" onclick="submitDieuPhoi()">Xác nhận điều phối</button>
+        <button class="btn btn-ghost" onclick="$('formDieuPhoi').style.display='none'">Huỷ</button>
+      </div>
+    </div>
+
+    <div class="form-card" id="formBaoXong" style="display:none">
+      <h3 style="font-size:18px;margin-bottom:4px">Báo đã xử lý xong</h3>
+      <p style="color:var(--txt-mute);font-size:13px;margin-bottom:14px" id="bxTicketInfo"></p>
+      <div class="field">
+        <label for="bxGhiChu">Ghi chú xử lý (nếu có)</label>
+        <textarea id="bxGhiChu" rows="2" maxlength="300" placeholder="Đã thay linh kiện gì, xử lý ra sao…" style="width:100%;padding:12px 14px;border-radius:12px;background:rgba(20,6,31,.72);border:1px solid var(--line-soft)"></textarea>
+      </div>
+      <div class="field">
+        <label for="bxAnh">Ảnh sau khi xử lý (tối đa 3 ảnh)</label>
+        <input type="file" id="bxAnh" accept="image/*" multiple onchange="onPickAnh(this,'bxPhotoBox','SC_ANH_XONG')">
+        <div class="photobox" id="bxPhotoBox"></div>
+      </div>
+      <div class="bk-act" style="margin-top:6px">
+        <button class="btn btn-ok" id="bxSubmit" onclick="submitBaoXong()">Xác nhận đã xong</button>
+        <button class="btn btn-ghost" onclick="$('formBaoXong').style.display='none'">Huỷ</button>
+      </div>
+    </div>
+
+    <div class="list" id="listSuCo"></div>
+  </div>
+
+  <!-- ══════════ CÀI ĐẶT ══════════ -->
+  <div id="caidat" style="display:none">
+    <div class="form-card" style="max-width:560px">
+      <h3 style="font-size:18px;margin-bottom:6px">Chức năng giữ phòng đặt chỗ</h3>
+      <p style="color:var(--txt-mute);font-size:13.5px">Khi tắt, trang khách sẽ ẩn nút "Giữ phòng" và máy chủ từ chối mọi đơn mới gửi lên. Đơn cũ vẫn xem và xử lý bình thường trong các tab bên trên.</p>
+      <div class="switch-row">
+        <div>
+          <b id="bkStatusTxt">Đang bật</b>
+          <div style="font-size:12.5px;color:var(--txt-mute)">Khách có thể giữ phòng qua trang chủ</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="bkToggle" checked onchange="toggleBookingSetting()">
+          <span class="track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-card" style="max-width:560px">
+      <h3 style="font-size:18px;margin-bottom:6px">Đăng nhập &amp; phiên làm việc</h3>
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Áp dụng cho lần đăng nhập tiếp theo trở đi — không cần sửa code, không cần deploy lại.</p>
+      <div class="field">
+        <label for="cfgIdleGio">Tự đăng xuất nếu không thao tác trong (giờ)</label>
+        <div style="display:flex;gap:8px">
+          <input id="cfgIdleGio" type="number" min="1" max="720" step="1" style="flex:1">
+          <button class="btn btn-y btn-sm" onclick="luuCfgSo('idle_timeout_phut','cfgIdleGio',60)">Lưu</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="cfgSoThietBi">Số thiết bị đăng nhập tối đa mỗi tài khoản</label>
+        <div style="display:flex;gap:8px">
+          <input id="cfgSoThietBi" type="number" min="1" max="10" step="1" style="flex:1">
+          <button class="btn btn-y btn-sm" onclick="luuCfgSo('so_thiet_bi_toi_da','cfgSoThietBi',1)">Lưu</button>
+        </div>
+        <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Đăng nhập thiết bị mới khi đã đầy sẽ tự đăng xuất thiết bị lâu không hoạt động nhất, không chặn đăng nhập.</div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3 style="font-size:18px;margin-bottom:6px">Quản lý tài khoản</h3>
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Đổi mật khẩu hoặc vô hiệu hoá tài khoản khi nhân viên nghỉ việc — có hiệu lực ngay, đăng xuất khỏi mọi thiết bị của người đó lập tức.</p>
+      <div id="listTaiKhoan"></div>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -228,12 +412,62 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
    BOOM MUSIC BOX — bảng điều khiển chi nhánh
    ══════════════════════════════════════════════ */
 const CFG = {
-  API: 'https://script.google.com/macros/s/AKfycbzBdcOVm0lucZJPXEE8sy5nIEztkpCaXI4TNzDd6Nks-CS1agLx8zG23v-uEEKaUQl4/exec',
-  IDLE_MIN: 20,             // tự đăng xuất sau ... phút không thao tác
+  API: 'https://script.google.com/macros/s/AKfycbydBJaQENLVZULfBVCDiK933EHrUeo6PsRLm3gCkGPdHUVVyzV1j6k3unNbgKCTeS8d/exec',
   PREFIX: 'bmb_adm_'
 };
 
-let SESSION = null, DATA = [], TAB = 'pending', idleTimer, idleAt;
+let SESSION = null, DATA = [], TAB = 'pending';
+let PUBLIC_SETTINGS = { soThietBiToiDa: 3, idleTimeoutPhut: 720 };
+let idleTimer, idleAt;
+
+function getDeviceId(){
+  let d = localStorage.getItem(CFG.PREFIX+'device');
+  if(!d){
+    d = 'tb_' + (crypto.randomUUID ? crypto.randomUUID().slice(0,12) : (Date.now().toString(36)+Math.random().toString(36).slice(2,8)));
+    localStorage.setItem(CFG.PREFIX+'device', d);
+  }
+  return d;
+}
+let BRANCHES = [], KYTHUAT = [], SUCO = [], TAIKHOAN_LIST = [];
+let SC_ANH = [], SC_ANH_XONG = [];               // ảnh chờ gửi (base64), reset sau mỗi lần dùng
+let lastSuCoOpenSeen = null;
+
+/* Phải khớp với LOAI_LOI trong Code.gs — sửa 1 bên thì sửa luôn bên kia */
+const LOAI_LOI = {
+  dien_toanbo:      { ten: 'Cúp điện toàn bộ chi nhánh',              mucDo: 1, loaiKT: 'chung' },
+  mang_2duong:       { ten: 'Mất mạng cả 2 đường (chính + dự phòng)', mucDo: 1, loaiKT: 'mang'  },
+  antoan:            { ten: 'Sự cố an toàn / cháy nổ',                mucDo: 1, loaiKT: 'chung' },
+  khoa_chinh:        { ten: 'Hỏng khoá cửa chính, không vào được',    mucDo: 1, loaiKT: 'chung' },
+  mang_1duong:       { ten: 'Mất 1 trong 2 đường mạng',               mucDo: 2, loaiKT: 'mang'  },
+  dieuhoa_nhieu:     { ten: 'Hỏng điều hoà nhiều phòng',              mucDo: 2, loaiKT: 'chung' },
+  thoatnuoc_chung:   { ten: 'Nghẹt hệ thống thoát nước chung',        mucDo: 2, loaiKT: 'chung' },
+  amthanh_trungtam:  { ten: 'Hỏng loa / ampli trung tâm',             mucDo: 2, loaiKT: 'chung' },
+  mic_phong:         { ten: 'Hỏng mic 1 phòng',                       mucDo: 3, loaiKT: 'chung' },
+  tablet_phong:      { ten: 'Hỏng máy tính bảng 1 phòng',             mucDo: 3, loaiKT: 'chung' },
+  bon_cau:           { ten: 'Nghẹt bồn cầu',                          mucDo: 3, loaiKT: 'chung' },
+  ket_cua:           { ten: 'Kẹt cửa phòng',                          mucDo: 3, loaiKT: 'chung' },
+  den_khuvuc:        { ten: 'Hỏng đèn 1 khu vực',                     mucDo: 3, loaiKT: 'chung' },
+  tranh_roi:         { ten: 'Rơi tranh / vật trang trí',              mucDo: 4, loaiKT: 'chung' },
+  noithat_hong:      { ten: 'Hở lam, sơn tróc, trầy nội thất',        mucDo: 4, loaiKT: 'chung' },
+  khac:              { ten: 'Khác — mô tả bên dưới',                  mucDo: 3, loaiKT: 'chung' }
+};
+const MUC_DO_LABEL = {1:'🔴 Khẩn cấp',2:'🟠 Cao',3:'🟡 Trung bình',4:'🟢 Thấp'};
+const TRANG_THAI_LABEL = {
+  moi:'Mới báo', da_tiep_nhan:'Đã tiếp nhận', da_dieu_phoi:'Đã điều phối',
+  da_nhan:'Kỹ thuật đã nhận', dang_xu_ly:'Đang xử lý', cho_xac_nhan:'Chờ chi nhánh xác nhận',
+  cho_dong:'Chờ đóng ticket', dong:'Đã đóng'
+};
+function haversine(a,b,c,d){
+  const R=6371,p=Math.PI/180;
+  const x=Math.sin((c-a)*p/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin((d-b)*p/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+function branchCoord(id){ const b=BRANCHES.find(x=>String(x.id)===String(id)); return b&&b.lat&&b.lng ? b : null; }
+function distTxt(idA, idB){
+  const a=branchCoord(idA), b=branchCoord(idB);
+  if(!a||!b) return '';
+  return ' — cách ~' + haversine(a.lat,a.lng,b.lat,b.lng).toFixed(1) + 'km';
+}
 let lastPendingSeen = null;   // null = chưa xác định mốc ban đầu (không báo động ngay lúc mới đăng nhập)
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -256,6 +490,30 @@ async function api(payload){
 /* ─── ĐĂNG NHẬP ─── */
 function showLoginMsg(t){ $('loginMsgTxt').textContent = t; $('loginMsg').classList.add('show'); }
 
+async function promptQuenMatKhau(){
+  const u = prompt('Nhập tài khoản cần lấy lại mật khẩu:');
+  if(!u || !u.trim()) return;
+  try{
+    await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'quenmk', user:u.trim().toLowerCase()})});
+  }catch(e){}
+  showLoginMsg('Nếu tài khoản tồn tại và có email đăng ký, mật khẩu sẽ được gửi tới email đó trong giây lát. Kiểm tra cả mục Spam.');
+  $('loginMsg').classList.remove('bad'); $('loginMsg').classList.add('warn');
+}
+
+async function loadPublicSettings(){
+  try{
+    const r = await fetch(CFG.API + '?action=settings', {method:'GET'});
+    const j = await r.json();
+    if(j.ok){
+      PUBLIC_SETTINGS = j.data;
+      const gio = Math.round(PUBLIC_SETTINGS.idleTimeoutPhut/60*10)/10;
+      $('idleNoteTxt').textContent = 'Mật khẩu được băm SHA-256 trước khi rời khỏi máy bạn. Phiên tự đóng nếu không thao tác trong ' + gio + ' giờ liền. Đăng nhập được tối đa ' + PUBLIC_SETTINGS.soThietBiToiDa + ' thiết bị mỗi tài khoản.';
+    }
+  }catch(e){}
+}
+loadPublicSettings();
+
 async function doLogin(){
   const u = $('uUser').value.trim().toLowerCase(), p = $('uPass').value;
   if(!u || !p) return showLoginMsg('Nhập đủ tài khoản và mật khẩu.');
@@ -265,13 +523,13 @@ async function doLogin(){
   try{
     if(!CFG.API) throw new Error('NO_API');
     const hash = await sha256(u + '::' + p + '::boom');   // gửi hash, không gửi mật khẩu thô
-    const j = await api({ action:'login', user:u, hash });
+    const j = await api({ action:'login', user:u, hash, thietBi: getDeviceId() });
     if(!j.ok) throw new Error(
       j.error === 'BAD_LOGIN' ? 'Sai tài khoản hoặc mật khẩu.' :
       j.error === 'LOCKED'    ? 'Tài khoản tạm khoá do nhập sai nhiều lần. Thử lại sau 15 phút.' :
       'Không đăng nhập được. Thử lại sau.');
     SESSION = j.session;
-    sessionStorage.setItem(CFG.PREFIX+'s', JSON.stringify(SESSION));
+    localStorage.setItem(CFG.PREFIX+'s', JSON.stringify(SESSION));
     enterApp();
   }catch(e){
     if(e.message === 'NO_API') showLoginMsg('Chưa cấu hình máy chủ. Mở admin.html và dán URL Apps Script vào dòng CFG.API.');
@@ -281,18 +539,54 @@ async function doLogin(){
   }
 }
 
+const ROLE_LABEL = {admin:'Quản trị', manager:'Quản lý chi nhánh', kythuat:'Kỹ thuật viên', kythuat_mang:'Kỹ thuật mạng'};
+const isKyThuat = () => SESSION && (SESSION.role==='kythuat' || SESSION.role==='kythuat_mang');
+
 function enterApp(){
   $('login').style.display='none'; $('app').style.display='block';
   $('hBranch').textContent = SESSION.branchName || 'Toàn hệ thống';
   $('hRole').textContent = SESSION.fullName || SESSION.user;
-  $('hBadge').textContent = SESSION.role === 'admin' ? 'Quản trị' : 'Quản lý chi nhánh';
+  $('hBadge').textContent = ROLE_LABEL[SESSION.role] || SESSION.role;
   $('hBadge').className = 'badge' + (SESSION.role==='admin' ? ' admin' : '');
-  if(SESSION.role === 'admin') $('fBranch').style.display='';
+  if(SESSION.role === 'admin'){
+    $('fBranch').style.display='';
+    $('tabCaiDat').style.display='';
+    $('fSuCoChiNhanh').style.display='';
+    loadKyThuat();
+    loadBookingSetting();
+  }
+  if(SESSION.role === 'manager' || SESSION.role === 'admin'){
+    $('btnTaoSuCo').style.display='';
+  }
+  requestNotifyPermission();
+  loadPublicSettings();
   resetIdle();
   ['click','keydown','scroll','touchstart'].forEach(e=>document.addEventListener(e,resetIdle,{passive:true}));
-  requestNotifyPermission();
+  loadBranches();
   loadBookings();
-  setInterval(()=>loadBookings(false,true), 60000);   // tự làm mới mỗi phút
+  loadSuCo();
+  setInterval(()=>loadBookings(false,true), 30000);   // tự làm mới mỗi 30 giây
+  setInterval(()=>loadSuCo(true), 30000);
+}
+
+async function loadBranches(){
+  try{
+    const r = await fetch(CFG.API + '?action=branches', {method:'GET'});
+    const j = await r.json();
+    if(j.ok) BRANCHES = j.data || [];
+    if(SESSION.role==='admin'){
+      $('fSuCoChiNhanh').innerHTML = '<option value="">Tất cả chi nhánh</option>' +
+        BRANCHES.slice().sort((a,b)=>a.short.localeCompare(b.short)).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.short)+'</option>').join('');
+    }
+    buildScChiNhanhSelect();
+  }catch(e){ console.warn('Không tải được danh sách chi nhánh:', e.message); }
+}
+
+async function loadKyThuat(){
+  try{
+    const j = await api({action:'kythuat_list'});
+    if(j.ok) KYTHUAT = j.data || [];
+  }catch(e){}
 }
 
 /* ─── CẢNH BÁO ĐƠN MỚI: âm thanh + biểu tượng trang + thông báo hệ thống ─── */
@@ -356,9 +650,13 @@ function checkNewBookings(count){
 }
 
 function resetIdle(){
-  idleAt = Date.now() + CFG.IDLE_MIN*60000;
+  const phut = Math.max(1, Number(PUBLIC_SETTINGS.idleTimeoutPhut) || 720);
+  idleAt = Date.now() + phut*60000;
   clearTimeout(idleTimer);
-  idleTimer = setTimeout(()=>logout('Đã đăng xuất do không thao tác 20 phút.'), CFG.IDLE_MIN*60000);
+  idleTimer = setTimeout(()=>{
+    const gio = Math.round(phut/60*10)/10;
+    logout('Đã đăng xuất do không thao tác trong ' + gio + ' giờ.');
+  }, phut*60000);
 }
 setInterval(()=>{
   if(!SESSION || !idleAt) return;
@@ -367,8 +665,10 @@ setInterval(()=>{
 },20000);
 
 function logout(reason){
-  SESSION = null; DATA = []; lastPendingSeen = null; sessionStorage.removeItem(CFG.PREFIX+'s');
-  clearTimeout(idleTimer);
+  SESSION = null; DATA = []; lastPendingSeen = null;
+  SUCO = []; KYTHUAT = []; lastSuCoOpenSeen = null; TAIKHOAN_LIST = [];
+  localStorage.removeItem(CFG.PREFIX+'s');
+  clearTimeout(idleTimer); idleAt = null;
   $('app').style.display='none'; $('login').style.display='grid';
   $('uPass').value='';
   $('favicon').href = 'Logo_BoomBox.png';
@@ -401,11 +701,21 @@ function switchTab(el){
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected','false'));
   el.setAttribute('aria-selected','true');
   TAB = el.dataset.t;
-  const isReport = TAB==='report';
-  $('list').style.display = isReport?'none':'';
+  const isReport = TAB==='report', isBaoTri = TAB==='baotri', isCaiDat = TAB==='caidat';
+  const isBooking = !isReport && !isBaoTri && !isCaiDat;
+
+  $('stats').style.display = isBooking ? '' : 'none';
+  $('list').style.display = isBooking?'':'none';
   $('report').style.display = isReport?'':'none';
-  $('toolbar').style.display = isReport?'none':'flex';
-  draw();
+  $('toolbar').style.display = isBooking?'flex':'none';
+  $('baotri').style.display = isBaoTri?'':'none';
+  $('toolbarSuCo').style.display = isBaoTri?'flex':'none';
+  $('caidat').style.display = isCaiDat?'':'none';
+
+  if(isBaoTri) drawSuCo();
+  else if(isReport) drawReport();
+  else if(isCaiDat){ fillCfgInputs(); loadTaiKhoanList(); }
+  else draw();
 }
 
 function filtered(){
@@ -440,6 +750,7 @@ function draw(){
     '<div class="stat"><div class="k">Khách hôm nay</div><div class="v">'+tD.filter(d=>d.status!=='rejected').reduce((s,d)=>s+(+d.guests||0),0)+'</div></div>';
 
   if(TAB==='report') return drawReport();
+  if(TAB==='baotri' || TAB==='caidat') return;   // panel riêng, không dùng #list đặt phòng
 
   const rows = filtered();
   $('list').innerHTML = rows.length ? rows.map(bkHTML).join('') :
@@ -563,9 +874,388 @@ function exportCSV(){
   toast('Đã xuất ' + rows.length + ' dòng.','ok');
 }
 
-/* khôi phục phiên khi tải lại tab */
+/* ══════════════════════════════════════════════
+   MODULE BẢO TRÌ
+   ══════════════════════════════════════════════ */
+
+/* ─── ảnh: nén ở trình duyệt trước khi gửi lên (tránh payload nặng) ─── */
+function compressImg(file, maxW=1000, quality=0.65){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW/img.width);
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width*scale); c.height = Math.round(img.height*scale);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        resolve(c.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function onPickAnh(input, boxId, storeVar){
+  const store = window[storeVar];
+  const files = [...input.files].slice(0, 3 - store.length);
+  for(const f of files){
+    if(store.length >= 3) break;
+    try{ store.push(await compressImg(f)); }catch(e){}
+  }
+  input.value = '';
+  drawPhotoBox(boxId, storeVar);
+}
+function drawPhotoBox(boxId, storeVar){
+  const store = window[storeVar];
+  $(boxId).innerHTML = store.map((b64,i)=>
+    '<div class="th"><img src="'+b64+'"><button type="button" onclick="removeAnh(\''+boxId+'\',\''+storeVar+'\','+i+')">✕</button></div>'
+  ).join('');
+}
+function removeAnh(boxId, storeVar, i){ window[storeVar].splice(i,1); drawPhotoBox(boxId, storeVar); }
+
+/* ─── tạo sự cố ─── */
+function buildScChiNhanhSelect(){
+  if(SESSION && SESSION.role==='admin'){
+    $('scChiNhanh').innerHTML = '<option value="">— Chọn chi nhánh —</option>' +
+      BRANCHES.slice().sort((a,b)=>a.short.localeCompare(b.short)).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.short)+'</option>').join('');
+  }
+}
+let scMucDoChon = 3;
+function openTaoSuCo(){
+  SC_ANH = []; $('scPhotoBox').innerHTML = '';
+  $('scPhong').value=''; $('scMoTa').value='';
+  $('fldChiNhanhSuCo').style.display = SESSION.role==='admin' ? '' : 'none';
+  if(SESSION.role==='admin') $('scChiNhanh').value='';
+  $('scLoai').innerHTML = Object.entries(LOAI_LOI).map(([k,v])=>'<option value="'+k+'">'+esc(v.ten)+'</option>').join('');
+  onLoaiSuCoChange();
+  $('formTaoSuCo').style.display='block';
+  $('formTaoSuCo').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function closeTaoSuCo(){ $('formTaoSuCo').style.display='none'; }
+function onLoaiSuCoChange(){
+  const loai = LOAI_LOI[$('scLoai').value] || LOAI_LOI.khac;
+  scMucDoChon = loai.mucDo;
+  renderMucDoPick();
+}
+function renderMucDoPick(){
+  $('scMucDoPick').innerHTML = [1,2,3,4].map(m=>
+    '<button type="button" class="pri pri-'+m+'" style="cursor:pointer;outline:'+(m===scMucDoChon?'2px solid currentColor':'none')+'" onclick="pickMucDo('+m+')">'+MUC_DO_LABEL[m]+'</button>'
+  ).join('');
+}
+function pickMucDo(m){ scMucDoChon = m; renderMucDoPick(); }
+
+async function submitSuCo(){
+  const loaiCode = $('scLoai').value;
+  if(SESSION.role==='admin' && !$('scChiNhanh').value) return toast('Chọn chi nhánh trước đã nhé.','bad');
+  $('scSubmit').disabled = true; $('scSubmit').innerHTML = '<span class="spin"></span> Đang gửi…';
+  try{
+    const j = await api({
+      action:'suco_tao', loaiLoi:loaiCode, mucDo:scMucDoChon,
+      phong:$('scPhong').value.trim(), moTa:$('scMoTa').value.trim(),
+      chinhanhId: SESSION.role==='admin' ? $('scChiNhanh').value : undefined,
+      anh: SC_ANH
+    });
+    if(!j.ok) throw new Error(j.error||'FAIL');
+    toast('Đã gửi báo cáo sự cố '+j.maSuCo+'.','ok');
+    closeTaoSuCo();
+    loadSuCo(true);
+  }catch(e){
+    toast('Không gửi được. Kiểm tra kết nối rồi thử lại.','bad');
+  }finally{
+    $('scSubmit').disabled = false; $('scSubmit').textContent = 'Gửi báo cáo';
+  }
+}
+
+/* ─── tải & hiển thị danh sách ─── */
+async function loadSuCo(silent){
+  try{
+    const j = await api({action:'suco_list'});
+    if(j.ok) SUCO = j.data || [];
+  }catch(e){ if(!silent) toast('Không tải được danh sách sự cố.','bad'); }
+  const nOpen = SUCO.filter(t=>t.trangThai!=='dong').length;
+  $('nSuCo').textContent = nOpen || '';
+  $('nSuCo').className = 'n' + (nOpen?'':' zero');
+  if(lastSuCoOpenSeen !== null && nOpen > lastSuCoOpenSeen){
+    const soMoi = nOpen - lastSuCoOpenSeen;
+    const msg = SESSION.role==='admin'
+      ? (soMoi===1 ? 'Có 1 sự cố mới cần tiếp nhận!' : 'Có '+soMoi+' sự cố mới cần tiếp nhận!')
+      : isKyThuat()
+        ? (soMoi===1 ? 'Bạn vừa được điều phối 1 việc mới!' : 'Bạn vừa được điều phối '+soMoi+' việc mới!')
+        : 'Ticket bảo trì của chi nhánh vừa có cập nhật mới!';
+    playPing();
+    toast('🛠️ '+msg, SESSION.role==='admin' ? 'bad' : 'ok');
+    if('Notification' in window && Notification.permission==='granted'){
+      const n = new Notification('🛠️ Boom Music Box — Bảo trì', { body: msg, icon:'Logo_BoomBox.png', tag:'boom-suco' });
+      n.onclick = () => { window.focus(); n.close(); };
+    }
+  }
+  lastSuCoOpenSeen = nOpen;
+  if(TAB==='baotri') drawSuCo();
+}
+
+function filteredSuCo(){
+  const q = norm($('qSuCo').value.trim());
+  const ft = $('fSuCoTrang').value, fm = $('fSuCoMuc').value, fc = $('fSuCoChiNhanh') ? $('fSuCoChiNhanh').value : '';
+  return SUCO.filter(t=>{
+    if(ft && t.trangThai!==ft) return false;
+    if(fm && String(t.mucDo)!==fm) return false;
+    if(fc && t.chinhanhId!==fc) return false;
+    if(q && !norm(t.maSuCo+' '+t.chinhanhTen+' '+t.moTa+' '+(LOAI_LOI[t.loaiLoi]||{}).ten).includes(q)) return false;
+    return true;
+  }).sort((a,b)=> (a.mucDo-b.mucDo) || a.taoLuc.localeCompare(b.taoLuc));
+}
+
+function drawSuCo(){
+  const open = SUCO.filter(t=>t.trangThai!=='dong');
+  const p1 = open.filter(t=>t.mucDo===1).length;
+  $('statsSuCo').innerHTML =
+    '<div class="stat r"><div class="k">Khẩn cấp đang mở</div><div class="v">'+p1+'</div></div>'+
+    '<div class="stat y"><div class="k">Đang mở</div><div class="v">'+open.length+'</div></div>'+
+    '<div class="stat g"><div class="k">Chờ chi nhánh xác nhận</div><div class="v">'+SUCO.filter(t=>t.trangThai==='cho_xac_nhan').length+'</div></div>'+
+    '<div class="stat"><div class="k">Đã đóng</div><div class="v">'+SUCO.filter(t=>t.trangThai==='dong').length+'</div></div>';
+
+  let rows = filteredSuCo();
+  if(isKyThuat()){
+    // kỹ thuật: ưu tiên mức độ rồi khoảng cách từ chi nhánh xuất phát (Haversine) — tiết kiệm quãng đường đi lại
+    rows = rows.sort((a,b)=>{
+      if(a.mucDo!==b.mucDo) return a.mucDo-b.mucDo;
+      const da = branchCoord(SESSION.branchId), db = branchCoord(SESSION.branchId);
+      const ca = branchCoord(a.chinhanhId), cb = branchCoord(b.chinhanhId);
+      if(!da || !ca || !cb) return 0;
+      return haversine(da.lat,da.lng,ca.lat,ca.lng) - haversine(db.lat,db.lng,cb.lat,cb.lng);
+    });
+  }
+
+  $('listSuCo').innerHTML = rows.length ? rows.map(sucoHTML).join('') :
+    '<div class="empty"><div class="big">🛠️</div>'+
+    '<b style="font-family:\'Baloo 2\';font-size:19px;display:block;margin-bottom:6px">Không có sự cố nào ở mục này</b>'+
+    '<p>Thử đổi bộ lọc, hoặc mọi thứ đang ổn!</p></div>';
+}
+
+function sucoHTML(t){
+  const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac;
+  const created = String(t.taoLuc||'').replace('T',' ').slice(0,16);
+  let acts = '';
+
+  if(SESSION.role==='admin'){
+    if(t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="tiepNhan(\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
+    if(['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi kỹ thuật':'Điều phối')+'</button>';
+    if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="dongTicket(\''+t.maSuCo+'\')">🔒 Đóng ticket</button>';
+  }
+  if(isKyThuat()){
+    if(t.trangThai==='da_dieu_phoi') acts += '<button class="btn btn-ok btn-sm" onclick="nhanViec(\''+t.maSuCo+'\')">Nhận việc</button>';
+    if(t.trangThai==='da_nhan') acts += '<button class="btn btn-y btn-sm" onclick="batDauXuLy(\''+t.maSuCo+'\')">Bắt đầu xử lý</button>';
+    if(['da_nhan','dang_xu_ly'].includes(t.trangThai)) acts += '<button class="btn btn-ok btn-sm" onclick="openBaoXong(\''+t.maSuCo+'\')">✓ Báo xong</button>';
+  }
+  if(SESSION.role==='manager' && t.trangThai==='cho_xac_nhan'){
+    acts += '<button class="btn btn-ok btn-sm" onclick="xacNhan(\''+t.maSuCo+'\',true)">✅ Đã xong</button>'+
+            '<button class="btn btn-bad btn-sm" onclick="xacNhan(\''+t.maSuCo+'\',false)">❌ Chưa xong</button>';
+  }
+
+  const photos = (imgs, label) => imgs.length ? '<div class="sc-photos">'+imgs.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="'+label+'" loading="lazy"></a>').join('')+'</div>' : '';
+
+  return '<article class="sc" data-p="'+t.mucDo+'">'+
+    '<div class="sc-top"><div>'+
+      '<div class="sc-name">'+esc(loai.ten)+' <span class="pri pri-'+t.mucDo+'">'+MUC_DO_LABEL[t.mucDo]+'</span> <span class="st-pill">'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+'</span></div>'+
+      '<div style="font-size:13px;color:var(--txt-mute)">'+esc(t.chinhanhTen)+(t.phong?' · phòng '+esc(t.phong):'')+' · báo lúc '+created+'</div>'+
+    '</div><span class="sc-code">'+esc(t.maSuCo)+'</span></div>'+
+    (t.soLanQuayLai>0 ? '<div class="sc-flag">🚩 Đã quay lại xử lý '+t.soLanQuayLai+' lần</div>' : '') +
+    (t.moTa ? '<div class="sc-note">💬 '+esc(t.moTa)+'</div>' : '') +
+    photos(t.anhBaoLoi,'ảnh báo lỗi') +
+    (t.kyThuatTen ? '<div class="sc-grid"><div class="r"><i>Kỹ thuật</i><b>'+esc(t.kyThuatTen)+'</b></div></div>' : '') +
+    (t.moTaBoSung ? '<div class="sc-note">↩️ Chi nhánh báo chưa xong: '+esc(t.moTaBoSung)+'</div>' : '') +
+    photos(t.anhHoanThanh,'ảnh hoàn thành') +
+    (acts ? '<div class="sc-act">'+acts+'</div>' : '') +
+    '</article>';
+}
+
+/* ─── các hành động chuyển trạng thái ─── */
+async function tiepNhan(maSuCo, mucDoHienTai){
+  const v = prompt('Xác nhận mức độ ưu tiên (1=Khẩn cấp, 2=Cao, 3=Trung bình, 4=Thấp):', mucDoHienTai);
+  if(v===null) return;
+  const mucDo = Number(v); if(![1,2,3,4].includes(mucDo)) return toast('Nhập số từ 1 đến 4.','bad');
+  try{
+    const j = await api({action:'suco_tiepnhan', maSuCo, mucDo});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã tiếp nhận '+maSuCo+'.','ok'); loadSuCo(true);
+  }catch(e){ toast('Không thực hiện được.','bad'); }
+}
+
+let dpMaSuCo = null;
+function openDieuPhoi(maSuCo){
+  dpMaSuCo = maSuCo;
+  const t = SUCO.find(x=>x.maSuCo===maSuCo); if(!t) return;
+  $('dpTicketInfo').textContent = maSuCo+' — '+t.chinhanhTen+(t.phong?' / phòng '+t.phong:'');
+  const list = KYTHUAT.filter(k=>k.vaitro === (t.loaiKT==='mang'?'kythuat_mang':'kythuat'));
+  const withDist = list.map(k=>{
+    const a = branchCoord(k.chinhanhGoc), b = branchCoord(t.chinhanhId);
+    const km = (a&&b) ? haversine(a.lat,a.lng,b.lat,b.lng) : null;
+    return {...k, km};
+  }).sort((a,b)=> (a.km??999)-(b.km??999));
+  $('dpKyThuat').innerHTML = withDist.length ? withDist.map(k=>
+    '<option value="'+esc(k.user)+'">'+esc(k.hoten)+(k.km!=null?' — cách ~'+k.km.toFixed(1)+'km':'')+'</option>'
+  ).join('') : '<option value="">Chưa có kỹ thuật viên phù hợp — tạo tài khoản vai trò kythuat/kythuat_mang trước</option>';
+  $('formDieuPhoi').style.display='block';
+  $('formDieuPhoi').scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function submitDieuPhoi(){
+  const kt = $('dpKyThuat').value;
+  if(!kt) return toast('Chưa có kỹ thuật viên để chọn.','bad');
+  try{
+    const j = await api({action:'suco_dieuphoi', maSuCo:dpMaSuCo, kyThuat:kt});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã điều phối '+dpMaSuCo+'.','ok');
+    $('formDieuPhoi').style.display='none';
+    loadSuCo(true);
+  }catch(e){ toast('Không điều phối được.','bad'); }
+}
+
+async function nhanViec(maSuCo){
+  try{ const j = await api({action:'suco_nhanviec', maSuCo}); if(!j.ok) throw 0; toast('Đã nhận việc '+maSuCo+'.','ok'); loadSuCo(true); }
+  catch(e){ toast('Không thực hiện được.','bad'); }
+}
+async function batDauXuLy(maSuCo){
+  try{ const j = await api({action:'suco_batdau', maSuCo}); if(!j.ok) throw 0; toast('Đã chuyển sang đang xử lý.','ok'); loadSuCo(true); }
+  catch(e){ toast('Không thực hiện được.','bad'); }
+}
+
+let bxMaSuCo = null;
+function openBaoXong(maSuCo){
+  bxMaSuCo = maSuCo; SC_ANH_XONG = []; $('bxPhotoBox').innerHTML=''; $('bxGhiChu').value='';
+  const t = SUCO.find(x=>x.maSuCo===maSuCo);
+  $('bxTicketInfo').textContent = maSuCo + (t?' — '+t.chinhanhTen+(t.phong?' / phòng '+t.phong:''):'');
+  $('formBaoXong').style.display='block';
+  $('formBaoXong').scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function submitBaoXong(){
+  $('bxSubmit').disabled=true; $('bxSubmit').innerHTML='<span class="spin"></span> Đang gửi…';
+  try{
+    const j = await api({action:'suco_baoxong', maSuCo:bxMaSuCo, ghiChu:$('bxGhiChu').value.trim(), anh:SC_ANH_XONG});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã báo xong '+bxMaSuCo+'. Chờ chi nhánh xác nhận.','ok');
+    $('formBaoXong').style.display='none';
+    loadSuCo(true);
+  }catch(e){ toast('Không gửi được.','bad'); }
+  finally{ $('bxSubmit').disabled=false; $('bxSubmit').textContent='Xác nhận đã xong'; }
+}
+
+async function xacNhan(maSuCo, xong){
+  let moTaBoSung = '';
+  if(!xong){
+    moTaBoSung = prompt('Mô tả ngắn gọn phần còn chưa xử lý xong:','');
+    if(moTaBoSung===null) return;
+    if(!moTaBoSung.trim()) return toast('Cần mô tả để kỹ thuật biết xử lý tiếp phần nào.','bad');
+  }
+  try{
+    const j = await api({action:'suco_xacnhan', maSuCo, xong, moTaBoSung});
+    if(!j.ok) throw new Error(j.error);
+    toast(xong?'Đã xác nhận hoàn thành. Chờ admin đóng ticket.':'Đã báo lại cho kỹ thuật xử lý tiếp.','ok');
+    loadSuCo(true);
+  }catch(e){ toast('Không thực hiện được.','bad'); }
+}
+
+async function dongTicket(maSuCo){
+  try{ const j = await api({action:'suco_dong', maSuCo}); if(!j.ok) throw 0; toast('Đã đóng '+maSuCo+'.','ok'); loadSuCo(true); }
+  catch(e){ toast('Không thực hiện được.','bad'); }
+}
+
+/* ─── cài đặt: bật/tắt giữ phòng ─── */
+async function loadBookingSetting(){
+  try{
+    const r = await fetch(CFG.API + '?action=settings', {method:'GET'});
+    const j = await r.json();
+    if(j.ok){
+      $('bkToggle').checked = j.data.datPhongBat;
+      $('bkStatusTxt').textContent = j.data.datPhongBat ? 'Đang bật' : 'Đang tắt';
+    }
+  }catch(e){}
+}
+async function toggleBookingSetting(){
+  const on = $('bkToggle').checked;
+  $('bkStatusTxt').textContent = on ? 'Đang bật' : 'Đang tắt';
+  try{
+    const j = await api({action:'settings_set', key:'dat_phong_bat', value: on?'Y':'N'});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã '+(on?'BẬT':'TẮT')+' chức năng giữ phòng trên trang khách.','ok');
+  }catch(e){
+    $('bkToggle').checked = !on; $('bkStatusTxt').textContent = !on ? 'Đang bật' : 'Đang tắt';
+    toast('Không lưu được cài đặt. Thử lại.','bad');
+  }
+}
+
+/* ─── cài đặt: đăng nhập & phiên làm việc ─── */
+function fillCfgInputs(){
+  $('cfgIdleGio').value = Math.round((PUBLIC_SETTINGS.idleTimeoutPhut||720)/60*10)/10;
+  $('cfgSoThietBi').value = PUBLIC_SETTINGS.soThietBiToiDa || 3;
+}
+
+async function luuCfgSo(key, inputId, multiplier){
+  const raw = Number($(inputId).value);
+  if(!raw || raw <= 0) return toast('Nhập một số lớn hơn 0.','bad');
+  const value = Math.round(raw * multiplier);
+  try{
+    const j = await api({action:'settings_set', key, value:String(value)});
+    if(!j.ok) throw new Error(j.error);
+    if(key==='idle_timeout_phut'){ PUBLIC_SETTINGS.idleTimeoutPhut = value; resetIdle(); }
+    if(key==='so_thiet_bi_toi_da'){ PUBLIC_SETTINGS.soThietBiToiDa = value; }
+    toast('Đã lưu cài đặt.','ok');
+  }catch(e){ toast('Không lưu được. Thử lại.','bad'); }
+}
+
+/* ─── quản lý tài khoản ─── */
+async function loadTaiKhoanList(){
+  $('listTaiKhoan').innerHTML = '<div class="sk"></div><div class="sk"></div>';
+  try{
+    const j = await api({action:'taikhoan_list'});
+    if(!j.ok) throw new Error(j.error);
+    TAIKHOAN_LIST = j.data;
+    drawTaiKhoanList();
+  }catch(e){ $('listTaiKhoan').innerHTML = '<div class="empty">Không tải được danh sách tài khoản.</div>'; }
+}
+
+function drawTaiKhoanList(){
+  if(!TAIKHOAN_LIST.length){ $('listTaiKhoan').innerHTML = '<div class="empty">Chưa có tài khoản nào.</div>'; return; }
+  $('listTaiKhoan').innerHTML = TAIKHOAN_LIST.map(u => `
+    <div class="sc" data-p="${u.kichhoat?4:1}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <div class="sc-name" style="font-size:15px">${esc(u.hoten||u.taikhoan)} <span class="st-pill">${esc(ROLE_LABEL[u.vaitro]||u.vaitro)}</span>${u.kichhoat?'':' <span class="pri pri-1">Đã tắt</span>'}</div>
+        <div style="font-size:12.5px;color:var(--txt-mute)">@${esc(u.taikhoan)}${u.chinhanhTen?' · '+esc(u.chinhanhTen):''}${u.email?' · '+esc(u.email):''}</div>
+      </div>
+      <div class="sc-act" style="margin:0">
+        <button class="btn btn-y btn-sm" onclick="adminDoiMatKhau('${esc(u.taikhoan)}')">Đổi mật khẩu</button>
+        <button class="btn ${u.kichhoat?'btn-bad':'btn-ok'} btn-sm" onclick="adminToggleKichHoat('${esc(u.taikhoan)}',${!u.kichhoat})">${u.kichhoat?'Vô hiệu hoá':'Bật lại'}</button>
+      </div>
+    </div>`).join('');
+}
+
+async function adminDoiMatKhau(taikhoan){
+  const p1 = prompt('Mật khẩu mới cho tài khoản "'+taikhoan+'" (tối thiểu 4 ký tự):');
+  if(p1===null) return;
+  if(p1.trim().length < 4) return toast('Mật khẩu phải từ 4 ký tự trở lên.','bad');
+  try{
+    const j = await api({action:'taikhoan_doimk', taikhoan, matkhauMoi:p1.trim()});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã đổi mật khẩu cho '+taikhoan+'. Tài khoản này đã bị đăng xuất khỏi mọi thiết bị.','ok');
+  }catch(e){ toast('Không đổi được mật khẩu.','bad'); }
+}
+
+async function adminToggleKichHoat(taikhoan, bat){
+  if(!bat && !confirm('Vô hiệu hoá tài khoản "'+taikhoan+'"? Người này sẽ bị đăng xuất khỏi mọi thiết bị ngay lập tức.')) return;
+  try{
+    const j = await api({action:'taikhoan_kichhoat', taikhoan, bat});
+    if(!j.ok) throw new Error(j.error === 'CANNOT_DISABLE_SELF' ? 'Không thể tự vô hiệu hoá chính mình.' : j.error);
+    toast(bat?'Đã bật lại tài khoản.':'Đã vô hiệu hoá tài khoản.','ok');
+    loadTaiKhoanList();
+  }catch(e){ toast(e.message || 'Không thực hiện được.','bad'); }
+}
+
+/* khôi phục phiên khi mở lại trang — dùng localStorage nên còn nguyên kể cả sau khi đóng hẳn trình duyệt/tab,
+   khác với sessionStorage (mất ngay khi đóng tab). Phù hợp cho người cần để app mở/giám sát liên tục. */
 (function(){
-  const s = sessionStorage.getItem(CFG.PREFIX+'s');
+  const s = localStorage.getItem(CFG.PREFIX+'s');
   if(s){ try{ SESSION = JSON.parse(s); enterApp(); }catch(e){} }
 })();
 </script>
