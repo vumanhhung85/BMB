@@ -438,6 +438,10 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
   </div>
 </header>
 
+<div id="bookingOffBanner" style="display:none;background:linear-gradient(90deg,#4B1272,#8B2FBE);color:#F6EEFF;text-align:center;padding:11px 16px;font-size:13.5px;font-weight:600">
+  📴 Hệ thống giữ phòng qua web đang tạm đóng. Vui lòng gọi trực tiếp chi nhánh hoặc nhắn Zalo để giữ chỗ.
+</div>
+
 <main id="top">
 
 <!-- ══════════ HERO ══════════ -->
@@ -719,7 +723,7 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
 
 /* ─── CẤU HÌNH ─── dán URL Web App của Apps Script vào đây */
 const CFG = {
-  API: 'https://script.google.com/macros/s/AKfycbzBdcOVm0lucZJPXEE8sy5nIEztkpCaXI4TNzDd6Nks-CS1agLx8zG23v-uEEKaUQl4/exec',
+  API: 'https://script.google.com/macros/s/AKfycbydBJaQENLVZULfBVCDiK933EHrUeo6PsRLm3gCkGPdHUVVyzV1j6k3unNbgKCTeS8d/exec',
   HOTLINE: '0899887034',         // hotline tổng (Hoàng Diệu 2)
   ZALO: '0899887034',
   DATA_PREFIX: 'bmb_v1_'         // KHÔNG đổi — khoá lưu localStorage
@@ -730,6 +734,7 @@ const SEED = [{"id":"CN03","name":"Boom Music Box Hoàng Diệu 2 (CN1)","short"
 
 /* ─── TRẠNG THÁI ─── */
 let BRANCHES = [], map, markers = {}, userPos = null, activeId = null, pickedTime = null;
+let BOOKING_ENABLED = true;
 const $ = id => document.getElementById(id);
 
 /* ─── TIỆN ÍCH ─── */
@@ -776,6 +781,15 @@ async function boot() {
       if (j.ok && Array.isArray(j.data) && j.data.length) BRANCHES = j.data;
     }
   } catch (e) { console.warn('Dùng dữ liệu dự phòng:', e.message); }
+
+  try {
+    if (CFG.API) {
+      const r = await fetch(CFG.API + '?action=settings', { method:'GET' });
+      const j = await r.json();
+      if (j.ok) BOOKING_ENABLED = j.data.datPhongBat !== false;
+    }
+  } catch (e) { /* mất kết nối — mặc định vẫn cho thử giữ phòng, server sẽ tự chặn nếu đang tắt */ }
+  $('bookingOffBanner').style.display = BOOKING_ENABLED ? 'none' : 'block';
 
   BRANCHES = BRANCHES.filter(b => b.active !== false)
                      .sort((a,b) => (a.priority||999) - (b.priority||999));
@@ -1034,6 +1048,10 @@ function buildBranchSelect() {
     BRANCHES.map(b => `<option value="${b.id}">${esc(b.short)} — ${esc(b.region)}</option>`).join('');
 }
 function openBooking(id) {
+  if (!BOOKING_ENABLED) {
+    toast('Hệ thống giữ phòng qua web đang tạm đóng. Vui lòng gọi trực tiếp chi nhánh nhé.', 'bad');
+    return;
+  }
   $('bForm').style.display = ''; $('bDone').style.display = 'none'; $('bFoot').style.display = '';
   $('bSubmit').disabled = false; $('bSubmit').innerHTML = 'Gửi yêu cầu giữ phòng';
   pickedTime = null;
@@ -1128,6 +1146,7 @@ function rateLimited() {
 }
 
 async function submitBooking() {
+  if (!BOOKING_ENABLED) { closeModal('ovBook'); return toast('Hệ thống giữ phòng qua web đang tạm đóng.', 'bad'); }
   if ($('bHp').value) return;                       // bot điền honeypot
   if (!validate()) return;
   if (rateLimited()) return toast('Bạn đã gửi khá nhiều yêu cầu. Thử lại sau 10 phút nhé.', 'bad');
@@ -1162,6 +1181,13 @@ async function submitBooking() {
       });
       const j = await r.json();
       if (j.ok) { code = j.code; online = true; }
+      else if (j.error === 'BOOKING_DISABLED') {
+        BOOKING_ENABLED = false;
+        $('bookingOffBanner').style.display = 'block';
+        $('bSubmit').disabled = false; $('bSubmit').textContent = 'Gửi yêu cầu giữ phòng';
+        closeModal('ovBook');
+        return toast('Hệ thống giữ phòng qua web đang tạm đóng. Vui lòng gọi trực tiếp chi nhánh nhé.', 'bad');
+      }
       else throw new Error(j.error || 'Máy chủ từ chối yêu cầu');
     }
   } catch (e) { console.warn(e); }
