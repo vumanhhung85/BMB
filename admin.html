@@ -176,6 +176,13 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .photobox .th button{position:absolute;top:2px;right:2px;width:19px;height:19px;border-radius:50%;border:0;
   background:rgba(20,6,31,.85);color:#fff;font-size:12px;cursor:pointer;line-height:1}
 .switch-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0}
+/* ─── lưới 2/3 cột co giãn (mới, 14/08/2026) — mobile-first: 1 cột trên điện thoại hẹp, tự dàn
+   thành 2-3 cột trên tablet/desktop. Cùng quy ước breakpoint với .row2 trong index.html. ─── */
+.row2{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:560px){.row2{grid-template-columns:1fr 1fr}}
+.row3{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:560px){.row3{grid-template-columns:1fr 1fr}}
+@media(min-width:820px){.row3{grid-template-columns:1fr 1fr 1fr}}
 .switch{position:relative;width:52px;height:30px;flex-shrink:0}
 .switch input{opacity:0;width:0;height:0}
 .switch .track{position:absolute;inset:0;background:rgba(255,255,255,.14);border-radius:999px;cursor:pointer;transition:.2s}
@@ -344,7 +351,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <label for="scChiNhanh">Chi nhánh <span class="req" style="color:var(--bad)">*</span></label>
         <select id="scChiNhanh"><option value="">— Chọn chi nhánh —</option></select>
       </div>
-      <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+      <div class="row2">
         <div class="field">
           <label for="scLoai">Loại sự cố <span class="req" style="color:var(--bad)">*</span></label>
           <select id="scLoai" onchange="onLoaiSuCoChange()"></select>
@@ -458,9 +465,9 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
 
       <div id="listChiNhanh" style="margin-bottom:14px"><div class="sk"></div><div class="sk"></div></div>
 
-      <div class="form-card" id="formChiNhanh" style="display:none;margin-top:14px;padding:16px">
+      <div class="form-card" id="formChiNhanh" style="display:none;margin-top:14px;padding:16px;max-width:640px">
         <h3 id="cnTieuDe" style="font-size:15px;margin-bottom:12px">Thêm chi nhánh mới</h3>
-        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+        <div class="row2">
           <div class="field">
             <label for="cnId">Mã chi nhánh</label>
             <input id="cnId" placeholder="Để trống để tự tạo mã (CNxx)" maxlength="20">
@@ -474,7 +481,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <label for="cnName">Tên chi nhánh <span class="req" style="color:var(--bad)">*</span></label>
           <input id="cnName" placeholder="vd: Boom Music Box Hoàng Diệu 2" maxlength="100">
         </div>
-        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+        <div class="row2">
           <div class="field">
             <label for="cnShort">Tên rút gọn</label>
             <input id="cnShort" placeholder="vd: Hoàng Diệu 2" maxlength="60">
@@ -492,7 +499,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <label for="cnRegion">Khu vực</label>
           <input id="cnRegion" placeholder="vd: TP.HCM" maxlength="60">
         </div>
-        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+        <div class="row2">
           <div class="field">
             <label for="cnPhone">SĐT (dùng để gọi)</label>
             <input id="cnPhone" placeholder="vd: 0901234567" maxlength="15">
@@ -502,7 +509,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
             <input id="cnPhoneDisplay" placeholder="vd: 090.123.4567" maxlength="20">
           </div>
         </div>
-        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr 1fr">
+        <div class="row3">
           <div class="field">
             <label for="cnOpen">Giờ mở cửa</label>
             <input id="cnOpen" type="time">
@@ -516,7 +523,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
             <input id="cnHours" placeholder="vd: 10:00 - 06:00 hôm sau" maxlength="60">
           </div>
         </div>
-        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+        <div class="row2">
           <div class="field">
             <label for="cnLat">Vĩ độ (lat)</label>
             <input id="cnLat" type="number" step="any" placeholder="vd: 10.762622">
@@ -537,12 +544,12 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <label for="cnMaps">Link Google Maps</label>
           <input id="cnMaps" placeholder="https://maps.google.com/…" maxlength="300">
         </div>
-        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr 1fr">
+        <div class="row3">
           <div class="field"><label for="cnFacebook">Facebook</label><input id="cnFacebook" maxlength="300"></div>
           <div class="field"><label for="cnTiktok">TikTok</label><input id="cnTiktok" maxlength="300"></div>
           <div class="field"><label for="cnInstagram">Instagram</label><input id="cnInstagram" maxlength="300"></div>
         </div>
-        <div class="row2" style="display:grid;gap:14px;grid-template-columns:1fr 1fr">
+        <div class="row2">
           <div class="field"><label for="cnPrice">Mức giá</label><input id="cnPrice" placeholder="vd: 100.000 - 300.000đ/giờ" maxlength="100"></div>
           <div class="field"><label for="cnEmail">Email chi nhánh</label><input id="cnEmail" type="email" maxlength="80"></div>
         </div>
@@ -574,7 +581,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       <div id="listLoaiSuCo" style="margin-bottom:14px"></div>
       <button class="btn btn-y btn-sm" onclick="openThemLoaiSuCo()">+ Thêm loại sự cố</button>
 
-      <div class="form-card" id="formLoaiSuCo" style="display:none;margin-top:14px;padding:16px">
+      <div class="form-card" id="formLoaiSuCo" style="display:none;margin-top:14px;padding:16px;max-width:640px">
         <h3 id="lscTieuDe" style="font-size:15px;margin-bottom:12px">Thêm loại sự cố mới</h3>
         <div class="field">
           <label for="lscTen">Tên hiển thị</label>
@@ -634,7 +641,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       </div>
       <div id="listTaiKhoan"></div>
 
-      <div class="form-card" id="formTaiKhoan" style="display:none;margin-top:14px;padding:16px">
+      <div class="form-card" id="formTaiKhoan" style="display:none;margin-top:14px;padding:16px;max-width:640px">
         <h3 id="tkTieuDe" style="font-size:15px;margin-bottom:12px">Thêm tài khoản mới</h3>
         <div class="field">
           <label for="tkTaikhoan">Tên đăng nhập <span class="req" style="color:var(--bad)">*</span></label>
