@@ -1,0 +1,16 @@
+{
+  "name": "Boom Music Box — Quản trị",
+  "short_name": "BMB Quản trị",
+  "description": "Bảng điều khiển quản lý chi nhánh, kỹ thuật và bảo trì Boom Music Box",
+  "start_url": "admin.html",
+  "scope": "/",
+  "id": "boommusicbox-admin",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#14061F",
+  "theme_color": "#14061F",
+  "icons": [
+    { "src": "Logo_BoomBox.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "Logo_BoomBox.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
