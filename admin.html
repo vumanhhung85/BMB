@@ -419,7 +419,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <textarea id="bxGhiChu" rows="2" maxlength="300" placeholder="Đã thay linh kiện gì, xử lý ra sao…" style="width:100%;padding:12px 14px;border-radius:12px;background:rgba(20,6,31,.72);border:1px solid var(--line-soft)"></textarea>
       </div>
       <div class="field">
-        <label>Ảnh sau khi xử lý (tối đa 3 ảnh)</label>
+        <label>Ảnh sau khi xử lý <span style="color:var(--bad)">*</span> (bắt buộc, tối đa 3 ảnh)</label>
         <div class="photo-pick-row">
           <button type="button" class="btn btn-ghost btn-sm" onclick="$('bxAnhCam').click()">📷 Chụp ảnh</button>
           <button type="button" class="btn btn-ghost btn-sm" onclick="$('bxAnhLib').click()">🖼️ Chọn từ thư viện</button>
@@ -813,10 +813,17 @@ async function sha256(s){
 }
 async function api(payload){
   if(!CFG.API) throw new Error('NO_API');
+  const tokenUsed = SESSION ? SESSION.token : '';
   const r = await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify({...payload, token: SESSION ? SESSION.token : ''})});
+    body:JSON.stringify({...payload, token: tokenUsed})});
   const j = await r.json();
-  if(j.error === 'BAD_TOKEN'){ logout('Phiên đã hết hạn. Đăng nhập lại nhé.'); throw new Error('BAD_TOKEN'); }
+  if(j.error === 'BAD_TOKEN'){
+    // Chỉ đăng xuất nếu token dùng để gửi request NÀY vẫn đúng là phiên hiện tại. Nếu SESSION đã đổi
+    // (vd vừa đăng nhập lại thành công) từ lúc gửi request tới lúc nhận phản hồi, đây là phản hồi TRỄ
+    // của 1 request cũ (dùng token cũ đã hết hạn) — bỏ qua, không được phép xoá mất phiên MỚI.
+    if(SESSION && SESSION.token === tokenUsed) logout('Phiên đã hết hạn. Đăng nhập lại nhé.');
+    throw new Error('BAD_TOKEN');
+  }
   return j;
 }
 
@@ -1738,12 +1745,14 @@ async function xemLichSu(maSuCo){
       '</div></div>'
     ).join('')+'</div>' : '<div class="empty" style="padding:24px 0">Chưa có lịch sử.</div>';
 
-    const anhBaoLoi = (t && t.anhBaoLoi && t.anhBaoLoi.length) ?
-      '<h4 style="font-size:13.5px;margin:16px 0 8px">Ảnh báo lỗi</h4><div class="sc-photos">'+
-      t.anhBaoLoi.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" loading="lazy"></a>').join('')+'</div>' : '';
-    const anhXong = (t && t.anhHoanThanh && t.anhHoanThanh.length) ?
-      '<h4 style="font-size:13.5px;margin:16px 0 8px">Ảnh hoàn thành</h4><div class="sc-photos">'+
-      t.anhHoanThanh.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" loading="lazy"></a>').join('')+'</div>' : '';
+    const anhBaoLoi = '<h4 style="font-size:13.5px;margin:16px 0 8px">📷 Ảnh báo lỗi</h4>' +
+      ((t && t.anhBaoLoi && t.anhBaoLoi.length) ?
+        '<div class="sc-photos">'+t.anhBaoLoi.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" loading="lazy"></a>').join('')+'</div>' :
+        '<div style="font-size:12.5px;color:var(--txt-mute)">Không có ảnh đính kèm.</div>');
+    const anhXong = '<h4 style="font-size:13.5px;margin:16px 0 8px">📷 Ảnh hoàn thành</h4>' +
+      ((t && t.anhHoanThanh && t.anhHoanThanh.length) ?
+        '<div class="sc-photos">'+t.anhHoanThanh.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" loading="lazy"></a>').join('')+'</div>' :
+        '<div style="font-size:12.5px;color:var(--txt-mute)">Kỹ thuật chưa đính kèm ảnh khi báo xong.</div>');
 
     $('lsBody').innerHTML = timeline + anhBaoLoi + anhXong;
   }catch(e){ $('lsBody').innerHTML = '<div class="empty" style="padding:24px 0">Không tải được lịch sử.</div>'; }
@@ -1809,6 +1818,7 @@ function openBaoXong(maSuCo){
   $('formBaoXong').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function submitBaoXong(){
+  if(!SC_ANH_XONG.length) return toast('Chụp hoặc chọn ít nhất 1 ảnh kết quả xử lý trước khi báo xong.','bad');
   $('bxSubmit').disabled=true; $('bxSubmit').innerHTML='<span class="spin"></span> Đang gửi…';
   try{
     const j = await api({action:'suco_baoxong', maSuCo:bxMaSuCo, ghiChu:$('bxGhiChu').value.trim(), anh:SC_ANH_XONG});
@@ -1816,7 +1826,10 @@ async function submitBaoXong(){
     toast('Đã báo xong '+bxMaSuCo+'. Chờ chi nhánh xác nhận.','ok');
     $('formBaoXong').style.display='none';
     loadSuCo(true);
-  }catch(e){ toast('Không gửi được.','bad'); }
+  }catch(e){
+    toast(e.message==='ANH_BAT_BUOC' ? 'Cần ít nhất 1 ảnh kết quả xử lý.' :
+          e.message==='ANH_LOI' ? 'Ảnh tải lên thất bại, thử chụp/chọn lại.' : 'Không gửi được.', 'bad');
+  }
   finally{ $('bxSubmit').disabled=false; $('bxSubmit').textContent='Xác nhận đã xong'; }
 }
 
