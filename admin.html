@@ -15,6 +15,8 @@
 <meta name="apple-mobile-web-app-title" content="BMB Quản trị">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <!-- SheetJS — đọc/ghi file Excel ngay trong trình duyệt, dùng cho nút Nhập/Xuất chi nhánh ở tab Cài đặt -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -239,6 +241,18 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .form-card.ff-collapse.open .ff-txt-closed{display:none}
 .form-card.ff-collapse.open .ff-txt-open{display:inline}
 
+/* ─── bản đồ Leaflet (mới, 16/08/2026) — CSS tối màu đồng bộ với index.html ─── */
+.leaflet-container{background:#1A0B2E;font-family:'Be Vietnam Pro',sans-serif}
+.leaflet-popup-content-wrapper{background:var(--plum2);color:var(--txt);border-radius:var(--r);border:1px solid var(--line);box-shadow:var(--shadow)}
+.leaflet-popup-tip{background:var(--plum2)}
+.leaflet-popup-content{margin:12px 14px;font-size:13px;line-height:1.5}
+.leaflet-popup-close-button{color:var(--txt-dim)!important;font-size:20px!important;padding:6px 8px 0 0!important}
+.leaflet-control-zoom a{background:var(--plum2)!important;color:var(--yellow)!important;border-color:var(--line-soft)!important}
+.leaflet-control-attribution{background:rgba(20,6,31,.75)!important;color:var(--txt-mute)!important;font-size:10px!important}
+.leaflet-control-attribution a{color:var(--txt-dim)!important}
+.kt-marker{display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--plum2);
+  border:2px solid var(--yellow);border-radius:50%;box-shadow:0 4px 10px rgba(0,0,0,.4)}
+
 /* ─── modal "Lịch sử xử lý" (mới, 14/08/2026) — dùng chung 1 overlay cho mọi ticket sự cố ─── */
 #modalOverlay{position:fixed;inset:0;background:rgba(10,4,20,.72);backdrop-filter:blur(3px);
   z-index:200;align-items:center;justify-content:center;padding:20px}
@@ -352,25 +366,8 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     <div class="stats" id="statsSuCo"></div>
     <div class="toolbar" id="toolbarSuCo" style="display:none">
       <input id="qSuCo" placeholder="Tìm mã, chi nhánh, mô tả…" style="flex:1;min-width:190px" oninput="drawSuCo()">
-      <select id="fSuCoTrang" onchange="drawSuCo()">
-        <option value="">Mọi trạng thái</option>
-        <option value="moi">Mới báo</option>
-        <option value="da_tiep_nhan">Đã tiếp nhận</option>
-        <option value="da_dieu_phoi">Đã điều phối</option>
-        <option value="da_nhan">Kỹ thuật đã nhận</option>
-        <option value="dang_xu_ly">Đang xử lý</option>
-        <option value="cho_xac_nhan">Chờ chi nhánh xác nhận</option>
-        <option value="cho_dong">Chờ đóng</option>
-        <option value="dong">Đã đóng</option>
-      </select>
-      <select id="fSuCoMuc" onchange="drawSuCo()">
-        <option value="">Mọi mức độ</option>
-        <option value="1">🔴 Khẩn cấp</option>
-        <option value="2">🟠 Cao</option>
-        <option value="3">🟡 Trung bình</option>
-        <option value="4">🟢 Thấp</option>
-      </select>
-      <select id="fSuCoChiNhanh" onchange="drawSuCo()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
+      <button class="btn btn-y btn-sm" id="btnBtListView" onclick="toggleBaoTriView('list')" style="display:none">📋 Danh sách</button>
+      <button class="btn btn-ghost btn-sm" id="btnBtMapView" onclick="toggleBaoTriView('map')" style="display:none">🗺️ Bản đồ</button>
       <button class="btn btn-y btn-sm" onclick="openTaoSuCo()" id="btnTaoSuCo" style="display:none">+ Báo sự cố</button>
       <button class="btn btn-ghost btn-sm" onclick="loadSuCo(true)" id="refreshSuCoBtn">🔄 Làm mới</button>
     </div>
@@ -451,7 +448,49 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       </div>
     </div>
 
-    <div class="list" id="listSuCo"></div>
+    <div id="viewSuCoList">
+      <div class="form-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+          <h3 style="font-size:17px">🔧 Sự cố chưa xử lý <span class="st-pill" id="demChuaXuLy">0</span></h3>
+        </div>
+        <div class="toolbar" style="margin-bottom:12px">
+          <select id="fMoiMuc" onchange="drawSuCo()">
+            <option value="">Mọi mức độ</option>
+            <option value="1">🔴 Khẩn cấp</option>
+            <option value="2">🟠 Cao</option>
+            <option value="3">🟡 Trung bình</option>
+            <option value="4">🟢 Thấp</option>
+          </select>
+          <select id="fMoiKT" onchange="drawSuCo()" style="display:none"><option value="">Mọi kỹ thuật viên</option></select>
+          <select id="fMoiCN" onchange="drawSuCo()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
+        </div>
+        <div class="list" id="listSuCoChuaXuLy"></div>
+      </div>
+
+      <div class="form-card" style="margin-top:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+          <h3 style="font-size:17px">✅ Sự cố đã xử lý xong <span class="st-pill" id="demDaXong">0</span></h3>
+        </div>
+        <div class="toolbar" style="margin-bottom:12px">
+          <select id="fXongMuc" onchange="drawSuCo()">
+            <option value="">Mọi mức độ</option>
+            <option value="1">🔴 Khẩn cấp</option>
+            <option value="2">🟠 Cao</option>
+            <option value="3">🟡 Trung bình</option>
+            <option value="4">🟢 Thấp</option>
+          </select>
+          <select id="fXongKT" onchange="drawSuCo()" style="display:none"><option value="">Mọi kỹ thuật viên</option></select>
+          <select id="fXongCN" onchange="drawSuCo()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
+        </div>
+        <div class="list" id="listSuCoDaXong"></div>
+        <button class="btn btn-ghost btn-sm" id="btnXemTiepDaXong" onclick="taoNhieuDaXong()" style="display:none;margin-top:12px">Xem thêm</button>
+      </div>
+    </div>
+
+    <div id="mapBaoTri" style="display:none;height:520px;border-radius:16px;overflow:hidden;border:1px solid var(--line-soft)"></div>
+    <div id="mapChuThich" style="display:none;margin-top:10px;font-size:12px;color:var(--txt-mute);gap:14px;flex-wrap:wrap">
+      <span>🔴 Khẩn cấp</span><span>🟠 Cao</span><span>🟡 Trung bình</span><span>🟢 Thấp</span><span>👷 Kỹ thuật viên</span>
+    </div>
   </div>
 
   <!-- ══════════ CÀI ĐẶT ══════════ -->
@@ -844,6 +883,8 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
 
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 /* ══════════════════════════════════════════════
    BOOM MUSIC BOX — bảng điều khiển chi nhánh
@@ -1057,8 +1098,9 @@ async function enterApp(){
   $('hBadge').className = 'badge' + (SESSION.role==='admin' ? ' admin' : '');
   if(SESSION.role === 'admin'){
     $('fBranch').style.display='';
-    $('fSuCoChiNhanh').style.display='';
     $('caidatAdmin').style.display='';
+    $('btnBtListView').style.display='';
+    $('btnBtMapView').style.display='';
     loadKyThuat();
     loadBookingSetting();
   }
@@ -1070,6 +1112,7 @@ async function enterApp(){
   if(isKyThuat()){
     document.querySelector('.tab[data-t="dat-phong"]').style.display='none';
     switchTab(document.querySelector('.tab[data-t="baotri"]'));
+    batDauChiaSeViTri();   // định kỳ nhẹ mỗi 5 phút trong lúc còn mở app — xem thêm ở nhanViec/batDauXuLy/submitBaoXong
   } else {
     loadBookings();
     setInterval(()=>loadBookings(false,true), 30000);   // tự làm mới mỗi 30 giây
@@ -1091,8 +1134,10 @@ async function loadBranches(){
     const j = await r.json();
     if(j.ok) BRANCHES = j.data || [];
     if(SESSION.role==='admin'){
-      $('fSuCoChiNhanh').innerHTML = '<option value="">Tất cả chi nhánh</option>' +
+      const optCN = '<option value="">Tất cả chi nhánh</option>' +
         BRANCHES.slice().sort((a,b)=>a.short.localeCompare(b.short)).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.short)+'</option>').join('');
+      $('fMoiCN').innerHTML = optCN; $('fMoiCN').style.display='';
+      $('fXongCN').innerHTML = optCN; $('fXongCN').style.display='';
     }
     buildScChiNhanhSelect();
   }catch(e){ console.warn('Không tải được danh sách chi nhánh:', e.message); }
@@ -1503,7 +1548,7 @@ function switchTab(el){
   $('toolbarSuCo').style.display = isBaoTri ? 'flex' : 'none';
   $('caidat').style.display = isCaiDat ? '' : 'none';
 
-  if(isBaoTri) drawSuCo();
+  if(isBaoTri){ if($('mapBaoTri').style.display!=='none') toggleBaoTriView('list'); drawSuCo(); }
   else if(isCaiDat){
     $('tkmTaiKhoanHienTai').textContent = '@'+SESSION.user;
     if(SESSION.role==='admin'){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); loadBackupInfo(); }
@@ -1804,17 +1849,31 @@ async function loadSuCo(silent){
   if(TAB==='baotri') drawSuCo();
 }
 
-function filteredSuCo(){
-  const q = norm($('qSuCo').value.trim());
-  const ft = $('fSuCoTrang').value, fm = $('fSuCoMuc').value, fc = $('fSuCoChiNhanh') ? $('fSuCoChiNhanh').value : '';
-  return SUCO.filter(t=>{
-    if(ft && t.trangThai!==ft) return false;
-    if(fm && String(t.mucDo)!==fm) return false;
-    if(fc && t.chinhanhId!==fc) return false;
+/* Đổ dropdown "theo kỹ thuật" cho 1 khung, dựa trên chính dữ liệu SUCO đang có (đã được server lọc
+   đúng quyền xem của từng vai trò) — không cần gọi thêm API riêng. Kỹ thuật viên tự ẩn dropdown này
+   vì với họ luôn chỉ có đúng 1 giá trị khả dĩ (chính họ), lọc theo nó là vô nghĩa. */
+function capNhatDsKyThuatLoc(selectId){
+  const el = $(selectId);
+  if(isKyThuat()){ el.style.display='none'; return; }
+  const daChon = el.value;
+  const ten = {};
+  SUCO.forEach(t=>{ if(t.kyThuatDuocGiao) ten[t.kyThuatDuocGiao] = t.kyThuatTen || t.kyThuatDuocGiao; });
+  const ds = Object.keys(ten).sort((a,b)=>ten[a].localeCompare(ten[b]));
+  el.innerHTML = '<option value="">Mọi kỹ thuật viên</option>' + ds.map(u=>'<option value="'+esc(u)+'"'+(u===daChon?' selected':'')+'>'+esc(ten[u])+'</option>').join('');
+  el.style.display = ds.length ? '' : 'none';
+}
+
+function locSuCo(list, fMuc, fKT, fCN, q){
+  return list.filter(t=>{
+    if(fMuc && String(t.mucDo)!==fMuc) return false;
+    if(fKT && t.kyThuatDuocGiao!==fKT) return false;
+    if(fCN && t.chinhanhId!==fCN) return false;
     if(q && !norm(t.maSuCo+' '+t.chinhanhTen+' '+t.moTa+' '+(LOAI_LOI[t.loaiLoi]||{}).ten).includes(q)) return false;
     return true;
-  }).sort((a,b)=> (a.mucDo-b.mucDo) || a.taoLuc.localeCompare(b.taoLuc));
+  });
 }
+
+let daXongHien = 40;   // số lượng "đã xử lý xong" hiện ra, bấm "Xem thêm" để mở rộng dần theo lượt 40
 
 function drawSuCo(){
   const open = SUCO.filter(t=>t.trangThai!=='dong');
@@ -1825,23 +1884,43 @@ function drawSuCo(){
     '<div class="stat g"><div class="k">Chờ chi nhánh xác nhận</div><div class="v">'+SUCO.filter(t=>t.trangThai==='cho_xac_nhan').length+'</div></div>'+
     '<div class="stat"><div class="k">Đã đóng</div><div class="v">'+SUCO.filter(t=>t.trangThai==='dong').length+'</div></div>';
 
-  let rows = filteredSuCo();
-  if(isKyThuat()){
-    // kỹ thuật: ưu tiên mức độ rồi khoảng cách từ chi nhánh xuất phát (Haversine) — tiết kiệm quãng đường đi lại
-    rows = rows.sort((a,b)=>{
-      if(a.mucDo!==b.mucDo) return a.mucDo-b.mucDo;
-      const da = branchCoord(SESSION.branchId), db = branchCoord(SESSION.branchId);
-      const ca = branchCoord(a.chinhanhId), cb = branchCoord(b.chinhanhId);
-      if(!da || !ca || !cb) return 0;
-      return haversine(da.lat,da.lng,ca.lat,ca.lng) - haversine(db.lat,db.lng,cb.lat,cb.lng);
-    });
-  }
+  capNhatDsKyThuatLoc('fMoiKT');
+  capNhatDsKyThuatLoc('fXongKT');
 
-  $('listSuCo').innerHTML = rows.length ? rows.map(sucoHTML).join('') :
-    '<div class="empty"><div class="big">🛠️</div>'+
-    '<b style="font-family:\'Baloo 2\';font-size:19px;display:block;margin-bottom:6px">Không có sự cố nào ở mục này</b>'+
-    '<p>Thử đổi bộ lọc, hoặc mọi thứ đang ổn!</p></div>';
+  const q = norm($('qSuCo').value.trim());
+
+  /* ── khung 1: sự cố CHƯA xử lý (mọi trạng thái khác "đã đóng") — mức độ nghiêm trọng trước, cùng
+     mức thì mới báo lên trên. Riêng kỹ thuật viên giữ nguyên cách sắp cũ: mức độ trước, cùng mức thì
+     ưu tiên chi nhánh gần chỗ xuất phát của họ (Haversine) để đỡ tốn quãng đường đi lại. ── */
+  let chuaXuLy = locSuCo(open, $('fMoiMuc').value, $('fMoiKT').value, $('fMoiCN').value, q);
+  if(isKyThuat()){
+    const goc = branchCoord(SESSION.branchId);
+    chuaXuLy = chuaXuLy.sort((a,b)=>{
+      if(a.mucDo!==b.mucDo) return a.mucDo-b.mucDo;
+      const ca = branchCoord(a.chinhanhId), cb = branchCoord(b.chinhanhId);
+      if(!goc || !ca || !cb) return 0;
+      return haversine(goc.lat,goc.lng,ca.lat,ca.lng) - haversine(goc.lat,goc.lng,cb.lat,cb.lng);
+    });
+  } else {
+    chuaXuLy = chuaXuLy.sort((a,b)=> a.mucDo-b.mucDo || String(b.taoLuc).localeCompare(String(a.taoLuc)));
+  }
+  $('demChuaXuLy').textContent = chuaXuLy.length;
+  $('listSuCoChuaXuLy').innerHTML = chuaXuLy.length ? chuaXuLy.map(sucoHTML).join('') :
+    '<div class="empty" style="padding:36px 0"><div class="big">✅</div><p>Không có sự cố nào khớp bộ lọc.</p></div>';
+
+  /* ── khung 2: sự cố ĐÃ xử lý xong (đã đóng) — mới nhất lên trên, KHÔNG phân biệt mức độ nghiêm
+     trọng như báo cáo cũ nữa (đúng theo yêu cầu, vì đã xong việc thì mức độ không còn ý nghĩa ưu
+     tiên xem). Sắp theo lúc đóng ticket, nếu thiếu thì theo lúc báo xong hoặc lúc tạo. ── */
+  const dong = SUCO.filter(t=>t.trangThai==='dong');
+  let daXong = locSuCo(dong, $('fXongMuc').value, $('fXongKT').value, $('fXongCN').value, q);
+  daXong = daXong.sort((a,b)=> String(b.dongLuc||b.xongLuc||b.taoLuc).localeCompare(String(a.dongLuc||a.xongLuc||a.taoLuc)));
+  $('demDaXong').textContent = daXong.length;
+  const hienThi = daXong.slice(0, daXongHien);
+  $('listSuCoDaXong').innerHTML = hienThi.length ? hienThi.map(sucoHTML).join('') :
+    '<div class="empty" style="padding:36px 0"><div class="big">🗄️</div><p>Chưa có sự cố nào khớp bộ lọc.</p></div>';
+  $('btnXemTiepDaXong').style.display = daXong.length > daXongHien ? '' : 'none';
 }
+function taoNhieuDaXong(){ daXongHien += 40; drawSuCo(); }
 
 function sucoHTML(t){
   const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac;
@@ -1971,11 +2050,86 @@ async function submitDieuPhoi(){
   }catch(e){ toast('Không điều phối được.','bad'); }
 }
 
+/* ─── vị trí GPS kỹ thuật viên (mới, 16/08/2026) — định kỳ nhẹ khi mở tab Bảo trì + chắc chắn gửi
+   tại các mốc Nhận việc/Bắt đầu xử lý/Báo xong (xem các hàm đó). Nếu bị từ chối quyền trình duyệt,
+   im lặng bỏ qua — server tự có phương án dự phòng theo chi nhánh ticket đang/vừa xử lý (xem
+   layViTriKyThuat trong Code.gs), không cần báo lỗi gì cho kỹ thuật viên ở đây. ─── */
+let viTriDinhKyId = null;
+function batDauChiaSeViTri(){
+  if(!navigator.geolocation) return;
+  guiViTriHienTai();
+  if(viTriDinhKyId) clearInterval(viTriDinhKyId);
+  viTriDinhKyId = setInterval(guiViTriHienTai, 5*60*1000);
+}
+function guiViTriHienTai(){
+  if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    pos => { api({action:'kythuat_vitri', lat:pos.coords.latitude, lng:pos.coords.longitude}).catch(()=>{}); },
+    ()=>{},
+    {enableHighAccuracy:false, timeout:8000, maximumAge:120000}
+  );
+}
+
+/* ─── bản đồ điều phối (chỉ admin) — ticket đang mở theo mức độ + vị trí ước lượng kỹ thuật viên ─── */
+let banDoBT = null, lopTicketBT = null, lopKTBT = null;
+const MAU_MUC_DO = {1:'#FF5C7A', 2:'#FFB020', 3:'#FFD21A', 4:'#3DDC97'};
+const NGUON_VITRI_LABEL = {gps:'📍 Vị trí GPS thật', dang_xu_ly:'🔧 Đang xử lý tại', vua_xong:'✅ Vừa xử lý xong tại', mac_dinh:'🏠 Chi nhánh xuất phát (chưa có dữ liệu vị trí thật)'};
+
+function toggleBaoTriView(view){
+  const isMap = view==='map';
+  $('btnBtListView').className = 'btn btn-sm ' + (isMap?'btn-ghost':'btn-y');
+  $('btnBtMapView').className = 'btn btn-sm ' + (isMap?'btn-y':'btn-ghost');
+  $('viewSuCoList').style.display = isMap?'none':'';
+  $('mapBaoTri').style.display = isMap?'block':'none';
+  $('mapChuThich').style.display = isMap?'flex':'none';
+  if(isMap) veBanDoBaoTri();
+}
+
+async function veBanDoBaoTri(){
+  if(!banDoBT){
+    banDoBT = L.map('mapBaoTri', {zoomControl:true}).setView([10.7626,106.6602], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:18, attribution:'© OpenStreetMap'}).addTo(banDoBT);
+    lopTicketBT = L.layerGroup().addTo(banDoBT);
+    lopKTBT = L.layerGroup().addTo(banDoBT);
+  }
+  lopTicketBT.clearLayers(); lopKTBT.clearLayers();
+  const diem = [];
+
+  // Ticket đang mở (chưa đóng), lấy toạ độ theo chi nhánh từ BRANCHES đã tải sẵn
+  SUCO.filter(t=>t.trangThai!=='dong').forEach(t=>{
+    const br = BRANCHES.find(b=>b.id===t.chinhanhId);
+    if(!br || !br.lat) return;
+    const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac;
+    const m = L.circleMarker([br.lat,br.lng], {radius:11, weight:2, color:'#fff', fillColor:MAU_MUC_DO[t.mucDo]||'#8B7BA5', fillOpacity:.92}).addTo(lopTicketBT);
+    m.bindPopup('<b>'+esc(t.maSuCo)+'</b> — '+esc(loai.ten)+'<br>'+esc(br.name)+(t.phong?' · '+esc(t.phong):'')+
+      '<br>'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+(t.kyThuatTen?' · '+esc(t.kyThuatTen):''));
+    diem.push([br.lat,br.lng]);
+  });
+
+  // Vị trí kỹ thuật viên
+  try{
+    const j = await api({action:'kythuat_vitri_list'});
+    if(j.ok) j.data.forEach(v=>{
+      const icon = L.divIcon({html:'👷', className:'kt-marker', iconSize:[30,30]});
+      const m = L.marker([v.lat,v.lng], {icon}).addTo(lopKTBT);
+      const nhan = NGUON_VITRI_LABEL[v.nguon] || v.nguon;
+      m.bindPopup('<b>'+esc(v.hoten)+'</b><br>'+nhan+(v.chinhanhTen?' '+esc(v.chinhanhTen):'')+
+        (v.luc?'<br><span style="color:var(--txt-mute);font-size:12px">'+fmtVN(v.luc)+'</span>':''));
+      diem.push([v.lat,v.lng]);
+    });
+  }catch(e){}
+
+  if(diem.length) banDoBT.fitBounds(diem, {padding:[30,30], maxZoom:15});
+  setTimeout(()=>banDoBT.invalidateSize(), 200);
+}
+
 async function nhanViec(maSuCo){
+  guiViTriHienTai();
   try{ const j = await api({action:'suco_nhanviec', maSuCo}); if(!j.ok) throw 0; toast('Đã nhận việc '+maSuCo+'.','ok'); loadSuCo(true); }
   catch(e){ toast('Không thực hiện được.','bad'); }
 }
 async function batDauXuLy(maSuCo){
+  guiViTriHienTai();
   try{ const j = await api({action:'suco_batdau', maSuCo}); if(!j.ok) throw 0; toast('Đã chuyển sang đang xử lý.','ok'); loadSuCo(true); }
   catch(e){ toast('Không thực hiện được.','bad'); }
 }
@@ -1990,6 +2144,7 @@ function openBaoXong(maSuCo){
 }
 async function submitBaoXong(){
   if(!SC_ANH_XONG.length) return toast('Chụp hoặc chọn ít nhất 1 ảnh kết quả xử lý trước khi báo xong.','bad');
+  guiViTriHienTai();
   $('bxSubmit').disabled=true; $('bxSubmit').innerHTML='<span class="spin"></span> Đang gửi…';
   try{
     const j = await api({action:'suco_baoxong', maSuCo:bxMaSuCo, ghiChu:$('bxGhiChu').value.trim(), anh:SC_ANH_XONG});
