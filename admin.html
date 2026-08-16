@@ -653,6 +653,32 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       </div>
     </div>
 
+    <div class="form-card" style="max-width:640px">
+      <h3 style="font-size:18px;margin-bottom:6px">Ngưỡng SLA bảo trì</h3>
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thời gian mục tiêu để tiếp nhận và xử lý xong 1 ticket, theo từng mức độ — hiện thành đếm ngược/cảnh báo quá hạn ngay trên từng ticket ở tab Bảo trì. Sửa xong bấm Lưu là áp dụng ngay, không cần deploy lại.</p>
+      <div class="row3" style="align-items:end;margin-bottom:10px">
+        <div class="field" style="margin:0"><label>Mức độ</label><div style="padding:12px 0;font-weight:700">🔴 Khẩn cấp</div></div>
+        <div class="field" style="margin:0"><label for="slaM1TN">Tiếp nhận trong (phút)</label><input id="slaM1TN" type="number" min="0" step="1"></div>
+        <div class="field" style="margin:0"><label for="slaM1XL">Xử lý xong trong (giờ)</label><input id="slaM1XL" type="number" min="0" step="0.5"></div>
+      </div>
+      <div class="row3" style="align-items:end;margin-bottom:10px">
+        <div class="field" style="margin:0"><label>&nbsp;</label><div style="padding:12px 0;font-weight:700">🟠 Cao</div></div>
+        <div class="field" style="margin:0"><input id="slaM2TN" type="number" min="0" step="1"></div>
+        <div class="field" style="margin:0"><input id="slaM2XL" type="number" min="0" step="0.5"></div>
+      </div>
+      <div class="row3" style="align-items:end;margin-bottom:10px">
+        <div class="field" style="margin:0"><label>&nbsp;</label><div style="padding:12px 0;font-weight:700">🟡 Trung bình</div></div>
+        <div class="field" style="margin:0"><input id="slaM3TN" type="number" min="0" step="1"></div>
+        <div class="field" style="margin:0"><input id="slaM3XL" type="number" min="0" step="0.5"></div>
+      </div>
+      <div class="row3" style="align-items:end;margin-bottom:16px">
+        <div class="field" style="margin:0"><label>&nbsp;</label><div style="padding:12px 0;font-weight:700">🟢 Thấp</div></div>
+        <div class="field" style="margin:0"><label style="color:var(--txt-mute)">Không cấp bách</label><div style="padding:12px 0;color:var(--txt-mute);font-size:13px">Gộp đợt bảo trì định kỳ</div></div>
+        <div class="field" style="margin:0"><label for="slaM4XL">Xử lý xong trong (ngày)</label><input id="slaM4XL" type="number" min="0" step="1"></div>
+      </div>
+      <button class="btn btn-y btn-sm" onclick="luuSLA()">Lưu ngưỡng SLA</button>
+    </div>
+
     <div class="form-card">
       <h3 style="font-size:18px;margin-bottom:6px">Quản lý tài khoản</h3>
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm tài khoản mới cho quản lý chi nhánh hoặc kỹ thuật, sửa thông tin, đổi mật khẩu, vô hiệu hoá tạm thời hoặc xoá hẳn — có hiệu lực ngay, đăng xuất khỏi mọi thiết bị của người đó lập tức khi vô hiệu hoá/đổi mật khẩu/xoá.</p>
@@ -730,7 +756,8 @@ const CFG = {
 };
 
 let SESSION = null, DATA = [], TAB = 'dat-phong';
-let PUBLIC_SETTINGS = { soThietBiToiDa: 3, idleTimeoutPhut: 720 };
+let PUBLIC_SETTINGS = { soThietBiToiDa: 3, idleTimeoutPhut: 720,
+  sla: { 1:{tiepNhan:5,xuLy:240}, 2:{tiepNhan:30,xuLy:480}, 3:{tiepNhan:480,xuLy:2880}, 4:{tiepNhan:0,xuLy:20160} } };
 let idleTimer, idleAt;
 
 function getDeviceId(){
@@ -789,6 +816,48 @@ function fmtKhoangCach(fromIso, toIso){
   if(h<24) return h+'g'+(m?' '+m+'p':'');
   const dd = Math.floor(h/24);
   return dd+' ngày '+(h%24)+'g';
+}
+/** Trạng thái SLA hiện tại của 1 ticket bảo trì — trả {text, cls} để hiện badge màu, hoặc null nếu
+ *  chưa cấu hình ngưỡng cho mức độ đó. cls: 'ok' (còn nhiều thời gian) | 'warn' (sắp hết/trễ nhẹ) |
+ *  'bad' (quá hạn) | '' (không cấp bách, không tính SLA tiếp nhận — chỉ mức 4). */
+function slaTrangThai(t){
+  const cfg = PUBLIC_SETTINGS.sla && PUBLIC_SETTINGS.sla[t.mucDo];
+  if(!cfg) return null;
+  const tao = new Date(String(t.taoLuc)).getTime();
+  if(isNaN(tao)) return null;
+
+  // Đã có kết quả xử lý VÀ đang ở trạng thái chờ xác nhận/đã đóng (không phải bị trả lại "chưa xong"
+  // rồi quay lại đang xử lý — lúc đó xongLuc vẫn còn giá trị cũ nhưng KHÔNG được tính là đã xong) —
+  // hiện đánh giá ngược đúng/trễ SLA thay vì đếm ngược.
+  if(t.xongLuc && (t.trangThai==='cho_xac_nhan' || t.trangThai==='dong')){
+    const xong = new Date(String(t.xongLuc)).getTime();
+    const phut = Math.round((xong - tao)/60000);
+    const dungHan = !cfg.xuLy || phut <= cfg.xuLy;
+    return { text: (dungHan?'✅ Xử lý trong ':'⚠️ Xử lý trong ')+fmtPhutGon(phut)+(dungHan?' — đúng SLA':' — trễ SLA'), cls: dungHan?'ok':'warn' };
+  }
+
+  const now = Date.now();
+  if(t.trangThai==='moi'){
+    if(!cfg.tiepNhan) return { text:'Không cấp bách', cls:'' };
+    const conLai = cfg.tiepNhan - Math.round((now - tao)/60000);
+    return conLai >= 0
+      ? { text:'⏱️ Còn '+fmtPhutGon(conLai)+' để tiếp nhận', cls: conLai <= cfg.tiepNhan*0.34 ? 'warn' : 'ok' }
+      : { text:'🔴 Quá hạn tiếp nhận '+fmtPhutGon(-conLai), cls:'bad' };
+  }
+
+  if(!cfg.xuLy) return null;
+  const conLai = cfg.xuLy - Math.round((now - tao)/60000);
+  return conLai >= 0
+    ? { text:'⏱️ Còn '+fmtPhutGon(conLai)+' để xử lý xong', cls: conLai <= cfg.xuLy*0.25 ? 'warn' : 'ok' }
+    : { text:'🔴 Quá hạn xử lý '+fmtPhutGon(-conLai), cls:'bad' };
+}
+function fmtPhutGon(p){
+  p = Math.round(Math.abs(p));
+  if(p < 60) return p+'p';
+  const h = Math.floor(p/60), m = p%60;
+  if(h < 24) return h+'g'+(m?' '+m+'p':'');
+  const d = Math.floor(h/24);
+  return d+'ng'+(h%24?' '+(h%24)+'g':'');
 }
 function haversine(a,b,c,d){
   const R=6371,p=Math.PI/180;
@@ -915,6 +984,7 @@ async function enterApp(){
   await loadLoaiSuCo();
   loadSuCo();
   setInterval(()=>loadSuCo(true), 30000);
+  setInterval(()=>{ if(TAB==='baotri') drawSuCo(); }, 60000);   // tự cập nhật đếm ngược SLA mỗi phút, không cần gọi máy chủ
 }
 
 async function loadBranches(){
@@ -1678,6 +1748,9 @@ function drawSuCo(){
 function sucoHTML(t){
   const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac;
   const created = fmtVN(t.taoLuc);
+  const sla = slaTrangThai(t);
+  const slaCls = {ok:4, warn:2, bad:1}[sla&&sla.cls] || 3;
+  const slaBadge = (sla && sla.text) ? ' <span class="pri pri-'+slaCls+'">'+sla.text+'</span>' : '';
   let acts = '';
 
   if(SESSION.role==='admin'){
@@ -1709,7 +1782,7 @@ function sucoHTML(t){
 
   return '<article class="sc" data-p="'+t.mucDo+'">'+
     '<div class="sc-top"><div>'+
-      '<div class="sc-name">'+esc(loai.ten)+' <span class="pri pri-'+t.mucDo+'">'+MUC_DO_LABEL[t.mucDo]+'</span> <span class="st-pill">'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+'</span></div>'+
+      '<div class="sc-name">'+esc(loai.ten)+' <span class="pri pri-'+t.mucDo+'">'+MUC_DO_LABEL[t.mucDo]+'</span> <span class="st-pill">'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+'</span>'+slaBadge+'</div>'+
       '<div style="font-size:13px;color:var(--txt-mute)">'+esc(t.chinhanhTen)+(t.phong?' · phòng '+esc(t.phong):'')+' · báo lúc '+created+'</div>'+
     '</div><span class="sc-code">'+esc(t.maSuCo)+'</span></div>'+
     (t.soLanQuayLai>0 ? '<div class="sc-flag">🚩 Đã quay lại xử lý '+t.soLanQuayLai+' lần</div>' : '') +
@@ -1881,6 +1954,34 @@ async function toggleBookingSetting(){
 function fillCfgInputs(){
   $('cfgIdleGio').value = Math.round((PUBLIC_SETTINGS.idleTimeoutPhut||720)/60*10)/10;
   $('cfgSoThietBi').value = PUBLIC_SETTINGS.soThietBiToiDa || 3;
+  const sla = PUBLIC_SETTINGS.sla || {};
+  $('slaM1TN').value = sla[1] ? sla[1].tiepNhan : 5;
+  $('slaM1XL').value = sla[1] ? Math.round(sla[1].xuLy/60*10)/10 : 4;
+  $('slaM2TN').value = sla[2] ? sla[2].tiepNhan : 30;
+  $('slaM2XL').value = sla[2] ? Math.round(sla[2].xuLy/60*10)/10 : 8;
+  $('slaM3TN').value = sla[3] ? sla[3].tiepNhan : 480;
+  $('slaM3XL').value = sla[3] ? Math.round(sla[3].xuLy/60*10)/10 : 48;
+  $('slaM4XL').value = sla[4] ? Math.round(sla[4].xuLy/1440*10)/10 : 14;
+}
+
+async function luuSLA(){
+  const fields = [
+    ['sla_m1_tiepnhan_phut', Number($('slaM1TN').value)],
+    ['sla_m1_xuly_phut',     Math.round(Number($('slaM1XL').value)*60)],
+    ['sla_m2_tiepnhan_phut', Number($('slaM2TN').value)],
+    ['sla_m2_xuly_phut',     Math.round(Number($('slaM2XL').value)*60)],
+    ['sla_m3_tiepnhan_phut', Number($('slaM3TN').value)],
+    ['sla_m3_xuly_phut',     Math.round(Number($('slaM3XL').value)*60)],
+    ['sla_m4_tiepnhan_phut', 0],
+    ['sla_m4_xuly_phut',     Math.round(Number($('slaM4XL').value)*1440)]
+  ];
+  if(fields.some(f=>isNaN(f[1]) || f[1]<0)) return toast('Nhập số hợp lệ (≥ 0) cho mọi ô.','bad');
+  try{
+    for(const [key,value] of fields){ const j = await api({action:'settings_set', key, value:String(value)}); if(!j.ok) throw new Error(j.error); }
+    await loadPublicSettings();
+    toast('Đã lưu ngưỡng SLA — áp dụng ngay cho các ticket.','ok');
+    if(TAB==='baotri') drawSuCo();
+  }catch(e){ toast('Không lưu được hết, thử lại.','bad'); }
 }
 
 async function luuCfgSo(key, inputId, multiplier){
