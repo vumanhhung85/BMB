@@ -1506,7 +1506,7 @@ function switchTab(el){
   if(isBaoTri) drawSuCo();
   else if(isCaiDat){
     $('tkmTaiKhoanHienTai').textContent = '@'+SESSION.user;
-    if(SESSION.role==='admin'){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); }
+    if(SESSION.role==='admin'){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); loadBackupInfo(); }
   }
   else if(isReportView) drawReport();
   else draw();
@@ -2105,15 +2105,13 @@ async function luuLichBackup(){
   if(isNaN(soNgay) || soNgay < 0) return toast('Nhập số ngày ≥ 0 (0 = tắt).','bad');
   try{
     const j = await api({action:'backup_lich', soNgay});
-    if(!j.ok) throw new Error(j.error);
+    if(!j.ok){ const err = new Error(j.error); err.chiTiet = j.chiTiet; throw err; }
     $('bkLichTrangThai').textContent = soNgay
       ? 'Đang bật — tự sao lưu mỗi ' + soNgay + ' ngày, lúc 2h sáng.'
       : 'Đang tắt — chỉ sao lưu khi bấm nút.';
     toast(soNgay ? 'Đã bật lịch tự động mỗi '+soNgay+' ngày.' : 'Đã tắt lịch tự động.','ok');
   }catch(e){
-    toast(e.message==='CAN_QUYEN_TRIGGER'
-      ? 'Cần cấp quyền cho script trước — mở Apps Script, chạy thử 1 hàm bất kỳ để hiện hộp thoại xin quyền, rồi thử lại.'
-      : 'Không lưu được lịch.', 'bad');
+    toast(e.chiTiet ? ('Không lưu được lịch — lỗi thật: '+e.chiTiet) : 'Không lưu được lịch.', 'bad');
   }
 }
 
