@@ -252,6 +252,8 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .leaflet-control-attribution a{color:var(--txt-dim)!important}
 .kt-marker{display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--plum2);
   border:2px solid var(--yellow);border-radius:50%;box-shadow:0 4px 10px rgba(0,0,0,.4)}
+.kt-marker-toi{display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--plum2);
+  border:2px solid #3DA8FF;border-radius:50%;box-shadow:0 0 0 5px rgba(61,168,255,.25),0 4px 10px rgba(0,0,0,.4)}
 
 /* ─── modal "Lịch sử xử lý" (mới, 14/08/2026) — dùng chung 1 overlay cho mọi ticket sự cố ─── */
 #modalOverlay{position:fixed;inset:0;background:rgba(10,4,20,.72);backdrop-filter:blur(3px);
@@ -754,6 +756,49 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     </div>
 
     <div class="form-card ff-collapse" style="max-width:640px">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">Điều phối kỹ thuật viên</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Cho kỹ thuật viên chủ động hơn khi admin chưa kịp điều phối tay — 3 công tắc độc lập, bật/tắt riêng từng cái.</p>
+        </div>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
+      </button>
+      <div class="ff-body">
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Mặc định cả 3 đều TẮT. Không cái nào bắt buộc phải bật kèm cái khác — vd bật "Tự nhận việc" mà không bật "Xem bản đồ" thì kỹ thuật viên vẫn tự nhận được ở khung danh sách, chỉ là không có bản đồ để nhìn trực quan.</p>
+      <div class="switch-row">
+        <div>
+          <b>Cho xem bản đồ sự cố</b>
+          <div style="font-size:12.5px;color:var(--txt-mute)">Kỹ thuật viên thấy tab "Bản đồ" ở mục Bảo trì — ticket đang mở theo màu mức độ, kể cả ticket chưa điều phối.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="cfgKtBanDo" onchange="toggleKtSetting('kythuat_xem_bando','cfgKtBanDo')">
+          <span class="track"></span>
+        </label>
+      </div>
+      <div class="switch-row" style="margin-top:10px">
+        <div>
+          <b>Cho tự nhận việc</b>
+          <div style="font-size:12.5px;color:var(--txt-mute)">Ticket đã tiếp nhận nhưng chưa điều phối: kỹ thuật viên bấm "Tự nhận việc" là nhận ngay, không cần chờ admin — ai bấm trước thắng, không nhận trùng được.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="cfgKtTuNhan" onchange="toggleKtSetting('kythuat_tu_nhan_viec','cfgKtTuNhan')">
+          <span class="track"></span>
+        </label>
+      </div>
+      <div class="switch-row" style="margin-top:10px">
+        <div>
+          <b>Cho xem vị trí đồng nghiệp</b>
+          <div style="font-size:12.5px;color:var(--txt-mute)">Trên bản đồ, kỹ thuật viên thấy vị trí GPS của các kỹ thuật viên khác (không chỉ ticket) — nên hỏi ý kiến anh em trước khi bật, vì đây là lộ vị trí thật giữa đồng nghiệp với nhau.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="cfgKtViTri" onchange="toggleKtSetting('kythuat_xem_vitri_dongnghiep','cfgKtViTri')">
+          <span class="track"></span>
+        </label>
+      </div>
+      </div>
+    </div>
+
+    <div class="form-card ff-collapse" style="max-width:640px">
       <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open'); if(this.closest('.form-card').classList.contains('open')) loadBackupInfo();">
         <div>
           <h3 style="font-size:18px;margin-bottom:6px">Sao lưu Google Drive (tài khoản khác)</h3>
@@ -1099,10 +1144,14 @@ async function enterApp(){
   if(SESSION.role === 'admin'){
     $('fBranch').style.display='';
     $('caidatAdmin').style.display='';
-    $('btnBtListView').style.display='';
-    $('btnBtMapView').style.display='';
     loadKyThuat();
     loadBookingSetting();
+  }
+  // Nút Danh sách/Bản đồ: admin luôn thấy; kỹ thuật viên chỉ thấy khi admin đã bật "Cho xem bản đồ
+  // sự cố" trong Cài đặt (PUBLIC_SETTINGS đã nạp sẵn từ lúc mở trang, xem loadPublicSettings()).
+  if(SESSION.role === 'admin' || (isKyThuat() && PUBLIC_SETTINGS.kythuatXemBanDo)){
+    $('btnBtListView').style.display='';
+    $('btnBtMapView').style.display='';
   }
   if(SESSION.role === 'manager' || SESSION.role === 'admin'){
     $('btnTaoSuCo').style.display='';
@@ -1890,11 +1939,13 @@ function drawSuCo(){
   const q = norm($('qSuCo').value.trim());
 
   /* ── khung 1: sự cố CHƯA xử lý (mọi trạng thái khác "đã đóng") — mức độ nghiêm trọng trước, cùng
-     mức thì mới báo lên trên. Riêng kỹ thuật viên giữ nguyên cách sắp cũ: mức độ trước, cùng mức thì
-     ưu tiên chi nhánh gần chỗ xuất phát của họ (Haversine) để đỡ tốn quãng đường đi lại. ── */
+     mức thì mới báo lên trên. Riêng kỹ thuật viên: mức độ trước, cùng mức thì ưu tiên GẦN MÌNH nhất —
+     dùng vị trí GPS thật (VITRI_HIEN_TAI_KT, mới nhất lần lấy trong phiên này, xem guiViTriHienTai())
+     nếu đã có; nếu chưa lấy được GPS lần nào (vd vừa mở lại tab, chưa mở bản đồ hay bấm hành động nào)
+     thì tạm dùng chi nhánh xuất phát gắn với tài khoản làm điểm tham chiếu, như cách cũ. ── */
   let chuaXuLy = locSuCo(open, $('fMoiMuc').value, $('fMoiKT').value, $('fMoiCN').value, q);
   if(isKyThuat()){
-    const goc = branchCoord(SESSION.branchId);
+    const goc = VITRI_HIEN_TAI_KT || branchCoord(SESSION.branchId);
     chuaXuLy = chuaXuLy.sort((a,b)=>{
       if(a.mucDo!==b.mucDo) return a.mucDo-b.mucDo;
       const ca = branchCoord(a.chinhanhId), cb = branchCoord(b.chinhanhId);
@@ -1936,6 +1987,7 @@ function sucoHTML(t){
     if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="dongTicket(\''+t.maSuCo+'\')">🔒 Đóng ticket</button>';
   }
   if(isKyThuat()){
+    if(t.trangThai==='da_tiep_nhan' && !t.kyThuatDuocGiao && PUBLIC_SETTINGS.kythuatTuNhanViec) acts += '<button class="btn btn-ok btn-sm" onclick="tuNhanViec(\''+t.maSuCo+'\')">🙋 Tự nhận việc</button>';
     if(t.trangThai==='da_dieu_phoi') acts += '<button class="btn btn-ok btn-sm" onclick="nhanViec(\''+t.maSuCo+'\')">Nhận việc</button>';
     if(t.trangThai==='da_nhan') acts += '<button class="btn btn-y btn-sm" onclick="batDauXuLy(\''+t.maSuCo+'\')">Bắt đầu xử lý</button>';
     if(['da_nhan','dang_xu_ly'].includes(t.trangThai)) acts += '<button class="btn btn-ok btn-sm" onclick="openBaoXong(\''+t.maSuCo+'\')">✓ Báo xong</button>';
@@ -2055,22 +2107,34 @@ async function submitDieuPhoi(){
    im lặng bỏ qua — server tự có phương án dự phòng theo chi nhánh ticket đang/vừa xử lý (xem
    layViTriKyThuat trong Code.gs), không cần báo lỗi gì cho kỹ thuật viên ở đây. ─── */
 let viTriDinhKyId = null;
+let VITRI_HIEN_TAI_KT = null;   // {lat,lng} lần lấy gần nhất trong phiên này — dùng để ưu tiên tâm bản đồ + sắp xếp theo khoảng cách thật (17/08/2026)
 function batDauChiaSeViTri(){
   if(!navigator.geolocation) return;
   guiViTriHienTai();
   if(viTriDinhKyId) clearInterval(viTriDinhKyId);
   viTriDinhKyId = setInterval(guiViTriHienTai, 5*60*1000);
 }
+/* Trả về Promise<{lat,lng}|null> — vừa gửi lên server (để layViTriKyThuat của admin/đồng nghiệp dùng)
+   vừa lưu lại vào VITRI_HIEN_TAI_KT cho chính trình duyệt này dùng ngay (mở bản đồ, sắp xếp danh
+   sách). Các chỗ gọi cũ không await Promise này vẫn chạy bình thường như trước (fire-and-forget). */
 function guiViTriHienTai(){
-  if(!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(
-    pos => { api({action:'kythuat_vitri', lat:pos.coords.latitude, lng:pos.coords.longitude}).catch(()=>{}); },
-    ()=>{},
-    {enableHighAccuracy:false, timeout:8000, maximumAge:120000}
-  );
+  if(!navigator.geolocation) return Promise.resolve(null);
+  return new Promise(resolve=>{
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const v = {lat:pos.coords.latitude, lng:pos.coords.longitude};
+        VITRI_HIEN_TAI_KT = v;
+        api({action:'kythuat_vitri', lat:v.lat, lng:v.lng}).catch(()=>{});
+        resolve(v);
+      },
+      ()=>resolve(null),
+      {enableHighAccuracy:false, timeout:8000, maximumAge:120000}
+    );
+  });
 }
 
-/* ─── bản đồ điều phối (chỉ admin) — ticket đang mở theo mức độ + vị trí ước lượng kỹ thuật viên ─── */
+/* ─── bản đồ điều phối — ticket đang mở theo mức độ + vị trí ước lượng kỹ thuật viên. Admin luôn
+   xem được; kỹ thuật viên xem được khi admin bật cờ kythuat_xem_bando (xem enterApp() và Cài đặt) ─── */
 let banDoBT = null, lopTicketBT = null, lopKTBT = null;
 const MAU_MUC_DO = {1:'#FF5C7A', 2:'#FFB020', 3:'#FFD21A', 4:'#3DDC97'};
 const NGUON_VITRI_LABEL = {gps:'📍 Vị trí GPS thật', dang_xu_ly:'🔧 Đang xử lý tại', vua_xong:'✅ Vừa xử lý xong tại', mac_dinh:'🏠 Chi nhánh xuất phát (chưa có dữ liệu vị trí thật)'};
@@ -2101,13 +2165,18 @@ async function veBanDoBaoTri(){
     if(!br || !br.lat) return;
     const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac;
     const m = L.circleMarker([br.lat,br.lng], {radius:11, weight:2, color:'#fff', fillColor:MAU_MUC_DO[t.mucDo]||'#8B7BA5', fillOpacity:.92}).addTo(lopTicketBT);
+    // Ticket chưa ai phụ trách + kỹ thuật viên đang xem + tính năng tự nhận đang bật → thêm nút tự
+    // nhận thẳng trong popup, không cần quay lại khung Danh sách mới bấm được.
+    const coTheTuNhan = isKyThuat() && PUBLIC_SETTINGS.kythuatTuNhanViec && t.trangThai==='da_tiep_nhan' && !t.kyThuatDuocGiao;
     m.bindPopup('<b>'+esc(t.maSuCo)+'</b> — '+esc(loai.ten)+'<br>'+esc(br.name)+(t.phong?' · '+esc(t.phong):'')+
-      '<br>'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+(t.kyThuatTen?' · '+esc(t.kyThuatTen):''));
+      '<br>'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+(t.kyThuatTen?' · '+esc(t.kyThuatTen):'')+
+      (coTheTuNhan ? '<br><button class="btn btn-ok btn-sm" style="margin-top:6px" onclick="tuNhanViec(\''+t.maSuCo+'\')">🙋 Tự nhận việc</button>' : ''));
     diem.push([br.lat,br.lng]);
   });
 
-  // Vị trí kỹ thuật viên
-  try{
+  // Vị trí kỹ thuật viên — admin luôn xem được; kỹ thuật viên chỉ xem được lẫn nhau khi admin đã bật
+  // riêng cờ "Cho xem vị trí đồng nghiệp" (cờ này TÁCH RIÊNG khỏi 2 cờ kia, xem readPublicSettings).
+  if(SESSION.role==='admin' || PUBLIC_SETTINGS.kythuatXemViTriDongNghiep) try{
     const j = await api({action:'kythuat_vitri_list'});
     if(j.ok) j.data.forEach(v=>{
       const icon = L.divIcon({html:'👷', className:'kt-marker', iconSize:[30,30]});
@@ -2119,7 +2188,25 @@ async function veBanDoBaoTri(){
     });
   }catch(e){}
 
-  if(diem.length) banDoBT.fitBounds(diem, {padding:[30,30], maxZoom:15});
+  // Ưu tiên vị trí HIỆN TẠI của kỹ thuật viên khi họ mở bản đồ (mới, 17/08/2026) — để mở lên là thấy
+  // ngay sự cố GẦN MÌNH nhất, không phải tự kéo/tìm giữa toàn bộ chi nhánh cả nước. Chủ động xin vị
+  // trí MỚI ngay lúc này (không chỉ dùng bản lưu từ lượt gửi định kỳ trước, có thể đã cũ tới 5 phút).
+  // Nếu bị từ chối quyền hoặc không lấy được, lặng lẽ rơi về cách cũ (fit vừa toàn bộ điểm đang có).
+  let viTriToi = null;
+  if(isKyThuat()){
+    viTriToi = await guiViTriHienTai();
+    if(viTriToi){
+      const iconToi = L.divIcon({html:'🔵', className:'kt-marker-toi', iconSize:[26,26]});
+      L.marker([viTriToi.lat, viTriToi.lng], {icon:iconToi, zIndexOffset:1000}).addTo(lopKTBT)
+        .bindPopup('<b>📍 Vị trí của bạn</b>');
+    }
+  }
+
+  if(viTriToi){
+    banDoBT.setView([viTriToi.lat, viTriToi.lng], 13);
+  } else if(diem.length){
+    banDoBT.fitBounds(diem, {padding:[30,30], maxZoom:15});
+  }
   setTimeout(()=>banDoBT.invalidateSize(), 200);
 }
 
@@ -2127,6 +2214,24 @@ async function nhanViec(maSuCo){
   guiViTriHienTai();
   try{ const j = await api({action:'suco_nhanviec', maSuCo}); if(!j.ok) throw 0; toast('Đã nhận việc '+maSuCo+'.','ok'); loadSuCo(true); }
   catch(e){ toast('Không thực hiện được.','bad'); }
+}
+/* Tự nhận 1 ticket chưa ai điều phối (mới, 17/08/2026) — khác nhanViec() ở chỗ ticket này CHƯA được
+   admin giao cho ai, nên có thể bị người khác nhận mất giữa lúc mình đang xem — luôn tải lại danh
+   sách sau khi thử, kể cả khi lỗi, để thấy ngay trạng thái mới nhất thay vì tưởng nhầm là còn trống. */
+async function tuNhanViec(maSuCo){
+  guiViTriHienTai();
+  try{
+    const j = await api({action:'suco_tunhan', maSuCo});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã tự nhận '+maSuCo+'. Chúc bạn xử lý thuận lợi!','ok');
+  }catch(e){
+    const msg = {DA_CO_NGUOI_NHAN:'Chậm một chút — đã có người khác nhận ticket này trước rồi.',
+      BAD_STATE:'Ticket không còn ở trạng thái chờ nhận nữa.',
+      SAI_LOAI_KY_THUAT:'Ticket này cần đúng loại kỹ thuật khác (chung/mạng), không dành cho bạn.',
+      TINH_NANG_DANG_TAT:'Tính năng tự nhận việc đang tắt.'}[e.message] || 'Không nhận được, thử lại.';
+    toast(msg,'bad');
+  }
+  loadSuCo(true);
 }
 async function batDauXuLy(maSuCo){
   guiViTriHienTai();
@@ -2215,6 +2320,23 @@ function fillCfgInputs(){
   $('slaM3TN').value = sla[3] ? sla[3].tiepNhan : 480;
   $('slaM3XL').value = sla[3] ? Math.round(sla[3].xuLy/60*10)/10 : 48;
   $('slaM4XL').value = sla[4] ? Math.round(sla[4].xuLy/1440*10)/10 : 14;
+  $('cfgKtBanDo').checked = !!PUBLIC_SETTINGS.kythuatXemBanDo;
+  $('cfgKtTuNhan').checked = !!PUBLIC_SETTINGS.kythuatTuNhanViec;
+  $('cfgKtViTri').checked = !!PUBLIC_SETTINGS.kythuatXemViTriDongNghiep;
+}
+
+/* ─── cài đặt: điều phối kỹ thuật viên — 3 công tắc độc lập (mới, 17/08/2026) ─── */
+async function toggleKtSetting(key, checkboxId){
+  const on = $(checkboxId).checked;
+  try{
+    const j = await api({action:'settings_set', key, value: on?'Y':'N'});
+    if(!j.ok) throw new Error(j.error);
+    await loadPublicSettings();   // nạp lại PUBLIC_SETTINGS để các chỗ khác (nút bản đồ, nút tự nhận…) cập nhật ngay
+    toast('Đã '+(on?'BẬT':'TẮT')+' — áp dụng ngay cho kỹ thuật viên, không cần họ đăng nhập lại.','ok');
+  }catch(e){
+    $(checkboxId).checked = !on;
+    toast('Không lưu được cài đặt. Thử lại.','bad');
+  }
 }
 
 async function luuSLA(){
