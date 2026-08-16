@@ -227,10 +227,17 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
    đặt không dài lê thê; Quản lý chi nhánh/tài khoản (thao tác thường xuyên) vẫn mở sẵn như cũ. ─── */
 .ff-head{width:100%;display:flex;justify-content:space-between;align-items:center;gap:14px;
   background:none;border:0;text-align:left;cursor:pointer;padding:0;color:inherit;font-family:inherit}
-.ff-chevron{font-size:15px;color:var(--txt-mute);flex-shrink:0;transition:transform .18s}
+.ff-toggle{display:flex;align-items:center;gap:7px;flex-shrink:0;padding:9px 16px;border-radius:999px;
+  background:rgba(255,255,255,.06);border:1px solid var(--line-soft);font-size:13.5px;font-weight:700;
+  color:var(--txt-mute);white-space:nowrap}
+.ff-head:hover .ff-toggle{background:rgba(255,255,255,.12);color:var(--txt)}
+.ff-txt-open{display:none}
+.ff-chevron{font-size:16px;line-height:1;transition:transform .18s;display:inline-block}
 .form-card.ff-collapse .ff-body{display:none;margin-top:14px}
 .form-card.ff-collapse.open .ff-body{display:block}
 .form-card.ff-collapse.open .ff-chevron{transform:rotate(180deg)}
+.form-card.ff-collapse.open .ff-txt-closed{display:none}
+.form-card.ff-collapse.open .ff-txt-open{display:inline}
 
 /* ─── modal "Lịch sử xử lý" (mới, 14/08/2026) — dùng chung 1 overlay cho mọi ticket sự cố ─── */
 #modalOverlay{position:fixed;inset:0;background:rgba(10,4,20,.72);backdrop-filter:blur(3px);
@@ -456,7 +463,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <h3 style="font-size:18px;margin-bottom:6px">Chức năng giữ phòng đặt chỗ</h3>
           <p style="color:var(--txt-mute);font-size:13.5px">Bật/tắt nút "Giữ phòng" trên trang khách.</p>
         </div>
-        <span class="ff-chevron">▾</span>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
       </button>
       <div class="ff-body">
       <p style="color:var(--txt-mute);font-size:13.5px">Khi tắt, trang khách sẽ ẩn nút "Giữ phòng" và máy chủ từ chối mọi đơn mới gửi lên. Đơn cũ vẫn xem và xử lý bình thường trong các tab bên trên.</p>
@@ -613,7 +620,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <h3 style="font-size:18px;margin-bottom:6px">Danh mục loại sự cố</h3>
           <p style="color:var(--txt-mute);font-size:13.5px">Thêm/sửa/ẩn loại sự cố dùng trong form Báo sự cố.</p>
         </div>
-        <span class="ff-chevron">▾</span>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
       </button>
       <div class="ff-body">
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm loại sự cố hay gặp, sửa mức độ ưu tiên mặc định, hoặc ẩn loại không còn dùng — áp dụng ngay cho form Báo sự cố, không cần sửa code.</p>
@@ -651,7 +658,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <h3 style="font-size:18px;margin-bottom:6px">Đăng nhập &amp; phiên làm việc</h3>
           <p style="color:var(--txt-mute);font-size:13.5px">Thời gian tự đăng xuất, số thiết bị tối đa.</p>
         </div>
-        <span class="ff-chevron">▾</span>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
       </button>
       <div class="ff-body">
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Áp dụng cho lần đăng nhập tiếp theo trở đi — không cần sửa code, không cần deploy lại.</p>
@@ -679,7 +686,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <h3 style="font-size:18px;margin-bottom:6px">Ngưỡng SLA bảo trì</h3>
           <p style="color:var(--txt-mute);font-size:13.5px">Thời gian mục tiêu tiếp nhận/xử lý theo mức độ.</p>
         </div>
-        <span class="ff-chevron">▾</span>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
       </button>
       <div class="ff-body">
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thời gian mục tiêu để tiếp nhận và xử lý xong 1 ticket, theo từng mức độ — hiện thành đếm ngược/cảnh báo quá hạn ngay trên từng ticket ở tab Bảo trì. Sửa xong bấm Lưu là áp dụng ngay, không cần deploy lại.</p>
@@ -713,7 +720,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <h3 style="font-size:18px;margin-bottom:6px">Sao lưu Google Drive (tài khoản khác)</h3>
           <p style="color:var(--txt-mute);font-size:13.5px">Sao lưu Sheet + toàn bộ ảnh (sự cố, chi nhánh) sang Drive của 1 tài khoản Google riêng, phòng khi tài khoản chính gặp sự cố.</p>
         </div>
-        <span class="ff-chevron">▾</span>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
       </button>
       <div class="ff-body">
         <div style="background:var(--plum2);border:1px solid var(--line-soft);border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:16px">
@@ -806,7 +813,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <h3 style="font-size:18px;margin-bottom:6px">Đổi mật khẩu của tôi</h3>
           <p style="color:var(--txt-mute);font-size:13.5px">Tài khoản đang đăng nhập: <span id="tkmTaiKhoanHienTai" style="color:var(--txt)"></span></p>
         </div>
-        <span class="ff-chevron">▾</span>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
       </button>
       <div class="ff-body">
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Đổi xong sẽ tự đăng xuất các thiết bị khác, không đăng xuất thiết bị đang dùng.</p>
