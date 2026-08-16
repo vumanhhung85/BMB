@@ -222,6 +222,16 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .kebab-item.bad{color:#FF8FA6}
 .kebab-item.ok{color:var(--ok)}
 
+/* ─── thẻ cài đặt thu gọn/mở rộng (mới, 15/08/2026) — dùng cho các mục ít thao tác hằng ngày
+   (đổi mật khẩu, bật/tắt giữ phòng, danh mục loại sự cố, phiên đăng nhập, ngưỡng SLA) để tab Cài
+   đặt không dài lê thê; Quản lý chi nhánh/tài khoản (thao tác thường xuyên) vẫn mở sẵn như cũ. ─── */
+.ff-head{width:100%;display:flex;justify-content:space-between;align-items:center;gap:14px;
+  background:none;border:0;text-align:left;cursor:pointer;padding:0;color:inherit;font-family:inherit}
+.ff-chevron{font-size:15px;color:var(--txt-mute);flex-shrink:0;transition:transform .18s}
+.form-card.ff-collapse .ff-body{display:none;margin-top:14px}
+.form-card.ff-collapse.open .ff-body{display:block}
+.form-card.ff-collapse.open .ff-chevron{transform:rotate(180deg)}
+
 /* ─── modal "Lịch sử xử lý" (mới, 14/08/2026) — dùng chung 1 overlay cho mọi ticket sự cố ─── */
 #modalOverlay{position:fixed;inset:0;background:rgba(10,4,20,.72);backdrop-filter:blur(3px);
   z-index:200;align-items:center;justify-content:center;padding:20px}
@@ -439,23 +449,16 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
 
   <!-- ══════════ CÀI ĐẶT ══════════ -->
   <div id="caidat" style="display:none">
-    <div class="form-card" style="max-width:560px">
-      <h3 style="font-size:18px;margin-bottom:6px">Đổi mật khẩu của tôi</h3>
-      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Áp dụng cho tài khoản đang đăng nhập (<span id="tkmTaiKhoanHienTai" style="color:var(--txt)"></span>). Đổi xong sẽ tự đăng xuất các thiết bị khác, không đăng xuất thiết bị đang dùng.</p>
-      <div class="field">
-        <label for="tkmMatKhauCu">Mật khẩu hiện tại</label>
-        <input id="tkmMatKhauCu" type="password" maxlength="60" autocomplete="current-password">
-      </div>
-      <div class="field">
-        <label for="tkmMatKhauMoi">Mật khẩu mới (tối thiểu 4 ký tự)</label>
-        <input id="tkmMatKhauMoi" type="password" maxlength="60" autocomplete="new-password">
-      </div>
-      <button class="btn btn-y btn-sm" onclick="tuDoiMatKhau()">Đổi mật khẩu</button>
-    </div>
-
     <div id="caidatAdmin" style="display:none">
-    <div class="form-card" style="max-width:560px">
-      <h3 style="font-size:18px;margin-bottom:6px">Chức năng giữ phòng đặt chỗ</h3>
+    <div class="form-card ff-collapse">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">Chức năng giữ phòng đặt chỗ</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Bật/tắt nút "Giữ phòng" trên trang khách.</p>
+        </div>
+        <span class="ff-chevron">▾</span>
+      </button>
+      <div class="ff-body">
       <p style="color:var(--txt-mute);font-size:13.5px">Khi tắt, trang khách sẽ ẩn nút "Giữ phòng" và máy chủ từ chối mọi đơn mới gửi lên. Đơn cũ vẫn xem và xử lý bình thường trong các tab bên trên.</p>
       <div class="switch-row">
         <div>
@@ -466,6 +469,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <input type="checkbox" id="bkToggle" checked onchange="toggleBookingSetting()">
           <span class="track"></span>
         </label>
+      </div>
       </div>
     </div>
 
@@ -603,8 +607,15 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       </div>
     </div>
 
-    <div class="form-card">
-      <h3 style="font-size:18px;margin-bottom:6px">Danh mục loại sự cố</h3>
+    <div class="form-card ff-collapse">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">Danh mục loại sự cố</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Thêm/sửa/ẩn loại sự cố dùng trong form Báo sự cố.</p>
+        </div>
+        <span class="ff-chevron">▾</span>
+      </button>
+      <div class="ff-body">
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm loại sự cố hay gặp, sửa mức độ ưu tiên mặc định, hoặc ẩn loại không còn dùng — áp dụng ngay cho form Báo sự cố, không cần sửa code.</p>
       <div id="listLoaiSuCo" style="margin-bottom:14px"></div>
       <button class="btn btn-y btn-sm" onclick="openThemLoaiSuCo()">+ Thêm loại sự cố</button>
@@ -631,10 +642,18 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <button class="btn btn-ghost btn-sm" onclick="$('formLoaiSuCo').style.display='none'">Huỷ</button>
         </div>
       </div>
+      </div>
     </div>
 
-    <div class="form-card" style="max-width:560px">
-      <h3 style="font-size:18px;margin-bottom:6px">Đăng nhập &amp; phiên làm việc</h3>
+    <div class="form-card ff-collapse" style="max-width:560px">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">Đăng nhập &amp; phiên làm việc</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Thời gian tự đăng xuất, số thiết bị tối đa.</p>
+        </div>
+        <span class="ff-chevron">▾</span>
+      </button>
+      <div class="ff-body">
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Áp dụng cho lần đăng nhập tiếp theo trở đi — không cần sửa code, không cần deploy lại.</p>
       <div class="field">
         <label for="cfgIdleGio">Tự đăng xuất nếu không thao tác trong (giờ)</label>
@@ -651,10 +670,18 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         </div>
         <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Đăng nhập thiết bị mới khi đã đầy sẽ tự đăng xuất thiết bị lâu không hoạt động nhất, không chặn đăng nhập.</div>
       </div>
+      </div>
     </div>
 
-    <div class="form-card" style="max-width:640px">
-      <h3 style="font-size:18px;margin-bottom:6px">Ngưỡng SLA bảo trì</h3>
+    <div class="form-card ff-collapse" style="max-width:640px">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">Ngưỡng SLA bảo trì</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Thời gian mục tiêu tiếp nhận/xử lý theo mức độ.</p>
+        </div>
+        <span class="ff-chevron">▾</span>
+      </button>
+      <div class="ff-body">
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thời gian mục tiêu để tiếp nhận và xử lý xong 1 ticket, theo từng mức độ — hiện thành đếm ngược/cảnh báo quá hạn ngay trên từng ticket ở tab Bảo trì. Sửa xong bấm Lưu là áp dụng ngay, không cần deploy lại.</p>
       <div class="row3" style="align-items:end;margin-bottom:10px">
         <div class="field" style="margin:0"><label>Mức độ</label><div style="padding:12px 0;font-weight:700">🔴 Khẩn cấp</div></div>
@@ -677,6 +704,48 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <div class="field" style="margin:0"><label for="slaM4XL">Xử lý xong trong (ngày)</label><input id="slaM4XL" type="number" min="0" step="1"></div>
       </div>
       <button class="btn btn-y btn-sm" onclick="luuSLA()">Lưu ngưỡng SLA</button>
+      </div>
+    </div>
+
+    <div class="form-card ff-collapse" style="max-width:640px">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open'); if(this.closest('.form-card').classList.contains('open')) loadBackupInfo();">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">Sao lưu Google Drive (tài khoản khác)</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Sao lưu Sheet + toàn bộ ảnh (sự cố, chi nhánh) sang Drive của 1 tài khoản Google riêng, phòng khi tài khoản chính gặp sự cố.</p>
+        </div>
+        <span class="ff-chevron">▾</span>
+      </button>
+      <div class="ff-body">
+        <div style="background:var(--plum2);border:1px solid var(--line-soft);border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:16px">
+          <b>Cách nối 2 tài khoản Google:</b>
+          <ol style="margin:8px 0 0;padding-left:20px;color:var(--txt-mute)">
+            <li>Đăng nhập Google Drive bằng tài khoản <b>khác</b> (tài khoản muốn giữ bản sao lưu) → tạo 1 thư mục mới.</li>
+            <li>Chia sẻ (Share) thư mục đó, cấp quyền <b>Người chỉnh sửa (Editor)</b> cho email: <b id="bkEmail" style="color:var(--yellow)">đang tải…</b> (chính là tài khoản đang chạy hệ thống này).</li>
+            <li>Mở thư mục đó, copy đoạn ID trong đường link (phần sau <code>/folders/</code>) → dán vào ô bên dưới → Lưu.</li>
+          </ol>
+        </div>
+        <div class="field">
+          <label for="bkFolderId">ID thư mục Google Drive (tài khoản khác)</label>
+          <div style="display:flex;gap:8px">
+            <input id="bkFolderId" placeholder="Dán ID thư mục vào đây" style="flex:1">
+            <button class="btn btn-y btn-sm" onclick="luuBackupFolder()">Lưu</button>
+          </div>
+        </div>
+        <button class="btn btn-ok btn-sm" onclick="chayBackup()" id="btnChayBackup">💾 Sao lưu ngay</button>
+        <div style="font-size:12px;color:var(--txt-mute);margin-top:8px">Sheet lưu theo từng lần bấm (giữ lại lịch sử). Ảnh đồng bộ tăng dần — chỉ copy ảnh mới, không tạo trùng dù bấm nhiều lần. Nếu có rất nhiều ảnh tích luỹ từ trước, lần đầu sao lưu có thể cần bấm lại 1-2 lần mới copy hết (mỗi lần chạy sẽ tiếp tục đúng chỗ dở dang, không mất tiến độ).</div>
+        <div id="bkKetQua" style="font-size:12.5px;color:var(--txt-mute);margin-top:10px"></div>
+
+        <div style="border-top:1px solid var(--line-soft);margin:16px 0 14px"></div>
+        <div class="field">
+          <label for="bkSoNgay">Tự động sao lưu định kỳ mỗi (ngày) — 0 = tắt</label>
+          <div style="display:flex;gap:8px">
+            <input id="bkSoNgay" type="number" min="0" max="90" step="1" style="flex:1">
+            <button class="btn btn-y btn-sm" onclick="luuLichBackup()">Lưu lịch</button>
+          </div>
+          <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Chạy tự động lúc 2h sáng, không cần ai bấm nút. Đổi số ngày ở đây bất cứ lúc nào, không cần sửa code hay deploy lại.</div>
+        </div>
+        <div id="bkLichTrangThai" style="font-size:12.5px;color:var(--txt-mute)"></div>
+      </div>
     </div>
 
     <div class="form-card">
@@ -729,6 +798,28 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         </div>
       </div>
     </div>
+    </div>
+
+    <div class="form-card ff-collapse" style="max-width:560px">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">Đổi mật khẩu của tôi</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Tài khoản đang đăng nhập: <span id="tkmTaiKhoanHienTai" style="color:var(--txt)"></span></p>
+        </div>
+        <span class="ff-chevron">▾</span>
+      </button>
+      <div class="ff-body">
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Đổi xong sẽ tự đăng xuất các thiết bị khác, không đăng xuất thiết bị đang dùng.</p>
+      <div class="field">
+        <label for="tkmMatKhauCu">Mật khẩu hiện tại</label>
+        <input id="tkmMatKhauCu" type="password" maxlength="60" autocomplete="current-password">
+      </div>
+      <div class="field">
+        <label for="tkmMatKhauMoi">Mật khẩu mới (tối thiểu 4 ký tự)</label>
+        <input id="tkmMatKhauMoi" type="password" maxlength="60" autocomplete="new-password">
+      </div>
+      <button class="btn btn-y btn-sm" onclick="tuDoiMatKhau()">Đổi mật khẩu</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1982,6 +2073,67 @@ async function luuSLA(){
     toast('Đã lưu ngưỡng SLA — áp dụng ngay cho các ticket.','ok');
     if(TAB==='baotri') drawSuCo();
   }catch(e){ toast('Không lưu được hết, thử lại.','bad'); }
+}
+
+/* ─── sao lưu Google Drive (tài khoản khác) ─── */
+async function loadBackupInfo(){
+  $('bkEmail').textContent = 'đang tải…';
+  try{
+    const j = await api({action:'backup_thongtin'});
+    if(!j.ok) throw new Error(j.error);
+    $('bkEmail').textContent = j.email;
+    $('bkFolderId').value = j.folderId;
+    $('bkSoNgay').value = j.tuDongSoNgay || 0;
+    $('bkLichTrangThai').textContent = j.tuDongSoNgay
+      ? 'Đang bật — tự sao lưu mỗi ' + j.tuDongSoNgay + ' ngày, lúc 2h sáng.'
+      : 'Đang tắt — chỉ sao lưu khi bấm nút.';
+    if(j.lanCuoiLoi) $('bkKetQua').innerHTML = '⚠️ Lần gần nhất lỗi: '+esc(j.lanCuoiLoi);
+    else if(j.lanCuoiLuc) $('bkKetQua').innerHTML = '✅ Lần sao lưu gần nhất: '+fmtVN(j.lanCuoiLuc)+' — '+esc(j.lanCuoiTen);
+    else $('bkKetQua').textContent = 'Chưa từng sao lưu.';
+  }catch(e){ $('bkEmail').textContent = 'Không tải được.'; }
+}
+
+async function luuLichBackup(){
+  const soNgay = Number($('bkSoNgay').value);
+  if(isNaN(soNgay) || soNgay < 0) return toast('Nhập số ngày ≥ 0 (0 = tắt).','bad');
+  try{
+    const j = await api({action:'backup_lich', soNgay});
+    if(!j.ok) throw new Error(j.error);
+    $('bkLichTrangThai').textContent = soNgay
+      ? 'Đang bật — tự sao lưu mỗi ' + soNgay + ' ngày, lúc 2h sáng.'
+      : 'Đang tắt — chỉ sao lưu khi bấm nút.';
+    toast(soNgay ? 'Đã bật lịch tự động mỗi '+soNgay+' ngày.' : 'Đã tắt lịch tự động.','ok');
+  }catch(e){
+    toast(e.message==='CAN_QUYEN_TRIGGER'
+      ? 'Cần cấp quyền cho script trước — mở Apps Script, chạy thử 1 hàm bất kỳ để hiện hộp thoại xin quyền, rồi thử lại.'
+      : 'Không lưu được lịch.', 'bad');
+  }
+}
+
+async function luuBackupFolder(){
+  const id = $('bkFolderId').value.trim();
+  if(!id) return toast('Dán ID thư mục trước.','bad');
+  try{
+    const j = await api({action:'settings_set', key:'backup_drive_folder_id', value:id});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã lưu ID thư mục.','ok');
+  }catch(e){ toast('Không lưu được.','bad'); }
+}
+
+async function chayBackup(){
+  const btn = $('btnChayBackup');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Đang sao lưu…';
+  try{
+    const j = await api({action:'backup_chay'});
+    if(!j.ok) throw new Error(j.error);
+    $('bkKetQua').innerHTML = '✅ Vừa sao lưu xong lúc '+fmtVN(new Date().toISOString())+' — '+esc(j.ten)+(j.soAnhMoi?' + '+j.soAnhMoi+' file ảnh mới':' (không có ảnh mới)');
+    toast('Đã sao lưu thành công.','ok');
+  }catch(e){
+    const map = {NO_FOLDER:'Chưa lưu ID thư mục.', FOLDER_NOT_FOUND:'Không mở được thư mục — kiểm tra lại ID và đã chia sẻ quyền chỉnh sửa cho đúng email chưa.', BACKUP_LOI:'Sao lưu thất bại, thử lại.'};
+    toast(map[e.message] || 'Không sao lưu được.','bad');
+    $('bkKetQua').textContent = map[e.message] || 'Sao lưu thất bại.';
+  }
+  finally{ btn.disabled = false; btn.innerHTML = '💾 Sao lưu ngay'; }
 }
 
 async function luuCfgSo(key, inputId, multiplier){
