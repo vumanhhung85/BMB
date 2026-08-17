@@ -996,7 +996,7 @@ function getDeviceId(){
   return d;
 }
 let BRANCHES = [], KYTHUAT = [], SUCO = [], TAIKHOAN_LIST = [];
-let SC_ANH = [], SC_ANH_XONG = [];               // ảnh chờ gửi (base64), reset sau mỗi lần dùng
+var SC_ANH = [], SC_ANH_XONG = [];               // ảnh chờ gửi (base64), reset sau mỗi lần dùng — PHẢI dùng var (không phải let/const), vì onPickAnh/drawPhotoBox/removeAnh truy cập qua window[storeVar] để dùng chung 1 bộ hàm cho cả 2 khung ảnh; let/const không gắn vào window nên window[storeVar] sẽ luôn undefined (bug thật đã xảy ra, sửa 17/08/2026)
 const SO_ANH_TOI_DA = 6;   // nâng từ 3 lên 6 (17/08/2026) — kỹ thuật/quản lý chi nhánh cần chụp nhiều góc hơn với sự cố phức tạp
 let lastSuCoOpenSeen = null;
 
