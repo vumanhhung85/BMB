@@ -2106,6 +2106,25 @@ function driveViewUrl(u){
   return m ? 'https://drive.google.com/file/d/'+m[1]+'/view' : u;
 }
 
+/** Chỉ đường Google Maps tới chi nhánh (mới, 18/08/2026) — dùng chuẩn URL chính thức của Google, không
+ *  cần API key, mở được app Google Maps trên điện thoại hoặc web trên máy tính. CỐ TÌNH không tự điền
+ *  điểm xuất phát (origin) — để trống thì Google Maps tự dùng vị trí GPS hiện tại ngay lúc mở, chính
+ *  xác hơn nhiều so với việc tự lấy toạ độ đã lưu (VITRI_HIEN_TAI_KT) rồi nhét vào, vì đó có thể là
+ *  bản cache vài phút trước. Chi nhánh chưa có toạ độ chính xác (lat/lng trống) → chỉ đường theo địa
+ *  chỉ dạng chữ thay vì ẩn nút — vẫn dùng được, chỉ kém chính xác hơn 1 chút. */
+function chiDuongUrl(t){
+  const br = branchCoord(t.chinhanhId);
+  if(br) return 'https://www.google.com/maps/dir/?api=1&destination='+br.lat+','+br.lng+'&travelmode=driving';
+  const bAny = BRANCHES.find(b=>b.id===t.chinhanhId);
+  const diaChi = (bAny && bAny.address) ? bAny.address : (t.chinhanhTen || '');
+  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(diaChi)+'&travelmode=driving';
+}
+function chiDuong(maSuCo){
+  const t = SUCO.find(x=>x.maSuCo===maSuCo);
+  if(!t) return;
+  window.open(chiDuongUrl(t), '_blank');
+}
+
 function sucoHTML(t){
   const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac;
   const created = fmtVN(t.taoLuc);
@@ -2123,7 +2142,10 @@ function sucoHTML(t){
     if(t.trangThai==='da_tiep_nhan' && !t.kyThuatDuocGiao && PUBLIC_SETTINGS.kythuatTuNhanViec) acts += '<button class="btn btn-ok btn-sm" onclick="tuNhanViec(\''+t.maSuCo+'\')">🙋 Tự nhận việc</button>';
     if(t.trangThai==='da_dieu_phoi') acts += '<button class="btn btn-ok btn-sm" onclick="nhanViec(\''+t.maSuCo+'\')">Nhận việc</button>';
     if(t.trangThai==='da_nhan') acts += '<button class="btn btn-y btn-sm" onclick="batDauXuLy(\''+t.maSuCo+'\')">Bắt đầu xử lý</button>';
-    if(['da_nhan','dang_xu_ly'].includes(t.trangThai)) acts += '<button class="btn btn-ok btn-sm" onclick="openBaoXong(\''+t.maSuCo+'\')">✓ Báo xong</button>';
+    if(['da_nhan','dang_xu_ly'].includes(t.trangThai)){
+      acts += '<button class="btn btn-ghost btn-sm" onclick="chiDuong(\''+t.maSuCo+'\')">🧭 Chỉ đường</button>';
+      acts += '<button class="btn btn-ok btn-sm" onclick="openBaoXong(\''+t.maSuCo+'\')">✓ Báo xong</button>';
+    }
   }
   if(SESSION.role==='manager' && t.trangThai==='cho_xac_nhan'){
     acts += '<button class="btn btn-ok btn-sm" onclick="xacNhan(\''+t.maSuCo+'\',true)">✅ Đã xong</button>'+
