@@ -321,6 +321,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       </div>
       <div class="who">
         <span class="idle" id="idleTxt"></span>
+        <button class="btn btn-ghost btn-sm" id="btnChuongLap" style="display:none" onclick="toggleTamTatChuong()">🔔</button>
         <span class="badge" id="hBadge">—</span>
         <button class="btn btn-ghost btn-sm" onclick="logout()">Đăng xuất</button>
       </div>
@@ -399,7 +400,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <textarea id="scMoTa" rows="3" maxlength="500" placeholder="Mô tả cụ thể tình trạng…" style="width:100%;padding:12px 14px;border-radius:12px;background:rgba(20,6,31,.72);border:1px solid var(--line-soft)"></textarea>
       </div>
       <div class="field">
-        <label>Ảnh đính kèm (tối đa 3 ảnh)</label>
+        <label>Ảnh đính kèm (tối đa 6 ảnh)</label>
         <div class="photo-pick-row">
           <button type="button" class="btn btn-ghost btn-sm" onclick="$('scAnhCam').click()">📷 Chụp ảnh</button>
           <button type="button" class="btn btn-ghost btn-sm" onclick="$('scAnhLib').click()">🖼️ Chọn từ thư viện</button>
@@ -435,7 +436,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <textarea id="bxGhiChu" rows="2" maxlength="300" placeholder="Đã thay linh kiện gì, xử lý ra sao…" style="width:100%;padding:12px 14px;border-radius:12px;background:rgba(20,6,31,.72);border:1px solid var(--line-soft)"></textarea>
       </div>
       <div class="field">
-        <label>Ảnh sau khi xử lý <span style="color:var(--bad)">*</span> (bắt buộc, tối đa 3 ảnh)</label>
+        <label>Ảnh sau khi xử lý (nên chụp, không bắt buộc — tối đa 6 ảnh)</label>
         <div class="photo-pick-row">
           <button type="button" class="btn btn-ghost btn-sm" onclick="$('bxAnhCam').click()">📷 Chụp ảnh</button>
           <button type="button" class="btn btn-ghost btn-sm" onclick="$('bxAnhLib').click()">🖼️ Chọn từ thư viện</button>
@@ -795,6 +796,48 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <span class="track"></span>
         </label>
       </div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line-soft)">
+        <b>Chuông lặp lại cho sự cố Khẩn cấp/Cao chưa ai nhận</b>
+        <div style="font-size:12.5px;color:var(--txt-mute);margin-bottom:10px">Kỹ thuật viên đang được giao (hoặc thấy trên bản đồ mà chưa ai nhận) 1 ticket mức 🔴 Khẩn cấp/🟠 Cao sẽ nghe chuông kêu lặp lại kèm rung, tự dừng ngay khi họ bấm "Nhận việc". Có nút 🔔 ở đầu trang để họ tự tắt tạm 1 giờ khi đang bận, tự bật lại sau đó.</div>
+        <div class="field" style="max-width:220px">
+          <label for="cfgChuongGiay">Khoảng nghỉ giữa các lần kêu (giây)</label>
+          <input type="number" id="cfgChuongGiay" min="10" max="300" step="5">
+        </div>
+        <button class="btn btn-y btn-sm" style="margin-top:8px" onclick="luuChuongGiay()">Lưu</button>
+      </div>
+      </div>
+    </div>
+
+    <div class="form-card ff-collapse" style="max-width:640px">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open'); if(this.closest('.form-card').classList.contains('open')) loadTelegramInfo();">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">Cấu hình Telegram</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Nhóm Telegram nhận thông báo (đơn mới, sự cố mới, điều phối…). Đổi nhóm ở đây, áp dụng ngay — không cần sửa code hay deploy lại.</p>
+        </div>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
+      </button>
+      <div class="ff-body">
+        <div style="background:var(--plum2);border:1px solid var(--line-soft);border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:16px">
+          <b>Cách lấy Bot Token và Chat ID:</b>
+          <ol style="margin:8px 0 0;padding-left:20px;color:var(--txt-mute)">
+            <li>Chat với <b>@BotFather</b> trên Telegram → gõ <code>/newbot</code> → đặt tên → copy đoạn <b>token</b> nó trả về, dán vào ô bên dưới.</li>
+            <li>Tạo group Telegram mới (hoặc dùng group có sẵn) → thêm bot vừa tạo vào group → gửi thử 1 tin bất kỳ trong group.</li>
+            <li>Mở trên trình duyệt: <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> → tìm số ở mục <code>"chat":{"id":...}</code> (group thường là số âm, vd <code>-1001234567890</code>) → dán vào ô Chat ID bên dưới.</li>
+          </ol>
+        </div>
+        <div class="field">
+          <label for="tgToken">Bot Token</label>
+          <input id="tgToken" placeholder="vd: 123456789:AAExampleTokenxxxxxxxxxxxxxxxxxxx">
+        </div>
+        <div class="field">
+          <label for="tgChat">Chat ID (nhóm nhận thông báo)</label>
+          <input id="tgChat" placeholder="vd: -1001234567890">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-y btn-sm" onclick="luuTelegramCfg()">Lưu</button>
+          <button class="btn btn-ghost btn-sm" onclick="guiThuTelegram()" id="btnTgTest">📨 Gửi thử</button>
+        </div>
+        <div id="tgKetQua" style="font-size:12.5px;color:var(--txt-mute);margin-top:10px"></div>
       </div>
     </div>
 
@@ -954,6 +997,7 @@ function getDeviceId(){
 }
 let BRANCHES = [], KYTHUAT = [], SUCO = [], TAIKHOAN_LIST = [];
 let SC_ANH = [], SC_ANH_XONG = [];               // ảnh chờ gửi (base64), reset sau mỗi lần dùng
+const SO_ANH_TOI_DA = 6;   // nâng từ 3 lên 6 (17/08/2026) — kỹ thuật/quản lý chi nhánh cần chụp nhiều góc hơn với sự cố phức tạp
 let lastSuCoOpenSeen = null;
 
 /* Danh mục loại sự cố — tải từ server (sheet LoaiSuCo), admin thêm/sửa/ẩn được trong Cài đặt.
@@ -1328,7 +1372,9 @@ function drawCnPhotoBox(){
     : '';
 }
 
+let cnDangSuaId = null;   // null = đang THÊM MỚI; có giá trị = đang SỬA đúng chi nhánh này (17/08/2026, gửi kèm lên server để không bị nhầm thêm mới thành sửa đè)
 function openThemChiNhanh(){
+  cnDangSuaId = null;
   $('cnTieuDe').textContent = 'Thêm chi nhánh mới';
   ['cnId','cnName','cnShort','cnType','cnAddress','cnRegion','cnPhone','cnPhoneDisplay','cnHours',
    'cnLat','cnLng','cnMaps','cnFacebook','cnTiktok','cnInstagram','cnPrice','cnEmail','cnNote','cnPriority']
@@ -1342,6 +1388,7 @@ function openThemChiNhanh(){
 }
 function openSuaChiNhanh(id){
   const c = CHINHANH_LIST.find(x=>x.id===id); if(!c) return;
+  cnDangSuaId = c.id;
   $('cnTieuDe').textContent = 'Sửa chi nhánh — '+c.id;
   $('cnId').value = c.id; $('cnId').disabled = true;
   $('cnName').value=c.name; $('cnShort').value=c.short; $('cnType').value=c.type;
@@ -1363,7 +1410,8 @@ async function submitChiNhanh(){
   if(!name) return toast('Nhập tên chi nhánh.','bad');
   if(!address) return toast('Nhập địa chỉ.','bad');
   const payload = {
-    action:'chinhanh_luu', id:$('cnId').value.trim(), name, short:$('cnShort').value.trim(), type:$('cnType').value.trim(),
+    action:'chinhanh_luu', id:$('cnId').value.trim(), chinhanhDangSuaId: cnDangSuaId || '',
+    name, short:$('cnShort').value.trim(), type:$('cnType').value.trim(),
     address, region:$('cnRegion').value.trim(), phone:$('cnPhone').value.trim(), phoneDisplay:$('cnPhoneDisplay').value.trim(),
     hours:$('cnHours').value.trim(), open:$('cnOpen').value, close:$('cnClose').value,
     lat:$('cnLat').value.trim(), lng:$('cnLng').value.trim(), geoExact:$('cnGeoExact').checked,
@@ -1381,7 +1429,10 @@ async function submitChiNhanh(){
     await loadChiNhanhList();
     await loadBranches();
   }catch(e){
-    const map = {BAD_NAME:'Thiếu tên chi nhánh.', BAD_ADDRESS:'Thiếu địa chỉ.'};
+    const map = {BAD_NAME:'Thiếu tên chi nhánh.', BAD_ADDRESS:'Thiếu địa chỉ.',
+      DUP_ID:'Mã chi nhánh này đã có người dùng — đổi mã khác hoặc để trống cho hệ thống tự sinh.',
+      DUP_NAME:'Đã có chi nhánh khác trùng tên này — đổi tên cho dễ phân biệt (vd thêm số 1, 2…).',
+      NOT_FOUND:'Chi nhánh đang sửa không còn tồn tại — có thể đã bị xoá ở nơi khác, tải lại danh sách.'};
     toast(map[e.message] || 'Không lưu được.','bad');
   }
 }
@@ -1491,6 +1542,79 @@ function playPing(){
     o.frequency.setValueAtTime(1320, ctx.currentTime + .13);
   }catch(e){}
 }
+
+/* ─────────────── CHUÔNG LẶP LẠI cho ticket Khẩn cấp/Cao chưa ai nhận (mới, 17/08/2026) ───────────────
+   Chỉ áp dụng cho kỹ thuật viên (mucDo 1-2), TỰ DỪNG ngay khi ticket rời trạng thái "chờ họ bấm nhận"
+   — tức lúc họ (hoặc ai khác) bấm Nhận việc/Tự nhận, không cần nút tắt tay. Khoảng nghỉ giữa các lần
+   kêu admin tự chỉnh trong Cài đặt (PUBLIC_SETTINGS.chuongLapKhoangGiay). Có nút 🔔 tắt tạm 1 giờ,
+   lưu riêng theo TỪNG THIẾT BỊ (localStorage — hợp lý vì đây là "tôi đang bận trên điện thoại NÀY",
+   không phải cấu hình chung cả tài khoản), tự bật lại sau 1 giờ hoặc khi họ bấm bật lại sớm hơn.
+   Giới hạn cần biết: chỉ kêu được khi tab đang mở và màn hình sáng — trình duyệt di động tạm dừng JS
+   chạy nền khi khoá màn hình/chuyển app khác, không có cách nào chắc chắn 100% với cơ chế trong tab. */
+let chuongLapId = null;
+const CHUONG_SNOOZE_KEY = 'bmb_chuong_tam_tat_den';
+
+function ticketCanChuongLap(t){
+  if(t.trangThai==='da_dieu_phoi' && String(t.kyThuatDuocGiao).toLowerCase()===SESSION.user) return true;   // admin đã giao, đang chờ họ bấm Nhận việc
+  if(t.trangThai==='da_tiep_nhan' && !t.kyThuatDuocGiao && PUBLIC_SETTINGS.kythuatXemBanDo) return true;      // chưa ai nhận, họ có quyền tự nhận
+  return false;
+}
+function dangTamTatChuong(){
+  return Date.now() < Number(localStorage.getItem(CHUONG_SNOOZE_KEY) || 0);
+}
+function coTicketCanChuongLap(){
+  if(!isKyThuat() || dangTamTatChuong()) return false;
+  return SUCO.some(t => t.trangThai!=='dong' && (t.mucDo===1||t.mucDo===2) && ticketCanChuongLap(t));
+}
+function dungChuongLap(){
+  if(chuongLapId){ clearInterval(chuongLapId); chuongLapId = null; }
+}
+function keuVaRung(){
+  playPing();
+  if(navigator.vibrate) try{ navigator.vibrate([250,120,250]); }catch(e){}
+}
+function capNhatChuongLap(){
+  if(!isKyThuat()){ dungChuongLap(); return; }
+  const canKeu = coTicketCanChuongLap();
+  if(canKeu && !chuongLapId){
+    const giay = Math.max(10, Number(PUBLIC_SETTINGS.chuongLapKhoangGiay) || 25);
+    keuVaRung();   // kêu ngay phát đầu, không đợi hết 1 chu kỳ mới kêu
+    chuongLapId = setInterval(()=>{
+      if(!coTicketCanChuongLap()){ dungChuongLap(); veNutChuongLap(); return; }
+      keuVaRung();
+    }, giay*1000);
+  } else if(!canKeu && chuongLapId){
+    dungChuongLap();
+  }
+  veNutChuongLap();
+}
+function veNutChuongLap(){
+  const btn = $('btnChuongLap');
+  if(!isKyThuat()){ btn.style.display='none'; return; }
+  btn.style.display='';
+  if(dangTamTatChuong()){
+    const phutConLai = Math.ceil((Number(localStorage.getItem(CHUONG_SNOOZE_KEY)||0) - Date.now())/60000);
+    btn.textContent = '🔕 '+Math.max(phutConLai,1)+'p';
+    btn.title = 'Đang tắt chuông tạm, còn '+Math.max(phutConLai,1)+' phút — bấm để bật lại ngay';
+  } else {
+    btn.textContent = chuongLapId ? '🔔' : '🔔';
+    btn.title = chuongLapId ? 'Đang có ticket khẩn cấp/cao chưa ai nhận — bấm để tắt chuông tạm 1 giờ' : 'Tắt chuông tạm 1 giờ (khi đang bận)';
+  }
+}
+function toggleTamTatChuong(){
+  if(dangTamTatChuong()){
+    localStorage.removeItem(CHUONG_SNOOZE_KEY);
+    toast('Đã bật lại chuông.','ok');
+  } else {
+    localStorage.setItem(CHUONG_SNOOZE_KEY, String(Date.now() + 60*60*1000));
+    dungChuongLap();
+    toast('Đã tắt chuông tạm 1 giờ — tự bật lại sau đó.','ok');
+  }
+  veNutChuongLap();
+  capNhatChuongLap();
+}
+// Tự bật lại đúng lúc hết hạn 1 giờ dù không thao tác gì (không cần chờ tới poll 30s tiếp theo mới nhận ra)
+setInterval(()=>{ if(isKyThuat()){ veNutChuongLap(); capNhatChuongLap(); } }, 20000);
 
 function updateFavicon(count){
   const img = new Image();
@@ -1801,9 +1925,9 @@ function compressImg(file, maxW=1000, quality=0.65){
 }
 async function onPickAnh(input, boxId, storeVar){
   const store = window[storeVar];
-  const files = [...input.files].slice(0, 3 - store.length);
+  const files = [...input.files].slice(0, SO_ANH_TOI_DA - store.length);
   for(const f of files){
-    if(store.length >= 3) break;
+    if(store.length >= SO_ANH_TOI_DA) break;
     try{ store.push(await compressImg(f)); }catch(e){}
   }
   input.value = '';
@@ -1852,6 +1976,7 @@ function pickMucDo(m){ scMucDoChon = m; renderMucDoPick(); }
 async function submitSuCo(){
   const loaiCode = $('scLoai').value;
   if(SESSION.role==='admin' && !$('scChiNhanh').value) return toast('Chọn chi nhánh trước đã nhé.','bad');
+  if(!SC_ANH.length && !confirm('Bạn chưa đính kèm ảnh nào. Một số lỗi (vd sự cố mạng, cấu hình phần mềm…) không cần ảnh vẫn báo được — vẫn gửi báo cáo không kèm ảnh chứ?')) return;
   $('scSubmit').disabled = true; $('scSubmit').innerHTML = '<span class="spin"></span> Đang gửi…';
   try{
     const j = await api({
@@ -1895,6 +2020,7 @@ async function loadSuCo(silent){
     }
   }
   lastSuCoOpenSeen = nOpen;
+  capNhatChuongLap();
   if(TAB==='baotri') drawSuCo();
 }
 
@@ -2248,7 +2374,9 @@ function openBaoXong(maSuCo){
   $('formBaoXong').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function submitBaoXong(){
-  if(!SC_ANH_XONG.length) return toast('Chụp hoặc chọn ít nhất 1 ảnh kết quả xử lý trước khi báo xong.','bad');
+  // Không còn bắt buộc ảnh (đổi 17/08/2026) — chỉ NHẮC, vì có những lỗi không chụp được gì (sự cố
+  // mạng, cấu hình phần mềm, tư vấn qua điện thoại…). Cùng cách nhắc như khung "Báo sự cố" phía trên.
+  if(!SC_ANH_XONG.length && !confirm('Bạn chưa đính kèm ảnh kết quả xử lý. Một số lỗi (vd sự cố mạng, cấu hình phần mềm…) không có gì để chụp vẫn báo xong được — vẫn gửi không kèm ảnh chứ?')) return;
   guiViTriHienTai();
   $('bxSubmit').disabled=true; $('bxSubmit').innerHTML='<span class="spin"></span> Đang gửi…';
   try{
@@ -2258,8 +2386,7 @@ async function submitBaoXong(){
     $('formBaoXong').style.display='none';
     loadSuCo(true);
   }catch(e){
-    toast(e.message==='ANH_BAT_BUOC' ? 'Cần ít nhất 1 ảnh kết quả xử lý.' :
-          e.message==='ANH_LOI' ? 'Ảnh tải lên thất bại, thử chụp/chọn lại.' : 'Không gửi được.', 'bad');
+    toast(e.message==='ANH_LOI' ? 'Ảnh tải lên thất bại, thử chụp/chọn lại.' : 'Không gửi được.', 'bad');
   }
   finally{ $('bxSubmit').disabled=false; $('bxSubmit').textContent='Xác nhận đã xong'; }
 }
@@ -2323,6 +2450,19 @@ function fillCfgInputs(){
   $('cfgKtBanDo').checked = !!PUBLIC_SETTINGS.kythuatXemBanDo;
   $('cfgKtTuNhan').checked = !!PUBLIC_SETTINGS.kythuatTuNhanViec;
   $('cfgKtViTri').checked = !!PUBLIC_SETTINGS.kythuatXemViTriDongNghiep;
+  $('cfgChuongGiay').value = PUBLIC_SETTINGS.chuongLapKhoangGiay || 25;
+}
+
+async function luuChuongGiay(){
+  const v = Math.max(10, Math.min(300, Number($('cfgChuongGiay').value) || 25));
+  $('cfgChuongGiay').value = v;
+  try{
+    const j = await api({action:'settings_set', key:'chuong_lap_khoang_giay', value:String(v)});
+    if(!j.ok) throw new Error(j.error);
+    await loadPublicSettings();
+    dungChuongLap(); capNhatChuongLap();   // áp dụng khoảng nghỉ mới ngay nếu chuông đang kêu
+    toast('Đã lưu, áp dụng ngay.','ok');
+  }catch(e){ toast('Không lưu được.','bad'); }
 }
 
 /* ─── cài đặt: điều phối kỹ thuật viên — 3 công tắc độc lập (mới, 17/08/2026) ─── */
@@ -2360,6 +2500,49 @@ async function luuSLA(){
 }
 
 /* ─── sao lưu Google Drive (tài khoản khác) ─── */
+/* ─── cấu hình Telegram (mới, 17/08/2026) ─── */
+async function loadTelegramInfo(){
+  try{
+    const j = await api({action:'telegram_thongtin'});
+    if(j.ok){ $('tgToken').value = j.token || ''; $('tgChat').value = j.chat || ''; }
+  }catch(e){}
+}
+async function luuTelegramCfg(){
+  const token = $('tgToken').value.trim(), chat = $('tgChat').value.trim();
+  $('tgKetQua').textContent = 'Đang lưu…';
+  try{
+    const j1 = await api({action:'settings_set', key:'tg_bot_token', value:token});
+    if(!j1.ok) throw new Error(j1.error);
+    const j2 = await api({action:'settings_set', key:'tg_chat_id', value:chat});
+    if(!j2.ok) throw new Error(j2.error);
+    $('tgKetQua').innerHTML = '✅ Đã lưu — bấm "Gửi thử" để kiểm tra ngay.';
+    toast('Đã lưu cấu hình Telegram.','ok');
+  }catch(e){
+    $('tgKetQua').innerHTML = '⚠️ Không lưu được, thử lại.';
+    toast('Không lưu được cấu hình.','bad');
+  }
+}
+async function guiThuTelegram(){
+  const btn = $('btnTgTest');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Đang gửi…';
+  $('tgKetQua').textContent = 'Đang gửi tin nhắn thử…';
+  try{
+    const j = await api({action:'telegram_test'});
+    if(!j.ok){ const err = new Error(j.error); err.chiTiet = j.chiTiet; throw err; }
+    $('tgKetQua').innerHTML = '✅ Đã gửi thành công — kiểm tra group Telegram xem đã nhận tin chưa.';
+    toast('Đã gửi tin nhắn thử.','ok');
+  }catch(e){
+    const map = {
+      CHUA_CAU_HINH: 'Chưa lưu Token/Chat ID — điền và bấm Lưu trước.',
+      TELEGRAM_TU_CHOI: 'Telegram từ chối: ' + (e.chiTiet || 'sai token hoặc bot chưa được thêm vào group.'),
+      GUI_LOI: 'Gửi thất bại: ' + (e.chiTiet || 'lỗi không rõ.')
+    };
+    $('tgKetQua').innerHTML = '⚠️ ' + (map[e.message] || 'Không gửi được, thử lại.');
+    toast('Gửi thử thất bại.','bad');
+  }
+  finally{ btn.disabled = false; btn.innerHTML = '📨 Gửi thử'; }
+}
+
 async function loadBackupInfo(){
   $('bkEmail').textContent = 'đang tải…';
   try{
