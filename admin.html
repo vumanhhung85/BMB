@@ -1368,7 +1368,7 @@ function xoaAnhChiNhanhMoi(){ cnAnhMoi = 'XOA'; cnAnhCu = ''; drawCnPhotoBox(); 
 function drawCnPhotoBox(){
   const src = cnAnhMoi && cnAnhMoi!=='XOA' ? cnAnhMoi : cnAnhCu;
   $('cnPhotoBox').innerHTML = src
-    ? '<div class="th"><img src="'+src+'"><button type="button" onclick="xoaAnhChiNhanhMoi()">✕</button></div>'
+    ? '<div class="th"><img src="'+driveImgUrl(src)+'"><button type="button" onclick="xoaAnhChiNhanhMoi()">✕</button></div>'
     : '';
 }
 
@@ -2099,6 +2099,23 @@ function drawSuCo(){
 }
 function taoNhieuDaXong(){ daXongHien += 40; drawSuCo(); }
 
+/** Chuyển link ảnh Drive sang endpoint ổn định để nhúng <img> (mới, 17/08/2026) — Google đã ngừng hỗ
+ *  trợ ổn định dạng "uc?export=view" từ giữa 2024 (đổi chính sách third-party cookies), hay trả về
+ *  403 hoặc chuyển sang trang đòi đăng nhập Gmail dù file đã chia sẻ "Anyone with the link". Chuyển
+ *  sang "thumbnail?id=...&sz=w1600" (endpoint chính thức của Drive, đáng tin cậy hơn nhiều) NGAY LÚC
+ *  HIỂN THỊ — nên áp dụng được luôn cho cả ảnh của ticket CŨ đã lưu link dạng thu cũ, không cần sửa
+ *  lại dữ liệu trong Sheet. Chỉ cần trích đúng phần "id=" từ URL cũ, không quan tâm phần còn lại. */
+function driveImgUrl(u){
+  const m = String(u||'').match(/[?&]id=([^&]+)/);
+  return m ? 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1600' : u;
+}
+/** Link khi bấm vào ảnh để xem đầy đủ — trỏ thẳng trang xem chính thức của Drive (ổn định với file đã
+ *  chia sẻ "Anyone with the link"), thay vì mở thẳng URL ảnh thô hay bị đòi đăng nhập như trước. */
+function driveViewUrl(u){
+  const m = String(u||'').match(/[?&]id=([^&]+)/);
+  return m ? 'https://drive.google.com/file/d/'+m[1]+'/view' : u;
+}
+
 function sucoHTML(t){
   const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac;
   const created = fmtVN(t.taoLuc);
@@ -2124,7 +2141,7 @@ function sucoHTML(t){
   }
   acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\')">🕘 Lịch sử</button>';
 
-  const photos = (imgs, label) => imgs.length ? '<div class="sc-photos">'+imgs.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="'+label+'" loading="lazy"></a>').join('')+'</div>' : '';
+  const photos = (imgs, label) => imgs.length ? '<div class="sc-photos">'+imgs.map(u=>'<a href="'+esc(driveViewUrl(u))+'" target="_blank" rel="noopener"><img src="'+esc(driveImgUrl(u))+'" alt="'+label+'" loading="lazy"></a>').join('')+'</div>' : '';
 
   // Mốc thời gian xử lý xong + chi nhánh xác nhận — hiện cả 2 kèm khoảng cách giữa chúng để thấy
   // ngay chi nhánh xác nhận chậm hay nhanh sau khi kỹ thuật báo xong, không cần mở Lịch sử mới biết.
@@ -2175,11 +2192,11 @@ async function xemLichSu(maSuCo){
 
     const anhBaoLoi = '<h4 style="font-size:13.5px;margin:16px 0 8px">📷 Ảnh báo lỗi</h4>' +
       ((t && t.anhBaoLoi && t.anhBaoLoi.length) ?
-        '<div class="sc-photos">'+t.anhBaoLoi.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" loading="lazy"></a>').join('')+'</div>' :
+        '<div class="sc-photos">'+t.anhBaoLoi.map(u=>'<a href="'+esc(driveViewUrl(u))+'" target="_blank" rel="noopener"><img src="'+esc(driveImgUrl(u))+'" loading="lazy"></a>').join('')+'</div>' :
         '<div style="font-size:12.5px;color:var(--txt-mute)">Không có ảnh đính kèm.</div>');
     const anhXong = '<h4 style="font-size:13.5px;margin:16px 0 8px">📷 Ảnh hoàn thành</h4>' +
       ((t && t.anhHoanThanh && t.anhHoanThanh.length) ?
-        '<div class="sc-photos">'+t.anhHoanThanh.map(u=>'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" loading="lazy"></a>').join('')+'</div>' :
+        '<div class="sc-photos">'+t.anhHoanThanh.map(u=>'<a href="'+esc(driveViewUrl(u))+'" target="_blank" rel="noopener"><img src="'+esc(driveImgUrl(u))+'" loading="lazy"></a>').join('')+'</div>' :
         '<div style="font-size:12.5px;color:var(--txt-mute)">Kỹ thuật chưa đính kèm ảnh khi báo xong.</div>');
 
     $('lsBody').innerHTML = timeline + anhBaoLoi + anhXong;
