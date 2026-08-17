@@ -300,12 +300,6 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     </div>
     <button class="btn btn-y" style="width:100%" id="loginBtn" onclick="doLogin()">Đăng nhập</button>
     <div style="text-align:center;margin-top:12px"><a href="#" onclick="promptQuenMatKhau();return false" style="color:var(--txt-mute);font-size:13px">Quên mật khẩu?</a></div>
-
-    <div class="msg warn show" style="margin-top:18px;font-size:12.5px">
-      <span>🔒</span>
-      <span id="idleNoteTxt">Mật khẩu được băm SHA-256 trước khi rời khỏi máy bạn. Phiên tự đóng nếu không thao tác trong nhiều giờ liền.</span>
-    </div>
-    <div style="text-align:center;margin-top:16px"><a href="index.html" style="color:var(--txt-mute);font-size:13px">← Về trang chính</a></div>
   </div>
 </div>
 
@@ -1142,11 +1136,7 @@ async function loadPublicSettings(){
   try{
     const r = await fetch(CFG.API + '?action=settings', {method:'GET'});
     const j = await r.json();
-    if(j.ok){
-      PUBLIC_SETTINGS = j.data;
-      const gio = Math.round(PUBLIC_SETTINGS.idleTimeoutPhut/60*10)/10;
-      $('idleNoteTxt').textContent = 'Mật khẩu được băm SHA-256 trước khi rời khỏi máy bạn. Phiên tự đóng nếu không thao tác trong ' + gio + ' giờ liền. Đăng nhập được tối đa ' + PUBLIC_SETTINGS.soThietBiToiDa + ' thiết bị mỗi tài khoản.';
-    }
+    if(j.ok){ PUBLIC_SETTINGS = j.data; }
   }catch(e){}
 }
 loadPublicSettings();
