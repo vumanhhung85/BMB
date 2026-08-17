@@ -2398,12 +2398,12 @@ async function submitBaoXong(){
   $('bxSubmit').disabled=true; $('bxSubmit').innerHTML='<span class="spin"></span> Đang gửi…';
   try{
     const j = await api({action:'suco_baoxong', maSuCo:bxMaSuCo, ghiChu:$('bxGhiChu').value.trim(), anh:SC_ANH_XONG});
-    if(!j.ok) throw new Error(j.error);
+    if(!j.ok){ const err = new Error(j.error); err.chiTiet = j.chiTiet; throw err; }
     toast('Đã báo xong '+bxMaSuCo+'. Chờ chi nhánh xác nhận.','ok');
     $('formBaoXong').style.display='none';
     loadSuCo(true);
   }catch(e){
-    toast(e.message==='ANH_LOI' ? 'Ảnh tải lên thất bại, thử chụp/chọn lại.' : 'Không gửi được.', 'bad');
+    toast(e.message==='ANH_LOI' ? ('Ảnh tải lên thất bại'+(e.chiTiet?' — '+e.chiTiet:'')+'. Báo admin kiểm tra dung lượng Google Drive nếu lặp lại.') : 'Không gửi được.', 'bad');
   }
   finally{ $('bxSubmit').disabled=false; $('bxSubmit').textContent='Xác nhận đã xong'; }
 }
