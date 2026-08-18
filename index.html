@@ -590,7 +590,6 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
     </div>
     <div class="f-bot">
       <span>© <span id="yr"></span> Boom Music Box. Đã đăng ký thương hiệu.</span>
-      <span>Thông tin chi nhánh tổng hợp từ Google Maps · cập nhật 28/07/2026</span>
     </div>
   </div>
 </footer>
@@ -722,7 +721,7 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
 
 /* ─── CẤU HÌNH ─── dán URL Web App của Apps Script vào đây */
 const CFG = {
-  API: 'https://script.google.com/macros/s/AKfycbyJd-5nGPtfObYNN3fbv1l_tGqVAPZo3W68d0pwwJTbQ2JljRkjzkcFPY3dkb6pVpFG/exec',
+  API: 'https://script.google.com/macros/s/AKfycbydBJaQENLVZULfBVCDiK933EHrUeo6PsRLm3gCkGPdHUVVyzV1j6k3unNbgKCTeS8d/exec',
   HOTLINE: '0899887034',         // hotline tổng (Hoàng Diệu 2)
   ZALO: '0899887034',
   DATA_PREFIX: 'bmb_v1_'         // KHÔNG đổi — khoá lưu localStorage
@@ -768,7 +767,7 @@ function initials(b) {
 
 /* ─── KHỞI ĐỘNG ─── */
 async function boot() {
-  $('yr').textContent = new Date().getFullYear();
+  $('yr').textContent = '2024';
   $('fabTel').href = 'tel:' + CFG.HOTLINE;
   $('fabZalo').href = 'https://zalo.me/' + CFG.ZALO;
 
@@ -934,10 +933,19 @@ function resetFilters() {
   render();
 }
 
+/** Chuyển link ảnh Drive sang endpoint ổn định để nhúng <img> (vá 18/08/2026, đồng bộ với admin.html)
+ *  — Google đã ngừng hỗ trợ ổn định dạng "uc?export=view" từ giữa 2024, hay trả về 403 hoặc chuyển
+ *  sang trang đòi đăng nhập dù file đã chia sẻ "Anyone with the link". Áp dụng NGAY LÚC HIỂN THỊ nên
+ *  hoạt động được cho cả ảnh cũ đã lưu, không cần sửa lại dữ liệu trong Sheet. */
+function driveImgUrl(u) {
+  const m = String(u || '').match(/[?&]id=([^&]+)/);
+  return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1600' : u;
+}
+
 function cardHTML(b) {
   const open = isOpenNow(b);
   const photo = b.photo
-    ? `<img src="${esc(b.photo)}" alt="${esc(b.short)}" loading="lazy" onerror="this.style.display='none'">`
+    ? `<img src="${esc(driveImgUrl(b.photo))}" alt="${esc(b.short)}" loading="lazy" onerror="this.style.display='none'">`
     : `<div class="ph"></div><div class="mark">${esc(initials(b))}</div>`;
   return `
   <article class="card" id="card-${b.id}" data-id="${b.id}">
@@ -990,7 +998,7 @@ function showDetail(id) {
   map.setView([b.lat, b.lng], 15); markers[id]?.openPopup();
 
   $('dHero').innerHTML = (b.photo
-      ? `<img src="${esc(b.photo)}" alt="${esc(b.short)}">`
+      ? `<img src="${esc(driveImgUrl(b.photo))}" alt="${esc(b.short)}">`
       : `<div class="ph"></div>`) +
     `<div class="veil"></div>
      <div class="cap">
