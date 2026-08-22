@@ -7,7 +7,7 @@
 <title>Boom Music Box — Hệ thống karaoke mini toàn quốc</title>
 <meta name="description" content="Boom Music Box — chuỗi 30 phòng karaoke mini từ 10k/giờ. Tìm chi nhánh gần bạn, xem đường đi và đặt phòng trước chỉ trong 30 giây.">
 <meta name="keywords" content="boom music box, karaoke mini, phòng hát mini, karaoke giá rẻ, thu âm, karaoke sinh viên">
-<link rel="canonical" href="https://boommusicbox.com/">
+<link rel="canonical" href="https://boommusicbox.vn/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Boom Music Box">
 <meta property="og:title" content="Boom Music Box — Hát là bùng nổ">
@@ -25,7 +25,7 @@
 
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Organization","name":"Boom Music Box",
-"url":"https://boommusicbox.com","logo":"https://boommusicbox.com/Logo_BoomBox.png",
+"url":"https://boommusicbox.vn","logo":"https://boommusicbox.vn/Logo_BoomBox.png",
 "description":"Chuỗi phòng karaoke mini và phòng thu âm dành cho giới trẻ.",
 "sameAs":["https://facebook.com/boommusicboxhoangdieu2"]}
 </script>
@@ -595,8 +595,8 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
 </footer>
 
 <div class="fab">
-  <a href="#" class="zalo" id="fabZalo" title="Chat Zalo" aria-label="Chat Zalo">Zalo</a>
-  <a href="#" class="tel" id="fabTel" title="Gọi hotline" aria-label="Gọi hotline">📞</a>
+  <a href="#" class="zalo" id="fabZalo" title="Chat Zalo" aria-label="Chat Zalo" onclick="return fabClick(this, event)">Zalo</a>
+  <a href="#" class="tel" id="fabTel" title="Gọi hotline" aria-label="Gọi hotline" onclick="return fabClick(this, event)">📞</a>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -765,11 +765,57 @@ function initials(b) {
   return ((w[0]?.[0]||'B') + (w[w.length-1]?.[0]||'')).toUpperCase();
 }
 
+/** Nút gọi/Zalo nổi (FAB) — trỏ đúng theo mức ưu tiên (mới, 18/08/2026):
+ *  1. Chi nhánh khách ĐANG XEM/CHỌN (bấm vào thẻ, ghim bản đồ, hoặc mở chi tiết) — activeId.
+ *  2. Nếu chưa chọn gì nhưng đã biết vị trí khách (đã bấm "Gần tôi nhất") — chi nhánh gần nhất.
+ *  3. Chưa có gì cả (mới vào trang, chưa bấm gì) — hotline chung của thương hiệu.
+ *  Gọi hàm này ở MỌI nơi activeId hoặc userPos có thể đổi (setActive, sau khi có vị trí) để nút luôn
+ *  khớp đúng ngữ cảnh hiện tại, không cần bấm lại gì thêm. */
+function capNhatFab() {
+  let b = activeId ? BRANCHES.find(x => x.id === activeId) : null;
+  if (!b && userPos) {
+    let bestD = Infinity;
+    BRANCHES.forEach(x => {
+      if (!x.lat || !x.lng) return;
+      const d = haversine(userPos[0], userPos[1], x.lat, x.lng);
+      if (d < bestD) { bestD = d; b = x; }
+    });
+  }
+  if (b && b.phone) {
+    $('fabTel').href = 'tel:' + b.phone;
+    $('fabZalo').href = 'https://zalo.me/' + b.phone;
+  } else {
+    $('fabTel').href = 'tel:' + CFG.HOTLINE;
+    $('fabZalo').href = 'https://zalo.me/' + CFG.ZALO;
+  }
+  return b;
+}
+
+/** Bấm nút Gọi/Zalo nổi lúc CHƯA chọn chi nhánh nào và CHƯA có vị trí (mới vào trang) — thay vì gọi
+ *  thẳng hotline chung, tự xin định vị rồi tìm chi nhánh gần nhất trước, giống hệt hành vi nút "Gần
+ *  tôi nhất" (mới, 18/08/2026). Nếu đã có activeId/userPos rồi thì `href` đã đúng sẵn, cho điều hướng
+ *  chạy bình thường luôn, không cần chặn gì. Nếu trình duyệt không hỗ trợ định vị hoặc khách từ chối
+ *  quyền, rơi về hotline chung — không để khách bị kẹt không gọi được. */
+function fabClick(el, e) {
+  if (activeId || userPos) return true;
+  if (!navigator.geolocation) return true;
+  e.preventDefault();
+  toast('Đang tìm chi nhánh gần bạn…', 'ok');
+  navigator.geolocation.getCurrentPosition(pos => {
+    userPos = [pos.coords.latitude, pos.coords.longitude];
+    const b = capNhatFab();
+    toast(b ? `Chi nhánh gần bạn nhất: ${b.short}` : 'Đã xác định được vị trí của bạn.', 'ok');
+    location.href = el.href;
+  }, () => {
+    toast('Không lấy được vị trí — dùng hotline chung.', 'bad');
+    location.href = el.href;
+  }, { enableHighAccuracy:true, timeout:8000, maximumAge:60000 });
+  return false;
+}
+
 /* ─── KHỞI ĐỘNG ─── */
 async function boot() {
   $('yr').textContent = '2024';
-  $('fabTel').href = 'tel:' + CFG.HOTLINE;
-  $('fabZalo').href = 'https://zalo.me/' + CFG.ZALO;
 
   BRANCHES = SEED.slice();
   try {
@@ -791,6 +837,7 @@ async function boot() {
 
   BRANCHES = BRANCHES.filter(b => b.active !== false)
                      .sort((a,b) => (a.priority||999) - (b.priority||999));
+  capNhatFab();
 
   const rated = BRANCHES.filter(b => b.rating);
   $('statBranches').textContent = BRANCHES.length;
@@ -852,7 +899,7 @@ function initMap() {
 }
 
 /* ─── LINK RIÊNG TỪNG CHI NHÁNH ───
-   boommusicbox.com/?chi_nhanh=CN03  → tự mở form giữ phòng, chọn sẵn chi nhánh đó.
+   boommusicbox.vn/?chi_nhanh=CN03  → tự mở form giữ phòng, chọn sẵn chi nhánh đó.
    Dùng dán vào mục "Website" / "Đặt lịch hẹn" trên từng Google Business Profile. */
 function openFromLink() {
   const p = new URLSearchParams(location.search);
@@ -871,6 +918,7 @@ function findNearest() {
   $('geoBtn').disabled = true;
   navigator.geolocation.getCurrentPosition(pos => {
     userPos = [pos.coords.latitude, pos.coords.longitude];
+    capNhatFab();
     $('geoIcon').textContent = '📍'; $('geoTxt').textContent = 'Gần tôi nhất'; $('geoBtn').disabled = false;
     $('fSort').value = 'dist';
     L.circleMarker(userPos, { radius:9, color:'#3DDC97', fillColor:'#3DDC97', fillOpacity:.85, weight:3 })
@@ -989,6 +1037,7 @@ function setActive(id, scroll) {
   const m = markers[id];
   if (m) { m._icon?.classList.add('on'); }
   if (scroll) $('card-' + id)?.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  capNhatFab();
 }
 
 /* ─── CHI TIẾT ─── */
