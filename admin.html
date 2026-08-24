@@ -289,6 +289,9 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
 
     <div class="msg bad" id="loginMsg"><span>⚠️</span><span id="loginMsgTxt"></span></div>
 
+    <button class="btn btn-y" style="width:100%;display:none;margin-bottom:14px" id="btnVanTayLogin" onclick="dangNhapBangVanTay()">🔐 Vào bằng vân tay / khuôn mặt</button>
+    <div id="vtLoginChia" style="display:none;text-align:center;color:var(--txt-mute);font-size:12.5px;margin-bottom:14px">— hoặc đăng nhập bằng mật khẩu —</div>
+
     <div class="field">
       <label for="uUser">Tài khoản</label>
       <input id="uUser" autocomplete="username" placeholder="vd: hoangdieu2" autocapitalize="none" spellcheck="false">
@@ -948,6 +951,22 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <input id="tkmMatKhauMoi" type="password" maxlength="60" autocomplete="new-password">
       </div>
       <button class="btn btn-y btn-sm" onclick="tuDoiMatKhau()">Đổi mật khẩu</button>
+
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line-soft)">
+        <label style="display:block;margin-bottom:4px">🔐 Đăng nhập nhanh bằng vân tay / khuôn mặt</label>
+        <p id="vtTrangThai" style="font-size:12.5px;color:var(--txt-mute);margin-bottom:10px">Đang kiểm tra thiết bị…</p>
+
+        <div id="vtKhoiBat" style="display:none">
+          <div class="field">
+            <label for="vtMatKhauXacNhan">Nhập mật khẩu hiện tại để bật</label>
+            <input id="vtMatKhauXacNhan" type="password" maxlength="60" autocomplete="current-password">
+          </div>
+          <button class="btn btn-y btn-sm" onclick="batVanTay()" id="vtBatBtn">Bật vân tay trên thiết bị này</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="vtTatBtn" style="display:none" onclick="tatVanTay()">Tắt vân tay trên thiết bị này</button>
+
+        <p style="font-size:12px;color:var(--txt-mute);margin-top:10px">Đây là lớp mở khoá cục bộ ngay trên máy này bằng vân tay/khuôn mặt sẵn có của điện thoại — không phải xác thực với máy chủ. Mật khẩu thật vẫn luôn được máy chủ kiểm tra lại như cũ mỗi lần đăng nhập. Cần bật riêng trên từng thiết bị. Đổi mật khẩu ở trên sẽ tự cập nhật cho vân tay trên thiết bị này (nếu đang bật) — không cần bật lại.</p>
+      </div>
       </div>
     </div>
   </div>
@@ -989,6 +1008,140 @@ function getDeviceId(){
     localStorage.setItem(CFG.PREFIX+'device', d);
   }
   return d;
+}
+
+/* ─── Đăng nhập nhanh bằng vân tay/khuôn mặt (19/08/2026) ───────────────────────────────
+   CHỈ là lớp mở khoá cục bộ trên thiết bị này (WebAuthn platform authenticator của điện thoại/máy),
+   KHÔNG phải xác thực với máy chủ — máy chủ hoàn toàn không biết tính năng này tồn tại. Cơ chế:
+   vân tay/khuôn mặt xác nhận thành công (navigator.credentials.get) mới cho phép tự điền mật khẩu
+   ĐÃ NHỚ (lưu obfuscate — không phải mã hoá thật, xem vtEnc/vtDec) trong localStorage của máy này,
+   rồi gửi đi qua đúng luồng doLogin() như gõ tay — mật khẩu thật vẫn luôn được server băm+so sánh
+   như cũ. Vì vậy: mất/lộ thiết bị đã bật vân tay có thể lộ mật khẩu lưu cục bộ trên MÁY ĐÓ (không
+   phải trên server) — chấp nhận được vì đã có xác nhận sinh trắc học/khoá màn hình của máy chặn ở
+   ngoài, và người dùng chủ động bật biết đánh đổi này (xem ghi chú hiển thị ngay trong Cài đặt). */
+const VT_KEY = 'bmbVanTay2026';
+function vtEnc(s){
+  let o=''; for(let i=0;i<s.length;i++) o+=String.fromCharCode(s.charCodeAt(i)^VT_KEY.charCodeAt(i%VT_KEY.length));
+  return btoa(unescape(encodeURIComponent(o)));
+}
+function vtDec(b){
+  const o=decodeURIComponent(escape(atob(b))); let s='';
+  for(let i=0;i<o.length;i++) s+=String.fromCharCode(o.charCodeAt(i)^VT_KEY.charCodeAt(i%VT_KEY.length));
+  return s;
+}
+function vtB64(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function vtUnB64(b64){ return Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); }
+
+async function vtHoTro(){
+  if(!window.PublicKeyCredential) return false;
+  try{ return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); }
+  catch(e){ return false; }
+}
+function vtDaBatTrenMay(){
+  return !!(localStorage.getItem(CFG.PREFIX+'vtCred') && localStorage.getItem(CFG.PREFIX+'vtUser') && localStorage.getItem(CFG.PREFIX+'vtPass'));
+}
+
+/** Xác minh đúng mật khẩu hiện tại bằng cách gọi thẳng action 'login' thật (không đổi SESSION đang
+ *  dùng) — dùng chung device id nên không tốn thêm slot thiết bị, chỉ để kiểm tra mật khẩu đúng
+ *  trước khi cho tạo vân tay, tránh phải làm thêm 1 action riêng ở Code.gs. */
+async function vtXacMinhMatKhau(user, pass){
+  const hash = await sha256(user + '::' + pass + '::boom');
+  const j = await api({ action:'login', user, hash, thietBi: getDeviceId() });
+  return !!j.ok;
+}
+
+async function batVanTay(){
+  const pass = $('vtMatKhauXacNhan').value;
+  if(!pass) return toast('Nhập mật khẩu hiện tại để bật vân tay.','bad');
+  if(!(await vtHoTro())) return toast('Thiết bị/trình duyệt này không hỗ trợ vân tay/khuôn mặt.','bad');
+  $('vtBatBtn').disabled = true;
+  try{
+    const dungMatKhau = await vtXacMinhMatKhau(SESSION.user, pass);
+    if(!dungMatKhau){ toast('Mật khẩu không đúng.','bad'); return; }
+
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        rp: { name: 'Boom Music Box' },
+        user: { id: new TextEncoder().encode(SESSION.user), name: SESSION.user, displayName: SESSION.fullName || SESSION.user },
+        pubKeyCredParams: [{type:'public-key', alg:-7}, {type:'public-key', alg:-257}],
+        authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required' },
+        timeout: 60000
+      }
+    });
+    if(!cred) throw new Error('NO_CRED');
+
+    localStorage.setItem(CFG.PREFIX+'vtCred', vtB64(cred.rawId));
+    localStorage.setItem(CFG.PREFIX+'vtUser', SESSION.user);
+    localStorage.setItem(CFG.PREFIX+'vtPass', vtEnc(pass));
+    $('vtMatKhauXacNhan').value = '';
+    toast('Đã bật vân tay trên thiết bị này.','ok');
+    capNhatUIVanTay();
+  }catch(e){
+    toast('Không bật được vân tay (có thể do bạn huỷ thao tác quét).','bad');
+  }finally{
+    $('vtBatBtn').disabled = false;
+  }
+}
+
+function tatVanTay(){
+  localStorage.removeItem(CFG.PREFIX+'vtCred');
+  localStorage.removeItem(CFG.PREFIX+'vtUser');
+  localStorage.removeItem(CFG.PREFIX+'vtPass');
+  toast('Đã tắt vân tay trên thiết bị này.','ok');
+  capNhatUIVanTay();
+}
+
+/** Gọi trong tab Cài đặt để hiện đúng trạng thái vân tay của TÀI KHOẢN + THIẾT BỊ hiện tại. */
+async function capNhatUIVanTay(){
+  const hoTro = await vtHoTro();
+  const daBatChoToi = vtDaBatTrenMay() && localStorage.getItem(CFG.PREFIX+'vtUser') === SESSION.user;
+  if(!hoTro){
+    $('vtTrangThai').textContent = 'Thiết bị/trình duyệt này không hỗ trợ vân tay hoặc khuôn mặt.';
+    $('vtKhoiBat').style.display = 'none'; $('vtTatBtn').style.display = 'none';
+    return;
+  }
+  if(daBatChoToi){
+    $('vtTrangThai').textContent = '✅ Đang bật trên thiết bị này.';
+    $('vtKhoiBat').style.display = 'none'; $('vtTatBtn').style.display = '';
+  }else{
+    $('vtTrangThai').textContent = 'Chưa bật trên thiết bị này.';
+    $('vtKhoiBat').style.display = ''; $('vtTatBtn').style.display = 'none';
+  }
+}
+
+/** Gọi ở màn hình đăng nhập để hiện nút vân tay nếu thiết bị này đã có tài khoản nhớ sẵn. */
+async function capNhatNutVanTayLogin(){
+  if(!vtDaBatTrenMay() || !(await vtHoTro())){
+    $('btnVanTayLogin').style.display = 'none'; $('vtLoginChia').style.display = 'none';
+    return;
+  }
+  $('btnVanTayLogin').style.display = ''; $('vtLoginChia').style.display = '';
+}
+
+async function dangNhapBangVanTay(){
+  const credB64 = localStorage.getItem(CFG.PREFIX+'vtCred');
+  const user = localStorage.getItem(CFG.PREFIX+'vtUser');
+  const passEnc = localStorage.getItem(CFG.PREFIX+'vtPass');
+  if(!credB64 || !user || !passEnc) return;
+  $('btnVanTayLogin').disabled = true;
+  try{
+    await navigator.credentials.get({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        allowCredentials: [{ id: vtUnB64(credB64), type:'public-key' }],
+        userVerification: 'required',
+        timeout: 60000
+      }
+    });
+    $('uUser').value = user;
+    $('uPass').value = vtDec(passEnc);
+    await doLogin();
+  }catch(e){
+    showLoginMsg('Không xác thực được vân tay/khuôn mặt. Đăng nhập bằng mật khẩu nhé.');
+  }finally{
+    $('btnVanTayLogin').disabled = false;
+  }
 }
 let BRANCHES = [], KYTHUAT = [], SUCO = [], TAIKHOAN_LIST = [];
 var SC_ANH = [], SC_ANH_XONG = [];               // ảnh chờ gửi (base64), reset sau mỗi lần dùng — PHẢI dùng var (không phải let/const), vì onPickAnh/drawPhotoBox/removeAnh truy cập qua window[storeVar] để dùng chung 1 bộ hàm cho cả 2 khung ảnh; let/const không gắn vào window nên window[storeVar] sẽ luôn undefined (bug thật đã xảy ra, sửa 17/08/2026)
@@ -1669,6 +1822,7 @@ function logout(reason){
   $('app').style.display='none'; $('login').style.display='grid';
   $('uPass').value='';
   $('favicon').href = 'Logo_BoomBox.png';
+  capNhatNutVanTayLogin();   // đăng xuất KHÔNG xoá vân tay đã bật — chỉ về lại màn đăng nhập, nút vân tay vẫn hiện nếu đã bật trên máy này
   if(reason) showLoginMsg(reason);
 }
 
@@ -1715,6 +1869,7 @@ function switchTab(el){
   if(isBaoTri){ if($('mapBaoTri').style.display!=='none') toggleBaoTriView('list'); drawSuCo(); }
   else if(isCaiDat){
     $('tkmTaiKhoanHienTai').textContent = '@'+SESSION.user;
+    capNhatUIVanTay();
     if(SESSION.role==='admin'){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); loadBackupInfo(); }
   }
   else if(isReportView) drawReport();
@@ -2690,6 +2845,9 @@ async function tuDoiMatKhau(){
     const j = await api({action:'tu_doimk', matkhauCu:cu, matkhauMoi:moi});
     if(!j.ok) throw new Error(j.error);
     $('tkmMatKhauCu').value=''; $('tkmMatKhauMoi').value='';
+    if(vtDaBatTrenMay() && localStorage.getItem(CFG.PREFIX+'vtUser')===SESSION.user){
+      localStorage.setItem(CFG.PREFIX+'vtPass', vtEnc(moi));   // vân tay trên máy này vẫn dùng được với mật khẩu mới, không cần bật lại
+    }
     toast('Đã đổi mật khẩu. Các thiết bị khác đã bị đăng xuất.','ok');
   }catch(e){
     toast(e.message==='BAD_OLD_PASS' ? 'Mật khẩu hiện tại không đúng.' : 'Không đổi được mật khẩu.', 'bad');
@@ -2876,7 +3034,8 @@ async function toggleLoaiSuCoActive(ma, bat){
    khác với sessionStorage (mất ngay khi đóng tab). Phù hợp cho người cần để app mở/giám sát liên tục. */
 (function(){
   const s = localStorage.getItem(CFG.PREFIX+'s');
-  if(s){ try{ SESSION = JSON.parse(s); enterApp(); }catch(e){} }
+  if(s){ try{ SESSION = JSON.parse(s); enterApp(); return; }catch(e){} }
+  capNhatNutVanTayLogin();
 })();
 </script>
 </body>
