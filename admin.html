@@ -884,6 +884,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       <h3 style="font-size:18px;margin-bottom:6px">Quản lý tài khoản</h3>
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm tài khoản mới cho quản lý chi nhánh hoặc kỹ thuật, sửa thông tin, đổi mật khẩu, vô hiệu hoá tạm thời hoặc xoá hẳn — có hiệu lực ngay, đăng xuất khỏi mọi thiết bị của người đó lập tức khi vô hiệu hoá/đổi mật khẩu/xoá.</p>
       <button class="btn btn-y btn-sm" style="margin-bottom:14px" onclick="openThemTaiKhoan()">+ Thêm tài khoản</button>
+      <button class="btn btn-ghost btn-sm" style="margin-bottom:14px;margin-left:8px;color:var(--bad)" onclick="resetAllPassUI()">🔑 Đặt lại mật khẩu hàng loạt</button>
       <div class="toolbar" style="margin-bottom:12px">
         <input id="qTaiKhoan" placeholder="Tìm tên, tài khoản, chi nhánh…" style="flex:1;min-width:180px" oninput="drawTaiKhoanList()">
         <select id="fTaiKhoanVaiTro" onchange="drawTaiKhoanList()">
@@ -941,7 +942,9 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
       </button>
       <div class="ff-body">
-      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Đổi xong sẽ tự đăng xuất các thiết bị khác, không đăng xuất thiết bị đang dùng.</p>
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:10px">Đổi xong sẽ tự đăng xuất các thiết bị khác, không đăng xuất thiết bị đang dùng.</p>
+      <p id="dmkTrangThai" style="font-size:12.5px;margin-bottom:14px"></p>
+      <div id="dmkKhoiForm">
       <div class="field">
         <label for="tkmMatKhauCu">Mật khẩu hiện tại</label>
         <input id="tkmMatKhauCu" type="password" maxlength="60" autocomplete="current-password">
@@ -949,6 +952,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       <div class="field">
         <label for="tkmMatKhauMoi">Mật khẩu mới (tối thiểu 4 ký tự)</label>
         <input id="tkmMatKhauMoi" type="password" maxlength="60" autocomplete="new-password">
+      </div>
       </div>
       <button class="btn btn-y btn-sm" onclick="tuDoiMatKhau()">Đổi mật khẩu</button>
 
@@ -1870,6 +1874,7 @@ function switchTab(el){
   else if(isCaiDat){
     $('tkmTaiKhoanHienTai').textContent = '@'+SESSION.user;
     capNhatUIVanTay();
+    capNhatUIDoiMK();
     if(SESSION.role==='admin'){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); loadBackupInfo(); }
   }
   else if(isReportView) drawReport();
@@ -2818,7 +2823,7 @@ function drawTaiKhoanList(){
   $('listTaiKhoan').innerHTML = list.map(u => `
     <div class="lrow" data-p="${u.kichhoat?4:1}">
       <div class="lrow-main">
-        <div class="lrow-name">${esc(u.hoten||u.taikhoan)} <span class="st-pill">${esc(ROLE_LABEL[u.vaitro]||u.vaitro)}</span>${u.kichhoat?'':' <span class="pri pri-1">Đã tắt</span>'}</div>
+        <div class="lrow-name">${esc(u.hoten||u.taikhoan)} <span class="st-pill">${esc(ROLE_LABEL[u.vaitro]||u.vaitro)}</span>${u.kichhoat?'':' <span class="pri pri-1">Đã tắt</span>'}${(u.vaitro!=='admin'&&!u.doiMkBat)?' <span class="pri pri-1" title="Tài khoản này chưa được mở quyền tự đổi mật khẩu">🔒 Khoá đổi MK</span>':''}</div>
         <div class="lrow-meta">@${esc(u.taikhoan)}${u.chinhanhTen?' · '+esc(u.chinhanhTen):''}${u.email?' · '+esc(u.email):''}</div>
       </div>
       <div class="kebab-wrap">
@@ -2826,6 +2831,7 @@ function drawTaiKhoanList(){
         <div class="kebab-menu">
           <button class="kebab-item" onclick="openSuaTaiKhoan('${esc(u.taikhoan)}')">Sửa</button>
           <button class="kebab-item" onclick="adminDoiMatKhau('${esc(u.taikhoan)}')">Đổi mật khẩu</button>
+          ${u.vaitro!=='admin' ? `<button class="kebab-item ${u.doiMkBat?'bad':'ok'}" onclick="adminToggleDoiMK('${esc(u.taikhoan)}',${!u.doiMkBat})">${u.doiMkBat?'Khoá tự đổi mật khẩu':'Mở tự đổi mật khẩu'}</button>` : ''}
           <button class="kebab-item ${u.kichhoat?'bad':'ok'}" onclick="adminToggleKichHoat('${esc(u.taikhoan)}',${!u.kichhoat})">${u.kichhoat?'Vô hiệu hoá':'Bật lại'}</button>
           <button class="kebab-item bad" onclick="xoaTaiKhoanUI('${esc(u.taikhoan)}')">Xoá</button>
         </div>
@@ -2833,10 +2839,23 @@ function drawTaiKhoanList(){
     </div>`).join('');
 }
 
+/** Hiện đúng trạng thái khoá/mở của tính năng "Đổi mật khẩu của tôi" — admin có thể khoá riêng
+ *  từng tài khoản (mặc định khoá, xem doiMkDuocPhep() bên Code.gs). KHÔNG đụng tới phần vân tay bên
+ *  dưới — vân tay vẫn hoạt động bình thường dù đổi mật khẩu đang bị khoá (2 tính năng độc lập). */
+function capNhatUIDoiMK(){
+  const duocPhep = SESSION.doiMkBat !== false;   // server không gửi field này với bản cũ -> mặc định coi như được phép
+  $('dmkKhoiForm').style.opacity = duocPhep ? '1' : '.45';
+  $('tkmMatKhauCu').disabled = !duocPhep;
+  $('tkmMatKhauMoi').disabled = !duocPhep;
+  $('dmkTrangThai').innerHTML = duocPhep ? ''
+    : '<span style="color:var(--bad)">🔒 Admin chưa mở chức năng đổi mật khẩu cho tài khoản này.</span>';
+}
+
 /** Tự đổi mật khẩu của chính tài khoản đang đăng nhập — dùng ở thẻ "Đổi mật khẩu của tôi", mọi
  *  vai trò đều gọi được, khác adminDoiMatKhau() (admin đặt lại mật khẩu NGƯỜI KHÁC, không cần biết
  *  mật khẩu cũ). */
 async function tuDoiMatKhau(){
+  if(SESSION.doiMkBat === false) return toast('Admin chưa mở chức năng này.','bad');
   const cu = $('tkmMatKhauCu').value;
   const moi = $('tkmMatKhauMoi').value;
   if(!cu) return toast('Nhập mật khẩu hiện tại.','bad');
@@ -2850,7 +2869,8 @@ async function tuDoiMatKhau(){
     }
     toast('Đã đổi mật khẩu. Các thiết bị khác đã bị đăng xuất.','ok');
   }catch(e){
-    toast(e.message==='BAD_OLD_PASS' ? 'Mật khẩu hiện tại không đúng.' : 'Không đổi được mật khẩu.', 'bad');
+    const map = {BAD_OLD_PASS:'Mật khẩu hiện tại không đúng.', DOI_MK_BI_KHOA:'Admin chưa mở chức năng này.'};
+    toast(map[e.message] || 'Không đổi được mật khẩu.', 'bad');
   }
 }
 
@@ -2874,6 +2894,32 @@ async function adminToggleKichHoat(taikhoan, bat){
     toast(bat?'Đã bật lại tài khoản.':'Đã vô hiệu hoá tài khoản.','ok');
     loadTaiKhoanList();
   }catch(e){ toast(e.message || 'Không thực hiện được.','bad'); }
+}
+
+/** Bật/khoá quyền tự đổi mật khẩu của 1 tài khoản (không áp dụng cho admin — luôn được phép).
+ *  Chỉ bật/tắt tính năng, KHÔNG đổi mật khẩu hiện tại, KHÔNG đăng xuất thiết bị nào — vân tay đã
+ *  bật trên máy người đó vẫn hoạt động bình thường dù khoá/mở đổi mật khẩu. */
+async function adminToggleDoiMK(taikhoan, bat){
+  try{
+    const j = await api({action:'taikhoan_doimk_quyen', taikhoan, bat});
+    if(!j.ok) throw new Error(j.error);
+    toast(bat?'Đã mở quyền tự đổi mật khẩu.':'Đã khoá quyền tự đổi mật khẩu.','ok');
+    loadTaiKhoanList();
+  }catch(e){ toast('Không thực hiện được.','bad'); }
+}
+
+/** Đặt lại mật khẩu về mặc định Boom@2026 cho MỌI tài khoản trừ admin — hành động mạnh, không thể
+ *  hoàn tác, nên bắt gõ đúng chữ xác nhận thay vì chỉ 1 cú bấm OK cho confirm() thông thường. */
+async function resetAllPassUI(){
+  const go = prompt('Sẽ đặt lại mật khẩu về "Boom@2026" cho TẤT CẢ tài khoản (trừ Quản trị hệ thống) và đăng xuất toàn bộ thiết bị của họ ngay lập tức. Không thể hoàn tác.\n\nGõ chính xác XACNHAN để tiếp tục:');
+  if(go === null) return;
+  if(go.trim().toUpperCase() !== 'XACNHAN') return toast('Chưa gõ đúng XACNHAN — huỷ thao tác.','bad');
+  try{
+    const j = await api({action:'taikhoan_reset_all_pass'});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã đặt lại mật khẩu cho '+j.soLuong+' tài khoản. Ai có bật vân tay trên máy sẽ cần đăng nhập tay 1 lần rồi bật lại vân tay.','ok');
+    loadTaiKhoanList();
+  }catch(e){ toast('Không thực hiện được.','bad'); }
 }
 
 async function xoaTaiKhoanUI(taikhoan){
