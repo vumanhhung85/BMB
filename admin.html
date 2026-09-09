@@ -157,6 +157,7 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .sc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--txt-mute)}
 .sc[data-p="1"]::before{background:var(--bad)} .sc[data-p="2"]::before{background:var(--warn)}
 .sc[data-p="3"]::before{background:var(--yellow)} .sc[data-p="4"]::before{background:var(--ok)}
+.sc.sc-highlight{outline:2px solid var(--yellow);box-shadow:0 0 0 5px rgba(255,210,26,.25)}
 .sc-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:9px}
 .sc-name{font-family:'Baloo 2';font-size:17px;font-weight:700}
 .sc-code{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--yellow);
@@ -367,8 +368,9 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     <div class="stats" id="statsSuCo"></div>
     <div class="toolbar" id="toolbarSuCo" style="display:none">
       <input id="qSuCo" placeholder="Tìm mã, chi nhánh, mô tả…" style="flex:1;min-width:190px" oninput="drawSuCo()">
-      <button class="btn btn-y btn-sm" id="btnBtListView" onclick="toggleBaoTriView('list')" style="display:none">📋 Danh sách</button>
+      <button class="btn btn-y btn-sm" id="btnBtTableView" onclick="toggleBaoTriView('table')" style="display:none">📊 Bảng</button>
       <button class="btn btn-ghost btn-sm" id="btnBtMapView" onclick="toggleBaoTriView('map')" style="display:none">🗺️ Bản đồ</button>
+      <button class="btn btn-ghost btn-sm" id="btnBtListView" onclick="toggleBaoTriView('list')" style="display:none">📋 Danh sách</button>
       <button class="btn btn-y btn-sm" onclick="openTaoSuCo()" id="btnTaoSuCo" style="display:none">+ Báo sự cố</button>
       <button class="btn btn-ghost btn-sm" onclick="loadSuCo(true)" id="refreshSuCoBtn">🔄 Làm mới</button>
     </div>
@@ -491,6 +493,46 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     <div id="mapBaoTri" style="display:none;height:520px;border-radius:16px;overflow:hidden;border:1px solid var(--line-soft)"></div>
     <div id="mapChuThich" style="display:none;margin-top:10px;font-size:12px;color:var(--txt-mute);gap:14px;flex-wrap:wrap">
       <span>🔴 Khẩn cấp</span><span>🟠 Cao</span><span>🟡 Trung bình</span><span>🟢 Thấp</span><span>👷 Kỹ thuật viên</span>
+    </div>
+
+    <div id="viewSuCoTable" style="display:none">
+      <div class="form-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+          <h3 style="font-size:17px">📊 Bảng theo dõi sự cố <span class="st-pill" id="demBangSuCo">0</span></h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-y btn-sm" onclick="xuatExcelSuCo()">📊 Xuất Excel</button>
+            <button class="btn btn-ghost btn-sm" onclick="xuatCSVSuCo()">⬇️ Xuất CSV</button>
+          </div>
+        </div>
+        <div class="toolbar" style="margin-bottom:12px">
+          <input id="qBangSuCo" placeholder="Tìm mã, chi nhánh, mô tả…" style="flex:1;min-width:190px" oninput="drawSuCoTable()">
+          <select id="fBangTrangThai" onchange="drawSuCoTable()">
+            <option value="">Mọi trạng thái</option>
+            <option value="moi">Mới báo</option>
+            <option value="da_tiep_nhan">Đã tiếp nhận</option>
+            <option value="da_dieu_phoi">Đã điều phối</option>
+            <option value="da_nhan">Kỹ thuật đã nhận</option>
+            <option value="dang_xu_ly">Đang xử lý</option>
+            <option value="cho_xac_nhan">Chờ chi nhánh xác nhận</option>
+            <option value="cho_dong">Chờ đóng ticket</option>
+            <option value="dong">Đã đóng</option>
+          </select>
+          <select id="fBangMuc" onchange="drawSuCoTable()">
+            <option value="">Mọi mức độ</option>
+            <option value="1">🔴 Khẩn cấp</option>
+            <option value="2">🟠 Cao</option>
+            <option value="3">🟡 Trung bình</option>
+            <option value="4">🟢 Thấp</option>
+          </select>
+          <select id="fBangCN" onchange="drawSuCoTable()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
+        </div>
+        <div class="tblwrap">
+          <table>
+            <thead><tr><th>No</th><th>Ngày tạo yêu cầu</th><th>Trạng thái</th><th>Chi nhánh</th><th>Lỗi</th><th>Thông tin chi tiết</th><th>Mức độ ưu tiên</th><th>Hành động</th></tr></thead>
+            <tbody id="bangSuCoBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -807,39 +849,6 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     </div>
 
     <div class="form-card ff-collapse" style="max-width:640px">
-      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open'); if(this.closest('.form-card').classList.contains('open')) loadTelegramInfo();">
-        <div>
-          <h3 style="font-size:18px;margin-bottom:6px">Cấu hình Telegram</h3>
-          <p style="color:var(--txt-mute);font-size:13.5px">Nhóm Telegram nhận thông báo (đơn mới, sự cố mới, điều phối…). Đổi nhóm ở đây, áp dụng ngay — không cần sửa code hay deploy lại.</p>
-        </div>
-        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
-      </button>
-      <div class="ff-body">
-        <div style="background:var(--plum2);border:1px solid var(--line-soft);border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:16px">
-          <b>Cách lấy Bot Token và Chat ID:</b>
-          <ol style="margin:8px 0 0;padding-left:20px;color:var(--txt-mute)">
-            <li>Chat với <b>@BotFather</b> trên Telegram → gõ <code>/newbot</code> → đặt tên → copy đoạn <b>token</b> nó trả về, dán vào ô bên dưới.</li>
-            <li>Tạo group Telegram mới (hoặc dùng group có sẵn) → thêm bot vừa tạo vào group → gửi thử 1 tin bất kỳ trong group.</li>
-            <li>Mở trên trình duyệt: <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> → tìm số ở mục <code>"chat":{"id":...}</code> (group thường là số âm, vd <code>-1001234567890</code>) → dán vào ô Chat ID bên dưới.</li>
-          </ol>
-        </div>
-        <div class="field">
-          <label for="tgToken">Bot Token</label>
-          <input id="tgToken" placeholder="vd: 123456789:AAExampleTokenxxxxxxxxxxxxxxxxxxx">
-        </div>
-        <div class="field">
-          <label for="tgChat">Chat ID (nhóm nhận thông báo)</label>
-          <input id="tgChat" placeholder="vd: -1001234567890">
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-y btn-sm" onclick="luuTelegramCfg()">Lưu</button>
-          <button class="btn btn-ghost btn-sm" onclick="guiThuTelegram()" id="btnTgTest">📨 Gửi thử</button>
-        </div>
-        <div id="tgKetQua" style="font-size:12.5px;color:var(--txt-mute);margin-top:10px"></div>
-      </div>
-    </div>
-
-    <div class="form-card ff-collapse" style="max-width:640px">
       <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open'); if(this.closest('.form-card').classList.contains('open')) loadBackupInfo();">
         <div>
           <h3 style="font-size:18px;margin-bottom:6px">Sao lưu Google Drive (tài khoản khác)</h3>
@@ -973,6 +982,62 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       </div>
       </div>
     </div>
+
+    <div id="cfgTelegramWrap" style="display:none">
+    <div class="form-card ff-collapse" style="max-width:640px;margin-top:14px">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open'); if(this.closest('.form-card').classList.contains('open')) loadTelegramInfo();">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">📨 Cấu hình Telegram (chung cả hệ thống)</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Nhóm Telegram nhận thông báo (đơn mới, sự cố mới, điều phối…). Đổi nhóm ở đây, áp dụng ngay — không cần sửa code hay deploy lại.</p>
+        </div>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
+      </button>
+      <div class="ff-body">
+        <div style="background:var(--plum2);border:1px solid var(--line-soft);border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:16px">
+          <b>Cách lấy Bot Token và Chat ID:</b>
+          <ol style="margin:8px 0 0;padding-left:20px;color:var(--txt-mute)">
+            <li>Chat với <b>@BotFather</b> trên Telegram → gõ <code>/newbot</code> → đặt tên → copy đoạn <b>token</b> nó trả về, dán vào ô bên dưới.</li>
+            <li>Tạo group Telegram mới (hoặc dùng group có sẵn) → thêm bot vừa tạo vào group → gửi thử 1 tin bất kỳ trong group.</li>
+            <li>Mở trên trình duyệt: <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> → tìm số ở mục <code>"chat":{"id":...}</code> (group thường là số âm, vd <code>-1001234567890</code>) → dán vào ô Chat ID bên dưới.</li>
+          </ol>
+        </div>
+        <div class="field">
+          <label for="tgToken">Bot Token</label>
+          <input id="tgToken" placeholder="vd: 123456789:AAExampleTokenxxxxxxxxxxxxxxxxxxx">
+        </div>
+        <div class="field">
+          <label for="tgChat">Chat ID (nhóm nhận thông báo)</label>
+          <input id="tgChat" placeholder="vd: -1001234567890">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-y btn-sm" onclick="luuTelegramCfg()">Lưu</button>
+          <button class="btn btn-ghost btn-sm" onclick="guiThuTelegram()" id="btnTgTest">📨 Gửi thử</button>
+        </div>
+        <div id="tgKetQua" style="font-size:12.5px;color:var(--txt-mute);margin-top:10px"></div>
+      </div>
+    </div>
+    </div>
+
+    <div class="form-card ff-collapse" style="max-width:640px;margin-top:14px">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">🔗 Liên kết Telegram cá nhân</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px" id="tgTrangThai">Đang kiểm tra…</p>
+        </div>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
+      </button>
+      <div class="ff-body">
+        <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:10px">Liên kết để bấm được nút ✅ 📍 🔒 ngay trên tin nhắn Telegram (điều phối/xác nhận/đóng ticket) thay vì phải mở app. Nhắn bất kỳ nội dung gì cho <b>@userinfobot</b> trên Telegram, copy số ID (chỉ toàn chữ số) rồi dán vào đây.</p>
+        <div class="field">
+          <label for="tgIdInput">Telegram ID (dạng số)</label>
+          <input id="tgIdInput" inputmode="numeric" placeholder="vd: 123456789" maxlength="20">
+        </div>
+        <div class="bk-act">
+          <button class="btn btn-y btn-sm" onclick="luuTelegramId()">Lưu liên kết</button>
+          <button class="btn btn-ghost btn-sm" onclick="goLienKetTelegram()">Gỡ liên kết</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 </div>
@@ -991,6 +1056,10 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- xlsx-js-style: bản SheetJS có hỗ trợ tô màu/định dạng ô — dùng để xuất Excel dạng báo cáo có
+     trang trí (bản gốc "xlsx" của SheetJS miễn phí KHÔNG ghi được màu/kiểu chữ khi xuất file). -->
+<script src="https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"
+        integrity="sha256-HHq/KZP/LNYeUI+SaOms2gCYyXlvOSXSug0leQcmU+I=" crossorigin=""></script>
 <script>
 /* ══════════════════════════════════════════════
    BOOM MUSIC BOX — bảng điều khiển chi nhánh
@@ -1183,6 +1252,15 @@ function fmtVN(iso){
   const p2 = n => String(n).padStart(2,'0');
   return p2(d.getHours())+':'+p2(d.getMinutes())+' '+p2(d.getDate())+'/'+p2(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(2);
 }
+/** Chỉ lấy phần ngày "dd/mm/yy", bỏ giờ:phút — dùng cho cột "Ngày tạo yêu cầu" trong Bảng theo dõi
+ *  sự cố (xem/xuất CSV/xuất Excel), theo yêu cầu chỉ cần biết ngày, không cần xem giờ phút ở cột này. */
+function fmtVNNgay(iso){
+  if(!iso) return '';
+  const d = new Date(String(iso));
+  if(isNaN(d)) return String(iso).slice(0,10);
+  const p2 = n => String(n).padStart(2,'0');
+  return p2(d.getDate())+'/'+p2(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(2);
+}
 /** Khoảng cách thời gian giữa 2 mốc ISO, dạng ngắn gọn (vd "2g 15p", "3 ngày 4g") — dùng để biết
  *  chi nhánh xác nhận sau khi kỹ thuật báo xong bao lâu, phục vụ tính KPI thời gian xử lý. */
 function fmtKhoangCach(fromIso, toIso){
@@ -1336,6 +1414,7 @@ async function enterApp(){
   if(SESSION.role === 'admin'){
     $('fBranch').style.display='';
     $('caidatAdmin').style.display='';
+    $('cfgTelegramWrap').style.display='';
     loadKyThuat();
     loadBookingSetting();
   }
@@ -1344,6 +1423,9 @@ async function enterApp(){
   if(SESSION.role === 'admin' || (isKyThuat() && PUBLIC_SETTINGS.kythuatXemBanDo)){
     $('btnBtListView').style.display='';
     $('btnBtMapView').style.display='';
+  }
+  if(SESSION.role === 'admin'){
+    $('btnBtTableView').style.display='';
   }
   if(SESSION.role === 'manager' || SESSION.role === 'admin'){
     $('btnTaoSuCo').style.display='';
@@ -1367,6 +1449,29 @@ async function enterApp(){
   loadSuCo();
   setInterval(()=>loadSuCo(true), 30000);
   setInterval(()=>{ if(TAB==='baotri') drawSuCo(); }, 60000);   // tự cập nhật đếm ngược SLA mỗi phút, không cần gọi máy chủ
+  moTicketTuLink();
+}
+
+/** Mở thẳng đúng 1 ticket bảo trì nếu URL có ?ticket=<mã> — dùng cho nút "Xem thêm" trên tin nhắn
+ *  Telegram (mới, 08/09/2026). Đợi loadSuCo() tải xong rồi mới tìm phần tử trên trang, vì loadSuCo()
+ *  ở enterApp() được gọi không có await (giữ nguyên hành vi cũ, tránh trì hoãn các dòng init khác). */
+async function moTicketTuLink(){
+  const ma = new URLSearchParams(location.search).get('ticket');
+  if(!ma) return;
+  await loadSuCo(true);
+  const tabBaoTri = document.querySelector('.tab[data-t="baotri"]');
+  if(tabBaoTri && tabBaoTri.style.display !== 'none') switchTab(tabBaoTri);
+  toggleBaoTriView('list');   // deep-link cần đúng view Danh sách (thẻ ticket có id để cuộn/tô sáng) — Bảng không có id đó, bất kể view mặc định của tab là gì
+  setTimeout(()=>{
+    const el = document.getElementById('sc-'+ma);
+    if(el){
+      el.scrollIntoView({behavior:'smooth', block:'center'});
+      el.classList.add('sc-highlight');
+      setTimeout(()=>el.classList.remove('sc-highlight'), 3000);
+    } else {
+      toast('Không tìm thấy ticket '+ma+' (có thể bạn không có quyền xem, hoặc ticket đã bị xoá).','bad');
+    }
+  }, 300);
 }
 
 async function loadBranches(){
@@ -1379,6 +1484,7 @@ async function loadBranches(){
         BRANCHES.slice().sort((a,b)=>a.short.localeCompare(b.short)).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.short)+'</option>').join('');
       $('fMoiCN').innerHTML = optCN; $('fMoiCN').style.display='';
       $('fXongCN').innerHTML = optCN; $('fXongCN').style.display='';
+      $('fBangCN').innerHTML = optCN; $('fBangCN').style.display='';
     }
     buildScChiNhanhSelect();
   }catch(e){ console.warn('Không tải được danh sách chi nhánh:', e.message); }
@@ -1870,11 +1976,15 @@ function switchTab(el){
   $('toolbarSuCo').style.display = isBaoTri ? 'flex' : 'none';
   $('caidat').style.display = isCaiDat ? '' : 'none';
 
-  if(isBaoTri){ if($('mapBaoTri').style.display!=='none') toggleBaoTriView('list'); drawSuCo(); }
+  // Vào tab Bảo trì: admin mặc định mở ra là view Bảng (theo yêu cầu, mới 08/09/2026) — luôn đặt lại
+  // đúng view mặc định mỗi lần bấm vào tab (giống cách trước đây luôn quay về Danh sách), các vai trò
+  // khác không có nút chuyển view nên vẫn luôn ở Danh sách như cũ, dòng này với họ chỉ là vô hại.
+  if(isBaoTri){ toggleBaoTriView(SESSION.role==='admin' ? 'table' : 'list'); drawSuCo(); }
   else if(isCaiDat){
     $('tkmTaiKhoanHienTai').textContent = '@'+SESSION.user;
     capNhatUIVanTay();
     capNhatUIDoiMK();
+    capNhatUITelegramId();
     if(SESSION.role==='admin'){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); loadBackupInfo(); }
   }
   else if(isReportView) drawReport();
@@ -2172,7 +2282,10 @@ async function loadSuCo(silent){
   }
   lastSuCoOpenSeen = nOpen;
   capNhatChuongLap();
-  if(TAB==='baotri') drawSuCo();
+  if(TAB==='baotri'){
+    drawSuCo();
+    if($('viewSuCoTable').style.display!=='none') drawSuCoTable();
+  }
 }
 
 /* Đổ dropdown "theo kỹ thuật" cho 1 khung, dựa trên chính dữ liệu SUCO đang có (đã được server lọc
@@ -2325,7 +2438,7 @@ function sucoHTML(t){
         '</b></div>' : '')+
     '</div>' : '';
 
-  return '<article class="sc" data-p="'+t.mucDo+'">'+
+  return '<article class="sc" id="sc-'+esc(t.maSuCo)+'" data-p="'+t.mucDo+'">'+
     '<div class="sc-top"><div>'+
       '<div class="sc-name">'+esc(loai.ten)+' <span class="pri pri-'+t.mucDo+'">'+MUC_DO_LABEL[t.mucDo]+'</span> <span class="st-pill">'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+'</span>'+slaBadge+'</div>'+
       '<div style="font-size:13px;color:var(--txt-mute)">'+esc(t.chinhanhTen)+(t.phong?' · phòng '+esc(t.phong):'')+' · báo lúc '+created+'</div>'+
@@ -2456,13 +2569,175 @@ const MAU_MUC_DO = {1:'#FF5C7A', 2:'#FFB020', 3:'#FFD21A', 4:'#3DDC97'};
 const NGUON_VITRI_LABEL = {gps:'📍 Vị trí GPS thật', dang_xu_ly:'🔧 Đang xử lý tại', vua_xong:'✅ Vừa xử lý xong tại', mac_dinh:'🏠 Chi nhánh xuất phát (chưa có dữ liệu vị trí thật)'};
 
 function toggleBaoTriView(view){
-  const isMap = view==='map';
-  $('btnBtListView').className = 'btn btn-sm ' + (isMap?'btn-ghost':'btn-y');
+  const isMap = view==='map', isTable = view==='table';
+  $('btnBtListView').className = 'btn btn-sm ' + (view==='list'?'btn-y':'btn-ghost');
   $('btnBtMapView').className = 'btn btn-sm ' + (isMap?'btn-y':'btn-ghost');
-  $('viewSuCoList').style.display = isMap?'none':'';
+  $('btnBtTableView').className = 'btn btn-sm ' + (isTable?'btn-y':'btn-ghost');
+  $('viewSuCoList').style.display = (isMap||isTable) ? 'none' : '';
   $('mapBaoTri').style.display = isMap?'block':'none';
   $('mapChuThich').style.display = isMap?'flex':'none';
+  $('viewSuCoTable').style.display = isTable?'':'none';
   if(isMap) veBanDoBaoTri();
+  if(isTable) drawSuCoTable();
+}
+
+/** Danh sách sự cố đã lọc theo bộ lọc riêng của view Bảng (mới, 08/09/2026) — dùng chung cho cả vẽ
+ *  bảng (drawSuCoTable) lẫn xuất CSV (xuatCSVSuCo), giống đúng cách filtered() dùng chung cho
+ *  draw()/exportCSV() ở tab Đặt phòng. Không tách "chưa xử lý"/"đã xử lý" thành 2 khung như card
+ *  view — đây là bảng TỔNG HỢP 1 dòng/ticket theo đúng yêu cầu của khách hàng (xem ảnh mẫu), mới
+ *  nhất lên trên để dễ theo dõi ticket vừa phát sinh. */
+function filteredBangSuCo(){
+  const q = norm($('qBangSuCo').value.trim());
+  const fTT = $('fBangTrangThai').value, fMuc = $('fBangMuc').value, fCN = $('fBangCN').value;
+  return SUCO.filter(t=>{
+    if(fTT && t.trangThai!==fTT) return false;
+    if(fMuc && String(t.mucDo)!==fMuc) return false;
+    if(fCN && t.chinhanhId!==fCN) return false;
+    if(q && !norm(t.maSuCo+' '+t.chinhanhTen+' '+t.moTa+' '+(LOAI_LOI[t.loaiLoi]||{}).ten).includes(q)) return false;
+    return true;
+  }).sort((a,b)=> String(b.taoLuc).localeCompare(String(a.taoLuc)));
+}
+function drawSuCoTable(){
+  const list = filteredBangSuCo();
+  $('demBangSuCo').textContent = list.length;
+  $('bangSuCoBody').innerHTML = list.length ? list.map((t,i)=>{
+    const loai = LOAI_LOI[t.loaiLoi] || {ten:'Khác'};
+    // Cùng đúng 3 hành động của admin bên khung Danh sách (sucoHTML) — tái dùng y hệt hàm cũ
+    // (tiepNhan/openDieuPhoi/dongTicket), không viết logic mới, không thêm action nào ở Code.gs.
+    let acts = '';
+    if(t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="tiepNhan(\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
+    if(['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
+    if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="dongTicket(\''+t.maSuCo+'\')">🔒 Đóng</button>';
+    acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\')">🕘</button>';
+    return '<tr>'+
+      '<td>'+(i+1)+'</td>'+
+      '<td style="white-space:nowrap">'+fmtVNNgay(t.taoLuc)+'</td>'+
+      '<td><span class="st-pill">'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+'</span></td>'+
+      '<td>'+esc(t.chinhanhTen)+(t.phong?' / '+esc(t.phong):'')+'</td>'+
+      '<td>'+esc(loai.ten)+'</td>'+
+      '<td>'+esc(t.moTa || '—')+'</td>'+
+      '<td><span class="pri pri-'+t.mucDo+'">'+MUC_DO_LABEL[t.mucDo]+'</span></td>'+
+      '<td><div style="display:flex;gap:6px;flex-wrap:wrap">'+acts+'</div></td>'+
+    '</tr>';
+  }).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--txt-mute);padding:24px">Chưa có dữ liệu.</td></tr>';
+}
+function xuatCSVSuCo(){
+  const rows = filteredBangSuCo();
+  if(!rows.length) return toast('Không có dòng nào để xuất.','bad');
+  const head = ['No','Ngày tạo yêu cầu','Trạng thái','Chi nhánh','Lỗi','Thông tin chi tiết','Mức độ ưu tiên'];
+  const body = rows.map((t,i)=>{
+    const loai = LOAI_LOI[t.loaiLoi] || {ten:'Khác'};
+    return [i+1, fmtVNNgay(t.taoLuc), TRANG_THAI_LABEL[t.trangThai]||t.trangThai,
+      t.chinhanhTen+(t.phong?' / '+t.phong:''), loai.ten, t.moTa||'', MUC_DO_LABEL[t.mucDo]||t.mucDo];
+  });
+  const csv = '\uFEFF' + [head.join(',')].concat(
+    body.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(','))
+  ).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = 'boom-baotri-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Đã xuất ' + rows.length + ' dòng.','ok');
+}
+
+/** Viền mỏng đồng màu cho cả 4 cạnh 1 ô — dùng chung khi dựng bảng Excel trang trí (xuatExcelSuCo). */
+function vienMongO(mauHex){
+  const b = { style:'thin', color:{ rgb: mauHex } };
+  return { top:b, bottom:b, left:b, right:b };
+}
+
+/** Xuất file Excel (.xlsx) có trang trí như 1 bảng báo cáo thật (tiêu đề công ty, tiêu đề cột tô màu
+ *  thương hiệu, viền lưới, màu xen kẽ theo dòng, mức độ ưu tiên tô màu theo đúng mức khẩn cấp/cao/
+ *  trung bình/thấp) — khác hẳn "Xuất CSV" (chỉ là dữ liệu thô không định dạng). Dùng thư viện
+ *  xlsx-js-style (nạp qua thẻ script ở đầu file) vì bản "xlsx" gốc của SheetJS miễn phí KHÔNG ghi
+ *  được màu/kiểu chữ khi xuất — chỉ đọc được, không xuất được, nên phải dùng đúng bản fork này.
+ *  (mới, 08/09/2026, theo yêu cầu khách hàng cần bảng dễ nhìn để theo dõi.) */
+function xuatExcelSuCo(){
+  if(typeof XLSX === 'undefined') return toast('Chưa tải được thư viện xuất Excel (kiểm tra kết nối mạng rồi thử lại).','bad');
+  const rows = filteredBangSuCo();
+  if(!rows.length) return toast('Không có dòng nào để xuất.','bad');
+
+  const TIEU_DE = ['No','Ngày tạo yêu cầu','Trạng thái','Chi nhánh','Lỗi','Thông tin chi tiết','Mức độ ưu tiên'];
+  const SO_COT = TIEU_DE.length;
+  const HANG_TIEU_DE = 4;          // dòng tiêu đề cột (0-based) — sau 3 dòng tiêu đề lớn + 1 dòng trống
+  const HANG_BAT_DAU_DU_LIEU = HANG_TIEU_DE + 1;
+
+  const trong7 = new Array(SO_COT).fill('');
+  const aoa = [
+    ['BOOM MUSIC BOX', ...trong7.slice(1)],
+    ['Bảng theo dõi sự cố bảo trì', ...trong7.slice(1)],
+    ['Xuất lúc: ' + fmtVN(new Date()), ...trong7.slice(1)],
+    trong7,
+    TIEU_DE
+  ];
+  rows.forEach((t,i)=>{
+    const loai = LOAI_LOI[t.loaiLoi] || { ten: 'Khác' };
+    aoa.push([
+      i + 1,
+      fmtVNNgay(t.taoLuc),
+      TRANG_THAI_LABEL[t.trangThai] || t.trangThai,
+      t.chinhanhTen + (t.phong ? ' / ' + t.phong : ''),
+      loai.ten,
+      t.moTa || '—',
+      { 1: 'Khẩn cấp', 2: 'Cao', 3: 'Trung bình', 4: 'Thấp' }[t.mucDo] || t.mucDo
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const hangCuoi = HANG_BAT_DAU_DU_LIEU + rows.length - 1;
+
+  ws['!cols'] = [{wch:5},{wch:12},{wch:22},{wch:30},{wch:24},{wch:45},{wch:14}];
+  ws['!merges'] = [0,1,2].map(r => ({ s:{r,c:0}, e:{r,c:SO_COT-1} }));
+  ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{r:HANG_TIEU_DE,c:0}, e:{r:hangCuoi,c:SO_COT-1} }) };
+  ws['!rows'] = [];
+  ws['!rows'][HANG_TIEU_DE] = { hpx: 30 };
+  for(let r=HANG_BAT_DAU_DU_LIEU; r<=hangCuoi; r++) ws['!rows'][r] = { hpx: 32 };
+
+  const dat = (r,c,style) => {
+    const dc = XLSX.utils.encode_cell({r,c});
+    if(!ws[dc]) ws[dc] = { t:'s', v:'' };
+    ws[dc].s = style;
+  };
+
+  // 3 dòng tiêu đề lớn — nền tím thương hiệu, chữ vàng, giống đúng màu header các sheet trong Code.gs
+  [0,1,2].forEach(r => { for(let c=0;c<SO_COT;c++) dat(r,c,{
+    font:{ bold:r===0, italic:r===2, sz:r===0?16:(r===1?12:10), color:{ rgb: r===2?'E3C9F5':'FFD21A' } },
+    fill:{ fgColor:{ rgb:'4B1272' } },
+    alignment:{ horizontal:'center', vertical:'center' }
+  }); });
+
+  // Dòng tiêu đề cột
+  for(let c=0;c<SO_COT;c++) dat(HANG_TIEU_DE, c, {
+    font:{ bold:true, color:{ rgb:'FFD21A' }, sz:11 },
+    fill:{ fgColor:{ rgb:'4B1272' } },
+    alignment:{ horizontal:'center', vertical:'center', wrapText:true },
+    border: vienMongO('B08FD1')
+  });
+
+  // Dữ liệu — màu xen kẽ theo dòng cho dễ đọc, mức độ ưu tiên tô màu riêng theo đúng mức
+  const MAU_NEN_MUC = { 1:'FADBD8', 2:'FDEBD0', 3:'FCF3CF', 4:'D5F5E3' };
+  const MAU_CHU_MUC = { 1:'C0392B', 2:'AF601A', 3:'9A7D0A', 4:'1E8449' };
+  rows.forEach((t,i)=>{
+    const r = HANG_BAT_DAU_DU_LIEU + i;
+    const nenXen = i % 2 === 1 ? 'F3EAFB' : 'FFFFFF';
+    for(let c=0;c<SO_COT;c++) dat(r,c,{
+      font:{ sz:10.5, color:{ rgb:'2B1400' } },
+      fill:{ fgColor:{ rgb:nenXen } },
+      alignment:{ vertical:'center', wrapText:c===5, horizontal:(c===0||c===6)?'center':'left' },
+      border: vienMongO('E4D9F0')
+    });
+    dat(r, 6, {
+      font:{ bold:true, sz:10.5, color:{ rgb: MAU_CHU_MUC[t.mucDo]||'2B1400' } },
+      fill:{ fgColor:{ rgb: MAU_NEN_MUC[t.mucDo]||'FFFFFF' } },
+      alignment:{ horizontal:'center', vertical:'center' },
+      border: vienMongO('E4D9F0')
+    });
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Bao cao su co');
+  XLSX.writeFile(wb, 'BoomMusicBox-BaoTri-' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('Đã xuất ' + rows.length + ' dòng ra Excel.','ok');
 }
 
 async function veBanDoBaoTri(){
@@ -2872,6 +3147,33 @@ async function tuDoiMatKhau(){
     const map = {BAD_OLD_PASS:'Mật khẩu hiện tại không đúng.', DOI_MK_BI_KHOA:'Admin chưa mở chức năng này.'};
     toast(map[e.message] || 'Không đổi được mật khẩu.', 'bad');
   }
+}
+
+/** Hiện đúng trạng thái liên kết Telegram cá nhân — mới, 08/09/2026 (nút bấm inline keyboard). */
+function capNhatUITelegramId(){
+  $('tgIdInput').value = SESSION.telegramId || '';
+  $('tgTrangThai').textContent = SESSION.telegramId
+    ? '✅ Đã liên kết với Telegram ID ' + SESSION.telegramId
+    : 'Chưa liên kết — nút bấm trên tin nhắn Telegram sẽ không có tác dụng với tài khoản này.';
+}
+/** Lưu (hoặc gỡ, nếu input rỗng) Telegram ID cá nhân — dùng cho khối "Liên kết Telegram cá nhân". */
+async function luuTelegramId(){
+  const id = $('tgIdInput').value.trim();
+  if(id && !/^\d{5,15}$/.test(id)) return toast('Telegram ID chỉ gồm số, lấy từ @userinfobot.','bad');
+  try{
+    const j = await api({action:'tu_lienket_telegram', telegramId:id});
+    if(!j.ok) throw new Error(j.error);
+    SESSION.telegramId = j.telegramId || '';
+    localStorage.setItem(CFG.PREFIX+'s', JSON.stringify(SESSION));
+    capNhatUITelegramId();
+    toast(SESSION.telegramId ? 'Đã lưu liên kết Telegram.' : 'Đã gỡ liên kết Telegram.','ok');
+  }catch(e){
+    toast(e.message==='ID_DA_DUOC_DUNG' ? 'Telegram ID này đã liên kết với tài khoản khác.' : 'Không lưu được, thử lại.','bad');
+  }
+}
+function goLienKetTelegram(){
+  $('tgIdInput').value = '';
+  luuTelegramId();
 }
 
 async function adminDoiMatKhau(taikhoan){
