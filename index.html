@@ -499,7 +499,7 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
       <div>
         <div class="results-head">
           <b id="rCount">Đang tải…</b>
-          <span id="rHint">Dữ liệu Google Maps cập nhật 28/07/2026</span>
+          <span id="rHint"></span>
         </div>
         <div class="cards" id="cards"></div>
       </div>
@@ -732,6 +732,8 @@ const SEED = [{"id":"CN03","name":"Boom Music Box Hoàng Diệu 2 (CN1)","short"
 
 /* ─── TRẠNG THÁI ─── */
 let BRANCHES = [], map, markers = {}, userPos = null, activeId = null, pickedTime = null;
+const DEFAULT_MAP_VIEW = { center: [10.80, 106.70], zoom: 11 };
+let lastRegionForZoom = '';   // theo dõi khu vực đã tự zoom lần gần nhất, tránh zoom lại mỗi lần gõ tìm kiếm
 let BOOKING_ENABLED = true;
 const $ = id => document.getElementById(id);
 
@@ -756,9 +758,18 @@ function isOpenNow(b) {
   return c < o ? (h >= o || h < c) : (h >= o && h < c);
 }
 function mapsUrl(b) {
-  return userPos
-    ? `https://www.google.com/maps/dir/?api=1&origin=${userPos[0]},${userPos[1]}&destination=${encodeURIComponent(b.address)}&travelmode=driving`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.name + ' ' + b.address)}`;
+  if (userPos) {
+    // Có toạ độ đã xác minh chính xác (geoExact=true) → chỉ thẳng theo toạ độ, không qua bước Google
+    // tự đoán (geocode) địa chỉ chữ nữa — nhanh hơn, không sợ geocode nhầm nếu địa chỉ viết tắt hay
+    // trùng tên đường với khu vực khác. Toạ độ CHƯA xác minh (chỉ là ước lượng gần đúng, geoExact=
+    // false) → vẫn dùng địa chỉ chữ, vì để Google tự tìm theo đúng địa chỉ thật còn đáng tin hơn
+    // toạ độ tự ước lượng của mình (mới, 10/09/2026).
+    const dest = b.geoExact ? `${b.lat},${b.lng}` : b.address;
+    return `https://www.google.com/maps/dir/?api=1&origin=${userPos[0]},${userPos[1]}&destination=${encodeURIComponent(dest)}&travelmode=driving`;
+  }
+  // Không có vị trí người dùng → chỉ mở trang thông tin địa điểm, luôn tìm theo TÊN để ra đúng hồ sơ
+  // doanh nghiệp thật trên Google (có ảnh, đánh giá...) thay vì chỉ ra 1 cái ghim toạ độ trơn không tên.
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.name + ' ' + b.address)}`;
 }
 function initials(b) {
   const w = b.short.replace(/\(.*?\)/g,'').trim().split(/\s+/);
@@ -875,7 +886,7 @@ function quickRegion(el) {
 
 /* ─── BẢN ĐỒ (Leaflet + OpenStreetMap gốc — không cần API key, giống bản đồ điều phối kỹ thuật bên admin.html) ─── */
 function initMap() {
-  map = L.map('map', { scrollWheelZoom:false, zoomControl:true }).setView([10.80, 106.70], 11);
+  map = L.map('map', { scrollWheelZoom:false, zoomControl:true }).setView(DEFAULT_MAP_VIEW.center, DEFAULT_MAP_VIEW.zoom);
   // Dùng đúng nền OpenStreetMap gốc giống bản đồ điều phối kỹ thuật bên admin.html — theo phản hồi
   // thực tế là dễ zoom/rõ hơn CARTO. Không còn phụ thuộc CARTO nữa nên cũng không cần API key.
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -940,6 +951,14 @@ function withDist(list) {
   return list.map(b => ({ ...b, _d: haversine(userPos[0], userPos[1], b.lat, b.lng) }))
              .sort((a,b) => a._d - b._d);
 }
+/** Tự zoom/pan bản đồ vừa đủ khung để thấy hết các chi nhánh trong danh sách — dùng khi đổi bộ lọc
+ *  tỉnh/thành (xem render()). 1 chi nhánh thì zoom thẳng vào đúng điểm đó thay vì fitBounds (fitBounds
+ *  với 1 điểm sẽ zoom quá sâu/không đẹp). */
+function zoomToBranches(list) {
+  if (!map || !list.length) return;
+  if (list.length === 1) { map.setView([list[0].lat, list[0].lng], 14); return; }
+  map.fitBounds(L.latLngBounds(list.map(b => [b.lat, b.lng])), { padding:[36,36], maxZoom:14 });
+}
 
 /* ─── DANH SÁCH ─── */
 function render() {
@@ -954,6 +973,14 @@ function render() {
     if (!q) return true;
     return norm(b.name + ' ' + b.address + ' ' + b.region + ' ' + b.type).includes(q);
   });
+
+  // Tự zoom bản đồ tới đúng khu vực khi khu vực lọc THAY ĐỔI — chỉ kiểm tra khi region khác lần
+  // trước, để không zoom lại mỗi lần gõ tìm kiếm hay đổi cách sắp xếp/mở cửa (mới, 10/09/2026).
+  if (region !== lastRegionForZoom) {
+    lastRegionForZoom = region;
+    if (region) zoomToBranches(BRANCHES.filter(b => b.region === region));
+    else if (map) map.setView(DEFAULT_MAP_VIEW.center, DEFAULT_MAP_VIEW.zoom);
+  }
 
   if (userPos) list = withDist(list);
   if (sort === 'rating') list.sort((a,b) => (b.rating||0) - (a.rating||0));
