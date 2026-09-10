@@ -873,15 +873,13 @@ function quickRegion(el) {
   render();
 }
 
-/* ─── BẢN ĐỒ (Leaflet + nền CARTO Dark Matter — cần API key miễn phí từ 08/2026, xem ghi chú dưới) ─── */
+/* ─── BẢN ĐỒ (Leaflet + OpenStreetMap gốc — không cần API key, giống bản đồ điều phối kỹ thuật bên admin.html) ─── */
 function initMap() {
   map = L.map('map', { scrollWheelZoom:false, zoomControl:true }).setView([10.80, 106.70], 11);
-  // CARTO bắt buộc key từ cuối tháng 8/2026 (trước đó miễn phí không cần key) — key lấy tại
-  // carto.com/basemaps/apikey, miễn phí tới 5 triệu lượt tải tile/tháng, không cần tài khoản.
-  // Dùng style "voyager" (sáng, nhiều màu — đúng bản gốc CARTO hay dùng làm mặc định) thay vì
-  // "dark_all" (quá tối) theo phản hồi thực tế.
-  L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_3fkd_1_4c34c31f6750de7022a35b5f', {
-    attribution:'&copy; OpenStreetMap &copy; CARTO', maxZoom:19
+  // Dùng đúng nền OpenStreetMap gốc giống bản đồ điều phối kỹ thuật bên admin.html — theo phản hồi
+  // thực tế là dễ zoom/rõ hơn CARTO. Không còn phụ thuộc CARTO nữa nên cũng không cần API key.
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'&copy; OpenStreetMap', maxZoom:18
   }).addTo(map);
   map.on('click', () => { document.querySelectorAll('.boom-pin').forEach(p => p.classList.remove('on')); });
 
