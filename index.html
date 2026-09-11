@@ -884,13 +884,15 @@ function quickRegion(el) {
   render();
 }
 
-/* ─── BẢN ĐỒ (Leaflet + OpenStreetMap gốc — không cần API key, giống bản đồ điều phối kỹ thuật bên admin.html) ─── */
+/* ─── BẢN ĐỒ (Leaflet + nền CARTO Voyager, cần API key — xem ghi chú trong initMap về lý do không dùng OSM trực tiếp) ─── */
 function initMap() {
   map = L.map('map', { scrollWheelZoom:false, zoomControl:true }).setView(DEFAULT_MAP_VIEW.center, DEFAULT_MAP_VIEW.zoom);
-  // Dùng đúng nền OpenStreetMap gốc giống bản đồ điều phối kỹ thuật bên admin.html — theo phản hồi
-  // thực tế là dễ zoom/rõ hơn CARTO. Không còn phụ thuộc CARTO nữa nên cũng không cần API key.
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution:'&copy; OpenStreetMap', maxZoom:18
+  // OpenStreetMap trực tiếp (tile.openstreetmap.org) đã CHẶN truy cập từ web này (10/09/2026) — đây
+  // là máy chủ chạy bằng quyên góp, chính sách của họ tự động chặn web thương mại/traffic lớn nhúng
+  // trực tiếp, không báo trước. Quay lại dùng CARTO (đã có key, hạ tầng chuyên cho việc nhúng bản đồ
+  // vào web thật) để không lặp lại sự cố này. Key lấy tại carto.com/basemaps/apikey nếu cần đổi.
+  L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_3fkd_1_4c34c31f6750de7022a35b5f', {
+    attribution:'&copy; OpenStreetMap &copy; CARTO', maxZoom:19
   }).addTo(map);
   map.on('click', () => { document.querySelectorAll('.boom-pin').forEach(p => p.classList.remove('on')); });
 
