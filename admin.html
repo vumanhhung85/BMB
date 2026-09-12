@@ -925,6 +925,13 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <select id="tkChiNhanh"><option value="">— Chọn chi nhánh —</option></select>
           <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Với kỹ thuật viên: chọn chi nhánh xuất phát (điểm tham chiếu tính khoảng cách điều phối), không nhất thiết là chi nhánh cố định.</div>
         </div>
+        <div class="field" id="tkSieuAdminWrap" style="display:none">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="tkSieuAdmin" style="width:18px;height:18px">
+            🌟 Siêu admin (được xoá sự cố báo nhầm/trùng lặp)
+          </label>
+          <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Chỉ nên đánh dấu cho 1-2 admin thật sự tin cậy — xoá sự cố là hành động khó hoàn tác qua giao diện. Các admin khác vẫn làm được mọi việc khác bình thường, chỉ không thấy nút xoá.</div>
+        </div>
         <div class="field">
           <label for="tkEmail">Email (dùng cho tính năng quên mật khẩu)</label>
           <input id="tkEmail" type="email" maxlength="80">
@@ -2433,6 +2440,7 @@ function sucoHTML(t){
             '<button class="btn btn-bad btn-sm" onclick="xacNhan(\''+t.maSuCo+'\',false)">❌ Chưa xong</button>';
   }
   acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\')">🕘 Lịch sử</button>';
+  if(SESSION.sieuAdmin) acts += '<button class="btn btn-bad btn-sm" onclick="xoaSuCo(\''+t.maSuCo+'\')">🗑️ Xoá</button>';
 
   const photos = (imgs, label) => imgs.length ? '<div class="sc-photos">'+imgs.map(u=>'<a href="'+esc(driveViewUrl(u))+'" target="_blank" rel="noopener"><img src="'+esc(driveImgUrl(u))+'" alt="'+label+'" loading="lazy"></a>').join('')+'</div>' : '';
 
@@ -2496,6 +2504,25 @@ async function xemLichSu(maSuCo){
   }catch(e){ $('lsBody').innerHTML = '<div class="empty" style="padding:24px 0">Không tải được lịch sử.</div>'; }
 }
 function closeLichSu(){ $('modalOverlay').style.display='none'; }
+
+/** Xoá (ẩn) 1 ticket báo nhầm/trùng lặp — chỉ siêu admin thấy nút này (kiểm tra lại quyền ở server,
+ *  nút ẩn chỉ là lớp che ở UI). KHÔNG xoá thật khỏi sheet — server chỉ đánh dấu daXoa=Y, ticket biến
+ *  mất khỏi mọi danh sách/bảng/xuất file nhưng dữ liệu gốc vẫn còn để đối chiếu sau này nếu cần. Bắt
+ *  buộc nhập lý do (prompt, không phải confirm 1 cú bấm) để tránh xoá nhầm/xoá cho vui, và để lại vết
+ *  rõ ràng hơn trong lịch sử (mới, 11/09/2026). */
+async function xoaSuCo(maSuCo){
+  const lyDo = prompt('Vì sao xoá ticket '+maSuCo+'? (bắt buộc nhập — vd "báo trùng với SCxxxx", "báo nhầm chi nhánh"). Ticket sẽ biến mất khỏi mọi danh sách, dữ liệu gốc vẫn được giữ lại để đối chiếu sau này nếu cần.');
+  if(lyDo===null) return;
+  if(!lyDo.trim()) return toast('Phải nhập lý do mới xoá được.','bad');
+  try{
+    const j = await api({action:'suco_xoa', maSuCo, lyDo:lyDo.trim()});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã xoá ticket '+maSuCo+'.','ok');
+    loadSuCo(true);
+  }catch(e){
+    toast(e.message==='FORBIDDEN' ? 'Bạn không có quyền xoá.' : 'Không xoá được, thử lại.','bad');
+  }
+}
 
 /* ─── các hành động chuyển trạng thái ─── */
 async function tiepNhan(maSuCo, mucDoHienTai){
@@ -2616,6 +2643,7 @@ function drawSuCoTable(){
     if(['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
     if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="dongTicket(\''+t.maSuCo+'\')">🔒 Đóng</button>';
     acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\')">🕘</button>';
+    if(SESSION.sieuAdmin) acts += '<button class="btn btn-bad btn-sm" onclick="xoaSuCo(\''+t.maSuCo+'\')">🗑️</button>';
     return '<tr>'+
       '<td>'+(i+1)+'</td>'+
       '<td style="white-space:nowrap">'+fmtVNNgay(t.taoLuc)+'</td>'+
@@ -3108,7 +3136,7 @@ function drawTaiKhoanList(){
   $('listTaiKhoan').innerHTML = list.map(u => `
     <div class="lrow" data-p="${u.kichhoat?4:1}">
       <div class="lrow-main">
-        <div class="lrow-name">${esc(u.hoten||u.taikhoan)} <span class="st-pill">${esc(ROLE_LABEL[u.vaitro]||u.vaitro)}</span>${u.kichhoat?'':' <span class="pri pri-1">Đã tắt</span>'}${(u.vaitro!=='admin'&&!u.doiMkBat)?' <span class="pri pri-1" title="Tài khoản này chưa được mở quyền tự đổi mật khẩu">🔒 Khoá đổi MK</span>':''}</div>
+        <div class="lrow-name">${esc(u.hoten||u.taikhoan)} <span class="st-pill">${esc(ROLE_LABEL[u.vaitro]||u.vaitro)}</span>${u.sieuAdmin?' <span class="pri pri-4">🌟 Siêu admin</span>':''}${u.kichhoat?'':' <span class="pri pri-1">Đã tắt</span>'}${(u.vaitro!=='admin'&&!u.doiMkBat)?' <span class="pri pri-1" title="Tài khoản này chưa được mở quyền tự đổi mật khẩu">🔒 Khoá đổi MK</span>':''}</div>
         <div class="lrow-meta">@${esc(u.taikhoan)}${u.chinhanhTen?' · '+esc(u.chinhanhTen):''}${u.email?' · '+esc(u.email):''}</div>
       </div>
       <div class="kebab-wrap">
@@ -3258,6 +3286,7 @@ function renderTkVaiTroPick(){
     return '<button type="button" class="btn btn-sm '+(on?'btn-y':'btn-ghost')+'" onclick="tkVaiTroChon=\''+r.v+'\';renderTkVaiTroPick()">'+r.l+'</button>';
   }).join('');
   $('tkChiNhanhWrap').style.display = tkVaiTroChon==='admin' ? 'none' : 'block';
+  $('tkSieuAdminWrap').style.display = tkVaiTroChon==='admin' ? 'block' : 'none';
 }
 
 function fillTkChiNhanhSelect(selId){
@@ -3270,7 +3299,7 @@ function openThemTaiKhoan(){
   tkTaikhoanCu = ''; tkVaiTroChon = 'manager';
   $('tkTieuDe').textContent = 'Thêm tài khoản mới';
   $('tkTaikhoan').value=''; $('tkTaikhoan').disabled=false;
-  $('tkHoten').value=''; $('tkEmail').value=''; $('tkMatKhau').value='';
+  $('tkHoten').value=''; $('tkEmail').value=''; $('tkMatKhau').value=''; $('tkSieuAdmin').checked=false;
   $('tkMatKhauWrap').style.display='block';
   fillTkChiNhanhSelect('');
   renderTkVaiTroPick();
@@ -3284,6 +3313,7 @@ function openSuaTaiKhoan(taikhoan){
   $('tkTieuDe').textContent = 'Sửa tài khoản — @'+u.taikhoan;
   $('tkTaikhoan').value = u.taikhoan; $('tkTaikhoan').disabled = true;
   $('tkHoten').value = u.hoten; $('tkEmail').value = u.email;
+  $('tkSieuAdmin').checked = !!u.sieuAdmin;
   $('tkMatKhauWrap').style.display='none';
   fillTkChiNhanhSelect(u.chinhanhId||'');
   renderTkVaiTroPick();
@@ -3300,7 +3330,7 @@ async function submitTaiKhoan(){
 
   const payload = {
     taikhoan, hoten, vaitro:tkVaiTroChon, chinhanhId: tkVaiTroChon==='admin' ? '' : $('tkChiNhanh').value,
-    email:$('tkEmail').value.trim()
+    email:$('tkEmail').value.trim(), sieuAdmin: tkVaiTroChon==='admin' && $('tkSieuAdmin').checked
   };
   try{
     let j;
