@@ -2234,18 +2234,25 @@ function renderMucDoPick(){
 }
 function pickMucDo(m){ scMucDoChon = m; renderMucDoPick(); }
 
-async function submitSuCo(){
+async function submitSuCo(guiTrung){
   const loaiCode = $('scLoai').value;
   if(SESSION.role==='admin' && !$('scChiNhanh').value) return toast('Chọn chi nhánh trước đã nhé.','bad');
-  if(!SC_ANH.length && !confirm('Bạn chưa đính kèm ảnh nào. Một số lỗi (vd sự cố mạng, cấu hình phần mềm…) không cần ảnh vẫn báo được — vẫn gửi báo cáo không kèm ảnh chứ?')) return;
+  if(!guiTrung && !SC_ANH.length && !confirm('Bạn chưa đính kèm ảnh nào. Một số lỗi (vd sự cố mạng, cấu hình phần mềm…) không cần ảnh vẫn báo được — vẫn gửi báo cáo không kèm ảnh chứ?')) return;
   $('scSubmit').disabled = true; $('scSubmit').innerHTML = '<span class="spin"></span> Đang gửi…';
   try{
     const j = await api({
       action:'suco_tao', loaiLoi:loaiCode, mucDo:scMucDoChon,
       phong:$('scPhong').value.trim(), moTa:$('scMoTa').value.trim(),
       chinhanhId: SESSION.role==='admin' ? $('scChiNhanh').value : undefined,
-      anh: SC_ANH
+      anh: SC_ANH, buaTrung: guiTrung===true
     });
+    if(j.error === 'TRUNG_LAP'){
+      $('scSubmit').disabled = false; $('scSubmit').textContent = 'Gửi báo cáo';
+      if(confirm('Có vẻ trùng với ticket '+j.maSuCoTrung+' — cùng chi nhánh, cùng loại lỗi, cùng phòng, cùng mô tả, mới báo gần đây và chưa đóng.\n\nBấm OK nếu đây thật sự là 2 sự cố khác nhau và vẫn muốn gửi thêm; bấm Huỷ nếu chỉ là báo nhầm/báo lại (ticket cũ vẫn đang được xử lý bình thường).')){
+        return submitSuCo(true);
+      }
+      return;
+    }
     if(!j.ok) throw new Error(j.error||'FAIL');
     toast('Đã gửi báo cáo sự cố '+j.maSuCo+'.','ok');
     closeTaoSuCo();
