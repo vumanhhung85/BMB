@@ -376,7 +376,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     </div>
 
     <div class="form-card" id="formTaoSuCo" style="display:none">
-      <h3 style="font-size:18px;margin-bottom:14px">Báo sự cố mới</h3>
+      <h3 id="scFormTieuDe" style="font-size:18px;margin-bottom:14px">Báo sự cố mới</h3>
       <div class="field" id="fldChiNhanhSuCo" style="display:none">
         <label for="scChiNhanh">Chi nhánh <span class="req" style="color:var(--bad)">*</span></label>
         <select id="scChiNhanh"><option value="">— Chọn chi nhánh —</option></select>
@@ -387,8 +387,8 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <select id="scLoai" onchange="onLoaiSuCoChange()"></select>
         </div>
         <div class="field">
-          <label for="scPhong">Phòng (nếu có)</label>
-          <input id="scPhong" placeholder="vd: Phòng 3, VIP2…" maxlength="40">
+          <label for="scPhong">Phòng / Khu vực / Vị trí (nếu có)</label>
+          <input id="scPhong" placeholder="vd: Phòng 3, VIP2, sảnh, bãi xe, nhà kho…" maxlength="40">
         </div>
       </div>
       <div class="field">
@@ -408,6 +408,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <input type="file" id="scAnhCam" accept="image/*" capture="environment" style="display:none" onchange="onPickAnh(this,'scPhotoBox','SC_ANH')">
         <input type="file" id="scAnhLib" accept="image/*" multiple style="display:none" onchange="onPickAnh(this,'scPhotoBox','SC_ANH')">
         <div class="photobox" id="scPhotoBox"></div>
+        <div id="scGhiChuSua" style="display:none;font-size:12px;color:var(--txt-mute);margin-top:6px">Ảnh cũ đã gửi vẫn được giữ nguyên — ảnh chọn thêm ở đây sẽ được cộng thêm vào, không thay thế.</div>
       </div>
       <div class="bk-act" style="margin-top:6px">
         <button class="btn btn-y" id="scSubmit" onclick="submitSuCo()">Gửi báo cáo</button>
@@ -423,7 +424,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <select id="dpKyThuat"></select>
       </div>
       <div class="bk-act" style="margin-top:6px">
-        <button class="btn btn-y" id="dpSubmit" onclick="submitDieuPhoi()">Xác nhận điều phối</button>
+        <button class="btn btn-y" id="dpSubmit" onclick="chanBamKep(this,submitDieuPhoi)">Xác nhận điều phối</button>
         <button class="btn btn-ghost" onclick="$('formDieuPhoi').style.display='none'">Huỷ</button>
       </div>
     </div>
@@ -691,7 +692,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <input id="cnNote" maxlength="300">
         </div>
         <div class="bk-act" style="margin-top:6px">
-          <button class="btn btn-y btn-sm" onclick="submitChiNhanh()">Lưu</button>
+          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,submitChiNhanh)">Lưu</button>
           <button class="btn btn-ghost btn-sm" onclick="$('formChiNhanh').style.display='none'">Huỷ</button>
         </div>
       </div>
@@ -728,7 +729,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           </select>
         </div>
         <div class="bk-act" style="margin-top:6px">
-          <button class="btn btn-y btn-sm" onclick="submitLoaiSuCo()">Lưu</button>
+          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,submitLoaiSuCo)">Lưu</button>
           <button class="btn btn-ghost btn-sm" onclick="$('formLoaiSuCo').style.display='none'">Huỷ</button>
         </div>
       </div>
@@ -749,14 +750,14 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <label for="cfgIdleGio">Tự đăng xuất nếu không thao tác trong (giờ)</label>
         <div style="display:flex;gap:8px">
           <input id="cfgIdleGio" type="number" min="1" max="720" step="1" style="flex:1">
-          <button class="btn btn-y btn-sm" onclick="luuCfgSo('idle_timeout_phut','cfgIdleGio',60)">Lưu</button>
+          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuCfgSo,'idle_timeout_phut','cfgIdleGio',60)">Lưu</button>
         </div>
       </div>
       <div class="field">
         <label for="cfgSoThietBi">Số thiết bị đăng nhập tối đa mỗi tài khoản</label>
         <div style="display:flex;gap:8px">
           <input id="cfgSoThietBi" type="number" min="1" max="10" step="1" style="flex:1">
-          <button class="btn btn-y btn-sm" onclick="luuCfgSo('so_thiet_bi_toi_da','cfgSoThietBi',1)">Lưu</button>
+          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuCfgSo,'so_thiet_bi_toi_da','cfgSoThietBi',1)">Lưu</button>
         </div>
         <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Đăng nhập thiết bị mới khi đã đầy sẽ tự đăng xuất thiết bị lâu không hoạt động nhất, không chặn đăng nhập.</div>
       </div>
@@ -793,7 +794,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <div class="field" style="margin:0"><label style="color:var(--txt-mute)">Không cấp bách</label><div style="padding:12px 0;color:var(--txt-mute);font-size:13px">Gộp đợt bảo trì định kỳ</div></div>
         <div class="field" style="margin:0"><label for="slaM4XL">Xử lý xong trong (ngày)</label><input id="slaM4XL" type="number" min="0" step="1"></div>
       </div>
-      <button class="btn btn-y btn-sm" onclick="luuSLA()">Lưu ngưỡng SLA</button>
+      <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuSLA)">Lưu ngưỡng SLA</button>
       </div>
     </div>
 
@@ -813,7 +814,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <div style="font-size:12.5px;color:var(--txt-mute)">Kỹ thuật viên thấy tab "Bản đồ" ở mục Bảo trì — ticket đang mở theo màu mức độ, kể cả ticket chưa điều phối.</div>
         </div>
         <label class="switch">
-          <input type="checkbox" id="cfgKtBanDo" onchange="toggleKtSetting('kythuat_xem_bando','cfgKtBanDo')">
+          <input type="checkbox" id="cfgKtBanDo" onchange="chanBamKep(this,toggleKtSetting,'kythuat_xem_bando','cfgKtBanDo')">
           <span class="track"></span>
         </label>
       </div>
@@ -823,7 +824,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <div style="font-size:12.5px;color:var(--txt-mute)">Ticket đã tiếp nhận nhưng chưa điều phối: kỹ thuật viên bấm "Tự nhận việc" là nhận ngay, không cần chờ admin — ai bấm trước thắng, không nhận trùng được.</div>
         </div>
         <label class="switch">
-          <input type="checkbox" id="cfgKtTuNhan" onchange="toggleKtSetting('kythuat_tu_nhan_viec','cfgKtTuNhan')">
+          <input type="checkbox" id="cfgKtTuNhan" onchange="chanBamKep(this,toggleKtSetting,'kythuat_tu_nhan_viec','cfgKtTuNhan')">
           <span class="track"></span>
         </label>
       </div>
@@ -833,7 +834,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <div style="font-size:12.5px;color:var(--txt-mute)">Trên bản đồ, kỹ thuật viên thấy vị trí GPS của các kỹ thuật viên khác (không chỉ ticket) — nên hỏi ý kiến anh em trước khi bật, vì đây là lộ vị trí thật giữa đồng nghiệp với nhau.</div>
         </div>
         <label class="switch">
-          <input type="checkbox" id="cfgKtViTri" onchange="toggleKtSetting('kythuat_xem_vitri_dongnghiep','cfgKtViTri')">
+          <input type="checkbox" id="cfgKtViTri" onchange="chanBamKep(this,toggleKtSetting,'kythuat_xem_vitri_dongnghiep','cfgKtViTri')">
           <span class="track"></span>
         </label>
       </div>
@@ -844,7 +845,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <label for="cfgChuongGiay">Khoảng nghỉ giữa các lần kêu (giây)</label>
           <input type="number" id="cfgChuongGiay" min="10" max="300" step="5">
         </div>
-        <button class="btn btn-y btn-sm" style="margin-top:8px" onclick="luuChuongGiay()">Lưu</button>
+        <button class="btn btn-y btn-sm" style="margin-top:8px" onclick="chanBamKep(this,luuChuongGiay)">Lưu</button>
       </div>
       </div>
     </div>
@@ -870,7 +871,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <label for="bkFolderId">ID thư mục Google Drive (tài khoản khác)</label>
           <div style="display:flex;gap:8px">
             <input id="bkFolderId" placeholder="Dán ID thư mục vào đây" style="flex:1">
-            <button class="btn btn-y btn-sm" onclick="luuBackupFolder()">Lưu</button>
+            <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuBackupFolder)">Lưu</button>
           </div>
         </div>
         <button class="btn btn-ok btn-sm" onclick="chayBackup()" id="btnChayBackup">💾 Sao lưu ngay</button>
@@ -882,7 +883,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <label for="bkSoNgay">Tự động sao lưu định kỳ mỗi (ngày) — 0 = tắt</label>
           <div style="display:flex;gap:8px">
             <input id="bkSoNgay" type="number" min="0" max="90" step="1" style="flex:1">
-            <button class="btn btn-y btn-sm" onclick="luuLichBackup()">Lưu lịch</button>
+            <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuLichBackup)">Lưu lịch</button>
           </div>
           <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Chạy tự động lúc 2h sáng, không cần ai bấm nút. Đổi số ngày ở đây bất cứ lúc nào, không cần sửa code hay deploy lại.</div>
         </div>
@@ -894,7 +895,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       <h3 style="font-size:18px;margin-bottom:6px">Quản lý tài khoản</h3>
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm tài khoản mới cho quản lý chi nhánh hoặc kỹ thuật, sửa thông tin, đổi mật khẩu, vô hiệu hoá tạm thời hoặc xoá hẳn — có hiệu lực ngay, đăng xuất khỏi mọi thiết bị của người đó lập tức khi vô hiệu hoá/đổi mật khẩu/xoá.</p>
       <button class="btn btn-y btn-sm" style="margin-bottom:14px" onclick="openThemTaiKhoan()">+ Thêm tài khoản</button>
-      <button class="btn btn-ghost btn-sm" style="margin-bottom:14px;margin-left:8px;color:var(--bad)" onclick="resetAllPassUI()">🔑 Đặt lại mật khẩu hàng loạt</button>
+      <button class="btn btn-ghost btn-sm" style="margin-bottom:14px;margin-left:8px;color:var(--bad)" onclick="chanBamKep(this,resetAllPassUI)">🔑 Đặt lại mật khẩu hàng loạt</button>
       <div class="toolbar" style="margin-bottom:12px">
         <input id="qTaiKhoan" placeholder="Tìm tên, tài khoản, chi nhánh…" style="flex:1;min-width:180px" oninput="drawTaiKhoanList()">
         <select id="fTaiKhoanVaiTro" onchange="drawTaiKhoanList()">
@@ -943,7 +944,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Để trống sẽ dùng mật khẩu mặc định <b>Boom@2026</b> — nên đổi lại ngay sau lần đăng nhập đầu tiên.</div>
         </div>
         <div class="bk-act" style="margin-top:6px">
-          <button class="btn btn-y btn-sm" onclick="submitTaiKhoan()">Lưu</button>
+          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,submitTaiKhoan)">Lưu</button>
           <button class="btn btn-ghost btn-sm" onclick="$('formTaiKhoan').style.display='none'">Huỷ</button>
         </div>
       </div>
@@ -971,7 +972,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <input id="tkmMatKhauMoi" type="password" maxlength="60" autocomplete="new-password">
       </div>
       </div>
-      <button class="btn btn-y btn-sm" onclick="tuDoiMatKhau()">Đổi mật khẩu</button>
+      <button class="btn btn-y btn-sm" onclick="chanBamKep(this,tuDoiMatKhau)">Đổi mật khẩu</button>
 
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line-soft)">
         <label style="display:block;margin-bottom:4px">🔐 Đăng nhập nhanh bằng vân tay / khuôn mặt</label>
@@ -1018,7 +1019,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <input id="tgChat" placeholder="vd: -1001234567890">
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-y btn-sm" onclick="luuTelegramCfg()">Lưu</button>
+          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuTelegramCfg)">Lưu</button>
           <button class="btn btn-ghost btn-sm" onclick="guiThuTelegram()" id="btnTgTest">📨 Gửi thử</button>
         </div>
         <div id="tgKetQua" style="font-size:12.5px;color:var(--txt-mute);margin-top:10px"></div>
@@ -1041,8 +1042,8 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <input id="tgIdInput" inputmode="numeric" placeholder="vd: 123456789" maxlength="20">
         </div>
         <div class="bk-act">
-          <button class="btn btn-y btn-sm" onclick="luuTelegramId()">Lưu liên kết</button>
-          <button class="btn btn-ghost btn-sm" onclick="goLienKetTelegram()">Gỡ liên kết</button>
+          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuTelegramId)">Lưu liên kết</button>
+          <button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,goLienKetTelegram)">Gỡ liên kết</button>
         </div>
       </div>
     </div>
@@ -1346,6 +1347,25 @@ async function sha256(s){
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
+/** Khoá 1 nút bấm (disable + hiện quay vòng) trong lúc hàm async đang chạy, tự mở khoá lại khi xong
+ *  dù thành công hay lỗi — dùng CHUNG cho mọi nút gọi máy chủ, vì GAS đôi khi phản hồi chậm vài giây
+ *  và người dùng hay bấm thêm lần nữa tưởng bị treo (mới, 11/09/2026, xem lại toàn bộ thiết kế nút
+ *  bấm theo yêu cầu). Cách dùng: đổi onclick="lamGiDo(a,b)" thành onclick="chanBamKep(this,lamGiDo,a,b)"
+ *  — hàm gốc chạy y hệt như cũ, chỉ thêm lớp khoá nút bọc ngoài, không cần sửa gì bên trong hàm gốc.
+ *  Nếu hàm gốc TỰ đổi lại chữ trên nút theo ngữ cảnh riêng (vd 'Lưu thay đổi' khi đang sửa), nó vẫn
+ *  làm được bình thường vì chanBamKep phục hồi đúng NGUYÊN VĂN chữ lúc bấm, không đè cứng 1 chữ cố định. */
+async function chanBamKep(btn, fn, ...args){
+  if(!btn || btn.disabled) return;   // đang xử lý dở dang — bấm thêm không có tác dụng
+  const chuCu = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> ' + (btn.dataset.dangXuLy || 'Đang xử lý…');
+  try{
+    await fn(...args);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = chuCu;
+  }
+}
 async function api(payload){
   if(!CFG.API) throw new Error('NO_API');
   const tokenUsed = SESSION ? SESSION.token : '';
@@ -1585,7 +1605,7 @@ function drawChiNhanhList(){
           <button class="kebab-btn" onclick="toggleKebab(this,event)">⋮</button>
           <div class="kebab-menu">
             <button class="kebab-item" onclick="openSuaChiNhanh('${esc(c.id)}')">Sửa</button>
-            <button class="kebab-item bad" onclick="xoaChiNhanhUI('${esc(c.id)}')">Xoá</button>
+            <button class="kebab-item bad" onclick="chanBamKep(this,xoaChiNhanhUI,'${esc(c.id)}')">Xoá</button>
           </div>
         </div>
       </div>
@@ -2076,11 +2096,11 @@ function bkHTML(d){
     '<div class="bk-act">'+
       '<a class="btn btn-ghost btn-sm" href="tel:'+esc(d.phone)+'">📞 Gọi khách</a>'+
       (d.status==='pending' ?
-        '<button class="btn btn-ok btn-sm" onclick="act(\''+esc(d.code)+'\',\'approved\')">✓ Duyệt</button>'+
-        '<button class="btn btn-bad btn-sm" onclick="act(\''+esc(d.code)+'\',\'rejected\')">✕ Từ chối</button>' : '')+
+        '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,act,\''+esc(d.code)+'\',\'approved\')">✓ Duyệt</button>'+
+        '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,act,\''+esc(d.code)+'\',\'rejected\')">✕ Từ chối</button>' : '')+
       (d.status==='approved' ?
         '<a class="btn btn-y btn-sm" href="sms:'+esc(d.phone)+'?body='+smsOK+'">💬 Nhắn xác nhận</a>'+
-        '<button class="btn btn-ghost btn-sm" onclick="act(\''+esc(d.code)+'\',\'done\')">🎤 Khách đã tới</button>' : '')+
+        '<button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,act,\''+esc(d.code)+'\',\'done\')">🎤 Khách đã tới</button>' : '')+
       (d.status==='rejected' ? '<a class="btn btn-ghost btn-sm" href="sms:'+esc(d.phone)+'?body='+smsNo+'">💬 Nhắn xin lỗi</a>' : '')+
       '<a class="btn btn-ghost btn-sm" href="https://zalo.me/'+esc(d.phone)+'" target="_blank" rel="noopener">Zalo</a>'+
     '</div></article>';
@@ -2218,7 +2238,9 @@ function buildScChiNhanhSelect(){
   }
 }
 let scMucDoChon = null;
+let scDangSuaMa = null;   // null = đang tạo mới; có giá trị = đang sửa đúng ticket này (mới, 11/09/2026)
 function openTaoSuCo(){
+  scDangSuaMa = null;
   SC_ANH = []; $('scPhotoBox').innerHTML = '';
   $('scPhong').value=''; $('scMoTa').value='';
   $('fldChiNhanhSuCo').style.display = SESSION.role==='admin' ? '' : 'none';
@@ -2228,10 +2250,36 @@ function openTaoSuCo(){
   $('scLoai').innerHTML = '<option value="">— Chọn loại sự cố —</option>' +
     LOAI_SUCO_LIST.filter(l=>l.active).map(l=>'<option value="'+l.ma+'">'+esc(l.ten)+'</option>').join('');
   onLoaiSuCoChange();
+  $('scFormTieuDe').textContent = 'Báo sự cố mới';
+  $('scSubmit').textContent = 'Gửi báo cáo';
+  $('scGhiChuSua').style.display = 'none';
   $('formTaoSuCo').style.display='block';
   $('formTaoSuCo').scrollIntoView({behavior:'smooth',block:'start'});
 }
-function closeTaoSuCo(){ $('formTaoSuCo').style.display='none'; }
+/** Chính người đã tạo ticket tự sửa lại nội dung — CHỈ khi ticket còn ở trạng thái 'moi' (nút này chỉ
+ *  hiện ra trong sucoHTML() đúng lúc đó, xem ghi chú ở suaSuCo() bên Code.gs). Tái dùng nguyên form
+ *  "Báo sự cố mới" — chỉ đổi tiêu đề/nút và khoá ô chi nhánh lại (không cho đổi chi nhánh khi sửa,
+ *  xem đúng lý do trong suaSuCo() bên Code.gs), mới, 11/09/2026. */
+function openSuaSuCo(maSuCo){
+  const t = SUCO.find(x=>x.maSuCo===maSuCo);
+  if(!t) return toast('Không tìm thấy ticket.','bad');
+  scDangSuaMa = maSuCo;
+  SC_ANH = []; $('scPhotoBox').innerHTML = '';
+  $('fldChiNhanhSuCo').style.display = 'none';   // không cho đổi chi nhánh khi sửa
+  $('scPhong').value = t.phong || '';
+  $('scMoTa').value = t.moTa || '';
+  $('scLoai').innerHTML = '<option value="">— Chọn loại sự cố —</option>' +
+    LOAI_SUCO_LIST.filter(l=>l.active || l.ma===t.loaiLoi).map(l=>'<option value="'+l.ma+'"'+(l.ma===t.loaiLoi?' selected':'')+'>'+esc(l.ten)+'</option>').join('');
+  onLoaiSuCoChange();
+  scMucDoChon = t.mucDo;
+  renderMucDoPick();
+  $('scFormTieuDe').textContent = 'Sửa báo cáo — '+maSuCo;
+  $('scSubmit').textContent = 'Lưu thay đổi';
+  $('scGhiChuSua').style.display = '';
+  $('formTaoSuCo').style.display='block';
+  $('formTaoSuCo').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function closeTaoSuCo(){ $('formTaoSuCo').style.display='none'; scDangSuaMa = null; }
 function onLoaiSuCoChange(){
   // Lấy mức độ gợi ý trực tiếp từ LOAI_SUCO_LIST (danh mục thật admin đang quản lý trong Cài đặt),
   // không dùng LOAI_LOI tĩnh trong code — để cả loại sự cố admin tự thêm sau này cũng có gợi ý đúng,
@@ -2257,19 +2305,27 @@ function pickMucDo(m){ scMucDoChon = m; renderMucDoPick(); }
 async function submitSuCo(guiTrung){
   const loaiCode = $('scLoai').value;
   const moTa = $('scMoTa').value.trim();
-  if(SESSION.role==='admin' && !$('scChiNhanh').value) return toast('Chọn chi nhánh trước đã nhé.','bad');
+  if(!scDangSuaMa && SESSION.role==='admin' && !$('scChiNhanh').value) return toast('Chọn chi nhánh trước đã nhé.','bad');
   if(!loaiCode) return toast('Chọn loại sự cố trước đã nhé.','bad');
   if(!scMucDoChon) return toast('Chưa xác định được mức độ ưu tiên — chọn lại loại sự cố hoặc bấm chọn mức độ.','bad');
   if(!moTa) return toast('Nhập mô tả chi tiết — giúp admin/kỹ thuật điều phối đúng người, đúng việc.','bad');
-  if(!guiTrung && !SC_ANH.length && !confirm('Bạn chưa đính kèm ảnh nào. Một số lỗi (vd sự cố mạng, cấu hình phần mềm…) không cần ảnh vẫn báo được — vẫn gửi báo cáo không kèm ảnh chứ?')) return;
+  if(!guiTrung && !scDangSuaMa && !SC_ANH.length && !confirm('Bạn chưa đính kèm ảnh nào. Một số lỗi (vd sự cố mạng, cấu hình phần mềm…) không cần ảnh vẫn báo được — vẫn gửi báo cáo không kèm ảnh chứ?')) return;
   $('scSubmit').disabled = true; $('scSubmit').innerHTML = '<span class="spin"></span> Đang gửi…';
   try{
-    const j = await api({
-      action:'suco_tao', loaiLoi:loaiCode, mucDo:scMucDoChon,
-      phong:$('scPhong').value.trim(), moTa:moTa,
-      chinhanhId: SESSION.role==='admin' ? $('scChiNhanh').value : undefined,
-      anh: SC_ANH, buaTrung: guiTrung===true
-    });
+    let j;
+    if(scDangSuaMa){
+      j = await api({
+        action:'suco_sua', maSuCo:scDangSuaMa, loaiLoi:loaiCode, mucDo:scMucDoChon,
+        phong:$('scPhong').value.trim(), moTa:moTa, anh: SC_ANH.length ? SC_ANH : undefined
+      });
+    }else{
+      j = await api({
+        action:'suco_tao', loaiLoi:loaiCode, mucDo:scMucDoChon,
+        phong:$('scPhong').value.trim(), moTa:moTa,
+        chinhanhId: SESSION.role==='admin' ? $('scChiNhanh').value : undefined,
+        anh: SC_ANH, buaTrung: guiTrung===true
+      });
+    }
     if(j.error === 'TRUNG_LAP'){
       $('scSubmit').disabled = false; $('scSubmit').textContent = 'Gửi báo cáo';
       if(confirm('Có vẻ trùng với ticket '+j.maSuCoTrung+' — cùng chi nhánh, cùng loại lỗi, cùng phòng, cùng mô tả, mới báo gần đây và chưa đóng.\n\nBấm OK nếu đây thật sự là 2 sự cố khác nhau và vẫn muốn gửi thêm; bấm Huỷ nếu chỉ là báo nhầm/báo lại (ticket cũ vẫn đang được xử lý bình thường).')){
@@ -2278,14 +2334,15 @@ async function submitSuCo(guiTrung){
       return;
     }
     if(!j.ok) throw new Error(j.error||'FAIL');
-    toast('Đã gửi báo cáo sự cố '+j.maSuCo+'.','ok');
+    toast(scDangSuaMa ? 'Đã lưu thay đổi.' : 'Đã gửi báo cáo sự cố '+j.maSuCo+'.','ok');
     closeTaoSuCo();
     loadSuCo(true);
   }catch(e){
-    const map = {BAD_BRANCH:'Chưa chọn đúng chi nhánh.', CAN_LOAI:'Chọn loại sự cố trước đã nhé.', CAN_MOTA:'Nhập mô tả chi tiết trước đã nhé.'};
+    const map = {BAD_BRANCH:'Chưa chọn đúng chi nhánh.', CAN_LOAI:'Chọn loại sự cố trước đã nhé.', CAN_MOTA:'Nhập mô tả chi tiết trước đã nhé.',
+      DA_XU_LY_KHONG_SUA_DUOC:'Sự cố đã được tiếp nhận/xử lý, không tự sửa được nữa — gọi điện hoặc nhắn Zalo cho quản trị hệ thống nếu cần điều chỉnh.'};
     toast(map[e.message] || 'Không gửi được. Kiểm tra kết nối rồi thử lại.','bad');
   }finally{
-    $('scSubmit').disabled = false; $('scSubmit').textContent = 'Gửi báo cáo';
+    $('scSubmit').disabled = false; $('scSubmit').textContent = scDangSuaMa ? 'Lưu thay đổi' : 'Gửi báo cáo';
   }
 }
 
@@ -2440,25 +2497,33 @@ function sucoHTML(t){
   let acts = '';
 
   if(SESSION.role==='admin'){
-    if(t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="tiepNhan(\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
+    if(t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,tiepNhan,\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
     if(['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi kỹ thuật':'Điều phối')+'</button>';
-    if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="dongTicket(\''+t.maSuCo+'\')">🔒 Đóng ticket</button>';
+    if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,dongTicket,\''+t.maSuCo+'\')">🔒 Đóng ticket</button>';
   }
   if(isKyThuat()){
-    if(t.trangThai==='da_tiep_nhan' && !t.kyThuatDuocGiao && PUBLIC_SETTINGS.kythuatTuNhanViec) acts += '<button class="btn btn-ok btn-sm" onclick="tuNhanViec(\''+t.maSuCo+'\')">🙋 Tự nhận việc</button>';
-    if(t.trangThai==='da_dieu_phoi') acts += '<button class="btn btn-ok btn-sm" onclick="nhanViec(\''+t.maSuCo+'\')">Nhận việc</button>';
-    if(t.trangThai==='da_nhan') acts += '<button class="btn btn-y btn-sm" onclick="batDauXuLy(\''+t.maSuCo+'\')">Bắt đầu xử lý</button>';
+    if(t.trangThai==='da_tiep_nhan' && !t.kyThuatDuocGiao && PUBLIC_SETTINGS.kythuatTuNhanViec) acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,tuNhanViec,\''+t.maSuCo+'\')">🙋 Tự nhận việc</button>';
+    if(t.trangThai==='da_dieu_phoi') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,nhanViec,\''+t.maSuCo+'\')">Nhận việc</button>';
+    if(t.trangThai==='da_nhan') acts += '<button class="btn btn-y btn-sm" onclick="chanBamKep(this,batDauXuLy,\''+t.maSuCo+'\')">Bắt đầu xử lý</button>';
     if(['da_nhan','dang_xu_ly'].includes(t.trangThai)){
       acts += '<button class="btn btn-ghost btn-sm" onclick="chiDuong(\''+t.maSuCo+'\')">🧭 Chỉ đường</button>';
       acts += '<button class="btn btn-ok btn-sm" onclick="openBaoXong(\''+t.maSuCo+'\')">✓ Báo xong</button>';
     }
   }
   if(SESSION.role==='manager' && t.trangThai==='cho_xac_nhan'){
-    acts += '<button class="btn btn-ok btn-sm" onclick="xacNhan(\''+t.maSuCo+'\',true)">✅ Đã xong</button>'+
-            '<button class="btn btn-bad btn-sm" onclick="xacNhan(\''+t.maSuCo+'\',false)">❌ Chưa xong</button>';
+    acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,xacNhan,\''+t.maSuCo+'\',true)">✅ Đã xong</button>'+
+            '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,xacNhan,\''+t.maSuCo+'\',false)">❌ Chưa xong</button>';
+  }
+  // Chính người đã tạo ticket (chi nhánh tự báo, hoặc admin báo hộ) tự sửa/xoá được — CHỈ khi còn
+  // ở trạng thái 'moi' (chưa ai tiếp nhận). Qua khỏi mốc này phải nhờ admin xử lý qua kênh ngoài
+  // (gọi điện/Zalo) để đảm bảo hệ thống sạch, không cho sửa/xoá ngầm sau khi đã có người để mắt tới
+  // (mới, 11/09/2026).
+  if(t.nguoiTao===SESSION.user && t.trangThai==='moi'){
+    acts += '<button class="btn btn-y btn-sm" onclick="openSuaSuCo(\''+t.maSuCo+'\')">✏️ Sửa</button>'+
+            '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,xoaSuCo,\''+t.maSuCo+'\')">🗑️ Xoá báo cáo</button>';
   }
   acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\')">🕘 Lịch sử</button>';
-  if(SESSION.sieuAdmin) acts += '<button class="btn btn-bad btn-sm" onclick="xoaSuCo(\''+t.maSuCo+'\')">🗑️ Xoá</button>';
+  if(SESSION.sieuAdmin) acts += '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,xoaSuCo,\''+t.maSuCo+'\')">🗑️ Xoá</button>';
 
   const photos = (imgs, label) => imgs.length ? '<div class="sc-photos">'+imgs.map(u=>'<a href="'+esc(driveViewUrl(u))+'" target="_blank" rel="noopener"><img src="'+esc(driveImgUrl(u))+'" alt="'+label+'" loading="lazy"></a>').join('')+'</div>' : '';
 
@@ -2474,7 +2539,7 @@ function sucoHTML(t){
   return '<article class="sc" id="sc-'+esc(t.maSuCo)+'" data-p="'+t.mucDo+'">'+
     '<div class="sc-top"><div>'+
       '<div class="sc-name">'+esc(loai.ten)+' <span class="pri pri-'+t.mucDo+'">'+MUC_DO_LABEL[t.mucDo]+'</span> <span class="st-pill">'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+'</span>'+slaBadge+'</div>'+
-      '<div style="font-size:13px;color:var(--txt-mute)">'+esc(t.chinhanhTen)+(t.phong?' · phòng '+esc(t.phong):'')+' · báo lúc '+created+'</div>'+
+      '<div style="font-size:13px;color:var(--txt-mute)">'+esc(t.chinhanhTen)+(t.phong?' · '+esc(t.phong):'')+' · báo lúc '+created+'</div>'+
     '</div><span class="sc-code">'+esc(t.maSuCo)+'</span></div>'+
     (t.soLanQuayLai>0 ? '<div class="sc-flag">🚩 Đã quay lại xử lý '+t.soLanQuayLai+' lần</div>' : '') +
     (t.moTa ? '<div class="sc-note">💬 '+esc(t.moTa)+'</div>' : '') +
@@ -2561,7 +2626,9 @@ async function xoaSuCo(maSuCo){
     toast('Đã xoá ticket '+maSuCo+'.','ok');
     loadSuCo(true);
   }catch(e){
-    toast(e.message==='FORBIDDEN' ? 'Bạn không có quyền xoá.' : 'Không xoá được, thử lại.','bad');
+    const map = {FORBIDDEN:'Bạn không có quyền xoá.',
+      DA_XU_LY_KHONG_XOA_DUOC:'Sự cố đã được tiếp nhận/xử lý, không tự xoá được nữa — gọi điện hoặc nhắn Zalo cho quản trị hệ thống nếu cần huỷ.'};
+    toast(map[e.message] || 'Không xoá được, thử lại.','bad');
   }
 }
 
@@ -2581,7 +2648,7 @@ let dpMaSuCo = null;
 function openDieuPhoi(maSuCo){
   dpMaSuCo = maSuCo;
   const t = SUCO.find(x=>x.maSuCo===maSuCo); if(!t) return;
-  $('dpTicketInfo').textContent = maSuCo+' — '+t.chinhanhTen+(t.phong?' / phòng '+t.phong:'');
+  $('dpTicketInfo').textContent = maSuCo+' — '+t.chinhanhTen+(t.phong?' / '+t.phong:'');
   const list = KYTHUAT.filter(k=>k.vaitro === (t.loaiKT==='mang'?'kythuat_mang':'kythuat'));
   const withDist = list.map(k=>{
     const a = branchCoord(k.chinhanhGoc), b = branchCoord(t.chinhanhId);
@@ -2680,11 +2747,11 @@ function drawSuCoTable(){
     // Cùng đúng 3 hành động của admin bên khung Danh sách (sucoHTML) — tái dùng y hệt hàm cũ
     // (tiepNhan/openDieuPhoi/dongTicket), không viết logic mới, không thêm action nào ở Code.gs.
     let acts = '';
-    if(t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="tiepNhan(\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
+    if(t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,tiepNhan,\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
     if(['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
-    if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="dongTicket(\''+t.maSuCo+'\')">🔒 Đóng</button>';
+    if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,dongTicket,\''+t.maSuCo+'\')">🔒 Đóng</button>';
     acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\')">🕘</button>';
-    if(SESSION.sieuAdmin) acts += '<button class="btn btn-bad btn-sm" onclick="xoaSuCo(\''+t.maSuCo+'\')">🗑️</button>';
+    if(SESSION.sieuAdmin) acts += '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,xoaSuCo,\''+t.maSuCo+'\')">🗑️</button>';
     return '<tr>'+
       '<td>'+(i+1)+'</td>'+
       '<td style="white-space:nowrap;font-weight:600">'+esc(t.maSuCo)+'</td>'+
@@ -2841,7 +2908,7 @@ async function veBanDoBaoTri(){
     const coTheTuNhan = isKyThuat() && PUBLIC_SETTINGS.kythuatTuNhanViec && t.trangThai==='da_tiep_nhan' && !t.kyThuatDuocGiao;
     m.bindPopup('<b>'+esc(t.maSuCo)+'</b> — '+esc(loai.ten)+'<br>'+esc(br.name)+(t.phong?' · '+esc(t.phong):'')+
       '<br>'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+(t.kyThuatTen?' · '+esc(t.kyThuatTen):'')+
-      (coTheTuNhan ? '<br><button class="btn btn-ok btn-sm" style="margin-top:6px" onclick="tuNhanViec(\''+t.maSuCo+'\')">🙋 Tự nhận việc</button>' : ''));
+      (coTheTuNhan ? '<br><button class="btn btn-ok btn-sm" style="margin-top:6px" onclick="chanBamKep(this,tuNhanViec,\''+t.maSuCo+'\')">🙋 Tự nhận việc</button>' : ''));
     diem.push([br.lat,br.lng]);
   });
 
@@ -2914,7 +2981,7 @@ let bxMaSuCo = null;
 function openBaoXong(maSuCo){
   bxMaSuCo = maSuCo; SC_ANH_XONG = []; $('bxPhotoBox').innerHTML=''; $('bxGhiChu').value='';
   const t = SUCO.find(x=>x.maSuCo===maSuCo);
-  $('bxTicketInfo').textContent = maSuCo + (t?' — '+t.chinhanhTen+(t.phong?' / phòng '+t.phong:''):'');
+  $('bxTicketInfo').textContent = maSuCo + (t?' — '+t.chinhanhTen+(t.phong?' / '+t.phong:''):'');
   $('formBaoXong').style.display='block';
   $('formBaoXong').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -3185,10 +3252,10 @@ function drawTaiKhoanList(){
         <button class="kebab-btn" onclick="toggleKebab(this,event)">⋮</button>
         <div class="kebab-menu">
           <button class="kebab-item" onclick="openSuaTaiKhoan('${esc(u.taikhoan)}')">Sửa</button>
-          <button class="kebab-item" onclick="adminDoiMatKhau('${esc(u.taikhoan)}')">Đổi mật khẩu</button>
-          ${u.vaitro!=='admin' ? `<button class="kebab-item ${u.doiMkBat?'bad':'ok'}" onclick="adminToggleDoiMK('${esc(u.taikhoan)}',${!u.doiMkBat})">${u.doiMkBat?'Khoá tự đổi mật khẩu':'Mở tự đổi mật khẩu'}</button>` : ''}
-          <button class="kebab-item ${u.kichhoat?'bad':'ok'}" onclick="adminToggleKichHoat('${esc(u.taikhoan)}',${!u.kichhoat})">${u.kichhoat?'Vô hiệu hoá':'Bật lại'}</button>
-          <button class="kebab-item bad" onclick="xoaTaiKhoanUI('${esc(u.taikhoan)}')">Xoá</button>
+          <button class="kebab-item" onclick="chanBamKep(this,adminDoiMatKhau,'${esc(u.taikhoan)}')">Đổi mật khẩu</button>
+          ${u.vaitro!=='admin' ? `<button class="kebab-item ${u.doiMkBat?'bad':'ok'}" onclick="chanBamKep(this,adminToggleDoiMK,'${esc(u.taikhoan)}',${!u.doiMkBat})">${u.doiMkBat?'Khoá tự đổi mật khẩu':'Mở tự đổi mật khẩu'}</button>` : ''}
+          <button class="kebab-item ${u.kichhoat?'bad':'ok'}" onclick="chanBamKep(this,adminToggleKichHoat,'${esc(u.taikhoan)}',${!u.kichhoat})">${u.kichhoat?'Vô hiệu hoá':'Bật lại'}</button>
+          <button class="kebab-item bad" onclick="chanBamKep(this,xoaTaiKhoanUI,'${esc(u.taikhoan)}')">Xoá</button>
         </div>
       </div>
     </div>`).join('');
@@ -3251,9 +3318,9 @@ async function luuTelegramId(){
     toast(e.message==='ID_DA_DUOC_DUNG' ? 'Telegram ID này đã liên kết với tài khoản khác.' : 'Không lưu được, thử lại.','bad');
   }
 }
-function goLienKetTelegram(){
+async function goLienKetTelegram(){
   $('tgIdInput').value = '';
-  luuTelegramId();
+  await luuTelegramId();
 }
 
 async function adminDoiMatKhau(taikhoan){
@@ -3409,7 +3476,7 @@ function drawLoaiSuCoList(){
         <button class="kebab-btn" onclick="toggleKebab(this,event)">⋮</button>
         <div class="kebab-menu">
           <button class="kebab-item" onclick="openSuaLoaiSuCo('${esc(l.ma)}')">Sửa</button>
-          <button class="kebab-item ${l.active?'bad':'ok'}" onclick="toggleLoaiSuCoActive('${esc(l.ma)}',${!l.active})">${l.active?'Ẩn':'Hiện'}</button>
+          <button class="kebab-item ${l.active?'bad':'ok'}" onclick="chanBamKep(this,toggleLoaiSuCoActive,'${esc(l.ma)}',${!l.active})">${l.active?'Ẩn':'Hiện'}</button>
         </div>
       </div>
     </div>`).join('');
