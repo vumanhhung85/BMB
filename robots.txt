@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin.html
 
-Sitemap: https://boommusicbox.com/sitemap.xml
+Sitemap: https://boommusicbox.vn/sitemap.xml
