@@ -1366,20 +1366,72 @@ async function chanBamKep(btn, fn, ...args){
     btn.innerHTML = chuCu;
   }
 }
+/* ─── GỌI MÁY CHỦ: thời gian chờ + tự thử lại + phân loại lỗi (mới, 18/09/2026) ───
+   Nhật ký thực thi phía Google cho thấy tỷ lệ lỗi chỉ 0,01% (dưới 2 lượt lỗi mỗi TUẦN trên 16.675
+   lượt chạy) — nghĩa là máy chủ gần như luôn khoẻ. Vậy nên phần lớn những lần chi nhánh thấy "Không
+   kết nối được máy chủ" là request CHƯA HỀ TỚI được Google: mạng 4G/wifi ở chi nhánh chập chờn, hoặc
+   trình duyệt bỏ dở request. Trước đây hàm này không có thời gian chờ và không thử lại lần nào, nên
+   chỉ 1 giây rớt sóng là hiện banner đỏ — trong khi chỉ cần thử lại sau 1-2 giây là xong. */
+
+/** Các action CHỈ ĐỌC — an toàn để tự gửi lại khi mạng chập chờn.
+ *  Action GHI (tạo/sửa/xoá/đổi trạng thái) TUYỆT ĐỐI không được tự gửi lại: nếu request đã tới máy chủ
+ *  và xử lý xong rồi mà phản hồi bị mất giữa đường, gửi lại sẽ tạo bản ghi TRÙNG — đúng lỗi chi nhánh
+ *  báo trùng 1 sự cố 2-3 lần từng gặp. Với action ghi, báo lỗi rõ ràng để người dùng tự quyết định. */
+const ACTION_CHI_DOC = ['khoi_dong','list','suco_list','suco_lichsu','suco_list_da_xoa','kythuat_list',
+  'kythuat_vitri_list','loaisuco_list','taikhoan_list','chinhanh_list','backup_thongtin','telegram_thongtin'];
+const API_TIMEOUT_MS = 25000;   // GAS lúc "khởi động lạnh" có thể mất tới ~10 giây — để rộng 25 giây
+
+/** Gọi máy chủ ĐÚNG 1 LẦN, có giới hạn thời gian chờ. Ném ra 3 mã lỗi kết nối riêng biệt để nơi gọi
+ *  biết chính xác hỏng ở khâu nào thay vì gộp chung thành "không kết nối được". */
+async function apiMotLan(payload, tokenUsed){
+  const ctrl = new AbortController();
+  const hen = setTimeout(()=>ctrl.abort(), API_TIMEOUT_MS);
+  let r;
+  try{
+    r = await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({...payload, token: tokenUsed}), signal: ctrl.signal});
+  }catch(e){
+    throw new Error(e.name === 'AbortError' ? 'QUA_HAN' : 'MAT_MANG');
+  }finally{ clearTimeout(hen); }
+  const raw = await r.text();
+  // Máy chủ bận/lỗi sẽ trả về TRANG HTML thay vì dữ liệu — bắt riêng để không báo nhầm thành mất mạng.
+  try{ return JSON.parse(raw); }
+  catch(e){ throw new Error('MAY_CHU_LOI'); }
+}
+
 async function api(payload){
   if(!CFG.API) throw new Error('NO_API');
   const tokenUsed = SESSION ? SESSION.token : '';
-  const r = await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify({...payload, token: tokenUsed})});
-  const j = await r.json();
-  if(j.error === 'BAD_TOKEN'){
-    // Chỉ đăng xuất nếu token dùng để gửi request NÀY vẫn đúng là phiên hiện tại. Nếu SESSION đã đổi
-    // (vd vừa đăng nhập lại thành công) từ lúc gửi request tới lúc nhận phản hồi, đây là phản hồi TRỄ
-    // của 1 request cũ (dùng token cũ đã hết hạn) — bỏ qua, không được phép xoá mất phiên MỚI.
-    if(SESSION && SESSION.token === tokenUsed) logout('Phiên đã hết hạn. Đăng nhập lại nhé.');
-    throw new Error('BAD_TOKEN');
+  const soLanToiDa = ACTION_CHI_DOC.includes(payload.action) ? 3 : 1;   // action ghi: chỉ gửi đúng 1 lần
+  let loiCuoi;
+  for(let lan = 1; lan <= soLanToiDa; lan++){
+    if(lan > 1) await new Promise(r=>setTimeout(r, (lan-1)*1500));   // nghỉ 1,5s rồi 3s trước khi thử lại
+    try{
+      const j = await apiMotLan(payload, tokenUsed);
+      if(j.error === 'BAD_TOKEN'){
+        // Chỉ đăng xuất nếu token dùng để gửi request NÀY vẫn đúng là phiên hiện tại. Nếu SESSION đã đổi
+        // (vd vừa đăng nhập lại thành công) từ lúc gửi request tới lúc nhận phản hồi, đây là phản hồi TRỄ
+        // của 1 request cũ (dùng token cũ đã hết hạn) — bỏ qua, không được phép xoá mất phiên MỚI.
+        if(SESSION && SESSION.token === tokenUsed) logout('Phiên đã hết hạn. Đăng nhập lại nhé.');
+        throw new Error('BAD_TOKEN');
+      }
+      return j;
+    }catch(e){
+      if(!['QUA_HAN','MAT_MANG','MAY_CHU_LOI'].includes(e.message)) throw e;   // lỗi nghiệp vụ: ném ra ngay
+      loiCuoi = e;
+    }
   }
-  return j;
+  throw loiCuoi;
+}
+
+/** Đổi mã lỗi kết nối thành câu tiếng Việt nói rõ hỏng ở đâu — để lần sau nhìn thông báo là biết
+ *  nguyên nhân, không phải mò nhật ký máy chủ như lần này. */
+function moTaLoiKetNoi(e){
+  const m = e && e.message;
+  if(m === 'QUA_HAN')    return 'Máy chủ phản hồi quá chậm (đã tự thử lại 3 lần). Mạng ở đây có thể đang yếu — bấm Làm mới để thử lại.';
+  if(m === 'MAT_MANG')   return 'Không có kết nối mạng. Kiểm tra wifi/4G rồi bấm Làm mới.';
+  if(m === 'MAY_CHU_LOI') return 'Máy chủ đang bận, chưa trả về được dữ liệu. Thử lại sau ít phút.';
+  return 'Không kết nối được máy chủ. Đang hiển thị dữ liệu lần tải gần nhất.';
 }
 
 /* ─── ĐĂNG NHẬP ─── */
@@ -1443,41 +1495,84 @@ async function enterApp(){
     $('fBranch').style.display='';
     $('caidatAdmin').style.display='';
     $('cfgTelegramWrap').style.display='';
-    loadKyThuat();
-    loadBookingSetting();
   }
-  // Nút Danh sách/Bản đồ: admin luôn thấy; kỹ thuật viên chỉ thấy khi admin đã bật "Cho xem bản đồ
-  // sự cố" trong Cài đặt (PUBLIC_SETTINGS đã nạp sẵn từ lúc mở trang, xem loadPublicSettings()).
-  if(SESSION.role === 'admin' || (isKyThuat() && PUBLIC_SETTINGS.kythuatXemBanDo)){
-    $('btnBtListView').style.display='';
-    $('btnBtMapView').style.display='';
-  }
-  if(SESSION.role === 'admin'){
-    $('btnBtTableView').style.display='';
-  }
-  if(SESSION.role === 'manager' || SESSION.role === 'admin'){
-    $('btnTaoSuCo').style.display='';
-  }
+  // Các nút chuyển view (Bảng/Bản đồ/Danh sách/Báo sự cố) được dựng trong capNhatNutChuyenView(),
+  // gọi SAU khi khoiDongDuLieu() đã nạp xong PUBLIC_SETTINGS — vì quyền xem bản đồ của kỹ thuật viên
+  // phụ thuộc đúng cài đặt đó.
   // Kỹ thuật viên chỉ làm việc trong tab Bảo trì — không liên quan tới đặt phòng, nên ẩn hẳn tab
   // "Đặt phòng" và không tải dữ liệu đơn (đỡ 1 lượt gọi API mỗi lần vào + mỗi 30 giây tự làm mới).
   if(isKyThuat()){
     document.querySelector('.tab[data-t="dat-phong"]').style.display='none';
     switchTab(document.querySelector('.tab[data-t="baotri"]'));
     batDauChiaSeViTri();   // định kỳ nhẹ mỗi 5 phút trong lúc còn mở app — xem thêm ở nhanViec/batDauXuLy/submitBaoXong
-  } else {
-    loadBookings();
-    setInterval(()=>loadBookings(false,true), 30000);   // tự làm mới mỗi 30 giây
   }
   requestNotifyPermission();
-  loadPublicSettings();
   resetIdle();
   ['click','keydown','scroll','touchstart'].forEach(e=>document.addEventListener(e,resetIdle,{passive:true}));
-  loadBranches();
-  await loadLoaiSuCo();
-  loadSuCo();
+
+  await khoiDongDuLieu();   // 1 lượt gọi duy nhất thay cho 8 lượt rời rạc như trước
+
+  if(!isKyThuat()) setInterval(()=>loadBookings(false,true), 30000);   // tự làm mới mỗi 30 giây
   setInterval(()=>loadSuCo(true), 30000);
   setInterval(()=>{ if(TAB==='baotri') drawSuCo(); }, 60000);   // tự cập nhật đếm ngược SLA mỗi phút, không cần gọi máy chủ
   moTicketTuLink();
+}
+
+/** Nạp TOÀN BỘ dữ liệu ban đầu bằng ĐÚNG 1 lượt gọi máy chủ (action `khoi_dong`) — thay cho 8 lượt
+ *  rời rạc trước đây (cài đặt, chi nhánh, loại sự cố, sự cố, đơn đặt phòng, kỹ thuật viên, cài đặt đặt
+ *  phòng…) vốn bắn ra gần như đồng thời mỗi lần có người mở app, tạo thành cụm dồn thấy rõ trong nhật
+ *  ký thực thi phía Google (mới, 18/09/2026).
+ *  Nếu lượt gọi gộp này hỏng (mạng yếu), tự lùi về cách cũ — gọi rời từng phần — để app vẫn dùng được
+ *  thay vì trắng màn hình. */
+async function khoiDongDuLieu(){
+  try{
+    const j = await api({action:'khoi_dong'});
+    if(!j.ok) throw new Error(j.error || 'FAIL');
+
+    if(j.settings) PUBLIC_SETTINGS = j.settings;
+    BRANCHES = j.branches || [];
+    apDungDanhSachChiNhanh();
+
+    if(j.loaiSuCo){
+      LOAI_SUCO_LIST = j.loaiSuCo;
+      LOAI_LOI = {};
+      LOAI_SUCO_LIST.forEach(l => LOAI_LOI[l.ma] = { ten:l.ten, mucDo:l.mucDo, loaiKT:l.loaiKT });
+    }
+    if(j.kythuat) KYTHUAT = j.kythuat;
+    if(j.bookings){ DATA = j.bookings; xuLyDonSauKhiTai(); }
+
+    SUCO = j.suco || [];
+    xuLySuCoSauKhiTai();
+    $('offlineMsg').classList.remove('show');
+
+    // Các nút chuyển view phụ thuộc PUBLIC_SETTINGS nên phải dựng SAU khi đã có dữ liệu cài đặt.
+    capNhatNutChuyenView();
+    if(SESSION.role === 'admin') capNhatUIBookingSetting();
+  }catch(e){
+    console.warn('Khởi động gộp không thành công, lùi về cách gọi rời:', e.message);
+    $('offlineTxt').textContent = moTaLoiKetNoi(e);
+    $('offlineMsg').classList.add('show');
+    // PHẢI chờ xong cài đặt trước khi dựng nút chuyển view — quyền xem bản đồ của kỹ thuật viên phụ
+    // thuộc đúng dữ liệu này; không chờ thì nút Bản đồ có thể không hiện dù admin đã bật.
+    await loadPublicSettings();
+    loadBranches();
+    await loadLoaiSuCo();
+    if(SESSION.role === 'admin'){ loadKyThuat(); loadBookingSetting(); }
+    if(!isKyThuat()) loadBookings();
+    loadSuCo();
+    capNhatNutChuyenView();
+  }
+}
+
+/** Hiện/ẩn các nút chuyển view (Bảng / Bản đồ / Danh sách / Báo sự cố) theo vai trò và theo cài đặt —
+ *  tách riêng vì phải chạy SAU khi PUBLIC_SETTINGS đã được nạp (mới, 18/09/2026). */
+function capNhatNutChuyenView(){
+  if(SESSION.role === 'admin' || (isKyThuat() && PUBLIC_SETTINGS.kythuatXemBanDo)){
+    $('btnBtListView').style.display='';
+    $('btnBtMapView').style.display='';
+  }
+  if(SESSION.role === 'admin') $('btnBtTableView').style.display='';
+  if(SESSION.role === 'manager' || SESSION.role === 'admin') $('btnTaoSuCo').style.display='';
 }
 
 /** Mở thẳng đúng 1 ticket bảo trì nếu URL có ?ticket=<mã> — dùng cho nút "Xem thêm" trên tin nhắn
@@ -1507,15 +1602,22 @@ async function loadBranches(){
     const r = await fetch(CFG.API + '?action=branches', {method:'GET'});
     const j = await r.json();
     if(j.ok) BRANCHES = j.data || [];
-    if(SESSION.role==='admin'){
-      const optCN = '<option value="">Tất cả chi nhánh</option>' +
-        BRANCHES.slice().sort((a,b)=>a.short.localeCompare(b.short)).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.short)+'</option>').join('');
-      $('fMoiCN').innerHTML = optCN; $('fMoiCN').style.display='';
-      $('fXongCN').innerHTML = optCN; $('fXongCN').style.display='';
-      $('fBangCN').innerHTML = optCN; $('fBangCN').style.display='';
-    }
-    buildScChiNhanhSelect();
+    apDungDanhSachChiNhanh();
   }catch(e){ console.warn('Không tải được danh sách chi nhánh:', e.message); }
+}
+
+/** Dựng lại các dropdown chi nhánh từ biến BRANCHES đang có — tách riêng khỏi loadBranches() để
+ *  dùng lại được với dữ liệu lấy từ action gộp `khoi_dong` (mới, 18/09/2026), không phải gọi lại
+ *  máy chủ thêm 1 lượt chỉ để dựng giao diện. */
+function apDungDanhSachChiNhanh(){
+  if(SESSION && SESSION.role==='admin'){
+    const optCN = '<option value="">Tất cả chi nhánh</option>' +
+      BRANCHES.slice().sort((a,b)=>a.short.localeCompare(b.short)).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.short)+'</option>').join('');
+    $('fMoiCN').innerHTML = optCN; $('fMoiCN').style.display='';
+    $('fXongCN').innerHTML = optCN; $('fXongCN').style.display='';
+    $('fBangCN').innerHTML = optCN; $('fBangCN').style.display='';
+  }
+  buildScChiNhanhSelect();
 }
 
 async function loadKyThuat(){
@@ -1973,11 +2075,17 @@ async function loadBookings(manual, silent){
     if(j.ok){ DATA = j.data || []; $('offlineMsg').classList.remove('show'); }
     else throw new Error(j.error||'LOAD_FAIL');
   }catch(e){
-    $('offlineTxt').textContent = 'Không kết nối được máy chủ. Đang hiển thị dữ liệu lần tải gần nhất.';
+    $('offlineTxt').textContent = moTaLoiKetNoi(e) + (DATA.length ? ' Đang hiển thị dữ liệu lần tải gần nhất.' : '');
     $('offlineMsg').classList.add('show');
   }finally{
     if(manual){ $('refreshBtn').disabled=false; $('refreshBtn').textContent='🔄 Làm mới'; }
   }
+  xuLyDonSauKhiTai();
+}
+
+/** Phần xử lý SAU KHI đã có dữ liệu DATA (đơn đặt phòng): dựng dropdown chi nhánh, đếm đơn chờ duyệt,
+ *  vẽ lại danh sách. Tách riêng để action gộp `khoi_dong` dùng lại (mới, 18/09/2026). */
+function xuLyDonSauKhiTai(){
   if(SESSION && SESSION.role === 'admin'){
     const bs=[...new Set(DATA.map(d=>d.branchName))].sort();
     $('fBranch').innerHTML='<option value="">Tất cả chi nhánh</option>'+bs.map(b=>'<option>'+esc(b)+'</option>').join('');
@@ -2351,7 +2459,14 @@ async function loadSuCo(silent){
   try{
     const j = await api({action:'suco_list'});
     if(j.ok) SUCO = j.data || [];
-  }catch(e){ if(!silent) toast('Không tải được danh sách sự cố.','bad'); }
+  }catch(e){ if(!silent) toast(moTaLoiKetNoi(e),'bad'); }
+  xuLySuCoSauKhiTai();
+}
+
+/** Phần xử lý SAU KHI đã có dữ liệu SUCO: đếm số đang mở, kêu chuông/thông báo khi có ticket mới, vẽ
+ *  lại màn hình. Tách riêng khỏi loadSuCo() để action gộp `khoi_dong` dùng lại được mà không phải gọi
+ *  máy chủ thêm lượt nữa (mới, 18/09/2026). */
+function xuLySuCoSauKhiTai(){
   const nOpen = SUCO.filter(t=>t.trangThai!=='dong').length;
   $('nSuCo').textContent = nOpen || '';
   $('nSuCo').className = 'n' + (nOpen?'':' zero');
@@ -3028,11 +3143,16 @@ async function loadBookingSetting(){
   try{
     const r = await fetch(CFG.API + '?action=settings', {method:'GET'});
     const j = await r.json();
-    if(j.ok){
-      $('bkToggle').checked = j.data.datPhongBat;
-      $('bkStatusTxt').textContent = j.data.datPhongBat ? 'Đang bật' : 'Đang tắt';
-    }
+    if(j.ok){ PUBLIC_SETTINGS = j.data; capNhatUIBookingSetting(); }
   }catch(e){}
+}
+
+/** Dựng công tắc "Cho phép khách đặt phòng" từ PUBLIC_SETTINGS đang có — tách riêng để dùng lại được
+ *  với dữ liệu cài đặt lấy sẵn từ action gộp `khoi_dong` (mới, 18/09/2026). */
+function capNhatUIBookingSetting(){
+  if(!PUBLIC_SETTINGS) return;
+  $('bkToggle').checked = !!PUBLIC_SETTINGS.datPhongBat;
+  $('bkStatusTxt').textContent = PUBLIC_SETTINGS.datPhongBat ? 'Đang bật' : 'Đang tắt';
 }
 async function toggleBookingSetting(){
   const on = $('bkToggle').checked;
