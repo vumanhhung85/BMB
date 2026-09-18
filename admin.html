@@ -63,6 +63,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 .loginbox .sub{text-align:center;color:var(--txt-mute);font-size:13.5px;margin-bottom:24px}
 .field{margin-bottom:15px}
 .field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--txt-dim)}
+.pw-wrap{position:relative}
+.field .pw-wrap input{padding-right:44px}
+.pw-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;
+  font-size:19px;line-height:1;padding:8px;cursor:pointer;opacity:.75}
+.pw-eye:hover{opacity:1}
 .field input,.field select,.field textarea{width:100%;padding:12px 14px;border-radius:12px;
   background:rgba(20,6,31,.72);border:1px solid var(--line-soft);font-size:15px;transition:.18s}
 .field input:focus,.field select:focus{border-color:var(--yellow);outline:none;background:rgba(20,6,31,.95)}
@@ -71,6 +76,19 @@ button,input,select,textarea{font:inherit;color:inherit}
 .msg.bad{background:rgba(255,92,122,.12);border:1px solid rgba(255,92,122,.35);color:#FFAABB}
 .msg.ok{background:rgba(61,220,151,.12);border:1px solid rgba(61,220,151,.35);color:#9DEBC6}
 .msg.warn{background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.32);color:#FFD79A}
+.msg.info{background:rgba(122,162,255,.1);border:1px solid rgba(122,162,255,.32);color:#C7D6FF}
+#anhXemModal{position:fixed;inset:0;background:rgba(10,4,20,.94);z-index:200;display:none;align-items:center;justify-content:center;padding:24px}
+#anhXemModal.show{display:flex}
+#anhXemModal img{max-width:100%;max-height:100%;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#anhXemDong{position:fixed;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;
+  width:38px;height:38px;border-radius:50%;font-size:18px;cursor:pointer;z-index:201}
+#anhXemDong:hover{background:rgba(255,255,255,.25)}
+#anhXemTruoc,#anhXemSau{position:fixed;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);
+  border:none;color:#fff;width:46px;height:46px;border-radius:50%;font-size:26px;line-height:1;cursor:pointer;z-index:201}
+#anhXemTruoc:hover,#anhXemSau:hover{background:rgba(255,255,255,.25)}
+#anhXemTruoc{left:10px} #anhXemSau{right:10px}
+#anhXemDem{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);color:#fff;font-size:13px;
+  background:rgba(0,0,0,.45);padding:5px 14px;border-radius:999px;z-index:201}
 
 /* ── ỨNG DỤNG ── */
 #app{display:none}
@@ -167,7 +185,7 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .sc-note{font-size:13px;color:var(--txt-dim);background:rgba(0,0,0,.22);border-radius:10px;
   padding:9px 12px;margin-bottom:11px;border-left:2px solid var(--purple)}
 .sc-photos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px}
-.sc-photos a img{width:74px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--line-soft);display:block}
+.sc-photos a img,.sc-photos img{width:74px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--line-soft);display:block;cursor:pointer}
 .sc-act{display:flex;gap:8px;flex-wrap:wrap}
 .sc-flag{font-size:12px;color:var(--bad);font-weight:700;margin-bottom:8px}
 .form-card{background:linear-gradient(160deg,rgba(42,21,71,.85),rgba(30,14,51,.85));border:1px solid var(--line);
@@ -299,8 +317,11 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     </div>
     <div class="field">
       <label for="uPass">Mật khẩu</label>
-      <input id="uPass" type="password" autocomplete="current-password" placeholder="••••••••"
-             onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="pw-wrap">
+        <input id="uPass" type="password" autocomplete="current-password" placeholder="••••••••"
+               onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" class="pw-eye" onclick="toggleMatKhauHien(this,'uPass')" aria-label="Hiện/ẩn mật khẩu">🙈</button>
+      </div>
     </div>
     <button class="btn btn-y" style="width:100%" id="loginBtn" onclick="doLogin()">Đăng nhập</button>
     <div style="text-align:center;margin-top:12px"><a href="#" onclick="promptQuenMatKhau();return false" style="color:var(--txt-mute);font-size:13px">Quên mật khẩu?</a></div>
@@ -358,7 +379,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇️ Xuất Excel</button>
   </div>
 
-  <div class="msg warn" id="offlineMsg"><span>📴</span><span id="offlineTxt"></span></div>
+  <div class="msg warn" id="offlineMsg"><span id="offlineIcon">📴</span><span id="offlineTxt"></span></div>
 
   <div class="list" id="list"></div>
   <div id="report" style="display:none"></div>
@@ -965,11 +986,17 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       <div id="dmkKhoiForm">
       <div class="field">
         <label for="tkmMatKhauCu">Mật khẩu hiện tại</label>
-        <input id="tkmMatKhauCu" type="password" maxlength="60" autocomplete="current-password">
+        <div class="pw-wrap">
+          <input id="tkmMatKhauCu" type="password" maxlength="60" autocomplete="current-password">
+          <button type="button" class="pw-eye" onclick="toggleMatKhauHien(this,'tkmMatKhauCu')" aria-label="Hiện/ẩn mật khẩu">🙈</button>
+        </div>
       </div>
       <div class="field">
         <label for="tkmMatKhauMoi">Mật khẩu mới (tối thiểu 4 ký tự)</label>
-        <input id="tkmMatKhauMoi" type="password" maxlength="60" autocomplete="new-password">
+        <div class="pw-wrap">
+          <input id="tkmMatKhauMoi" type="password" maxlength="60" autocomplete="new-password">
+          <button type="button" class="pw-eye" onclick="toggleMatKhauHien(this,'tkmMatKhauMoi')" aria-label="Hiện/ẩn mật khẩu">🙈</button>
+        </div>
       </div>
       </div>
       <button class="btn btn-y btn-sm" onclick="chanBamKep(this,tuDoiMatKhau)">Đổi mật khẩu</button>
@@ -981,7 +1008,10 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <div id="vtKhoiBat" style="display:none">
           <div class="field">
             <label for="vtMatKhauXacNhan">Nhập mật khẩu hiện tại để bật</label>
-            <input id="vtMatKhauXacNhan" type="password" maxlength="60" autocomplete="current-password">
+            <div class="pw-wrap">
+              <input id="vtMatKhauXacNhan" type="password" maxlength="60" autocomplete="current-password">
+              <button type="button" class="pw-eye" onclick="toggleMatKhauHien(this,'vtMatKhauXacNhan')" aria-label="Hiện/ẩn mật khẩu">🙈</button>
+            </div>
           </div>
           <button class="btn btn-y btn-sm" onclick="batVanTay()" id="vtBatBtn">Bật vân tay trên thiết bị này</button>
         </div>
@@ -1059,6 +1089,14 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     </div>
     <div id="lsBody"></div>
   </div>
+</div>
+
+<div id="anhXemModal" onclick="if(event.target===this) closeXemAnh()">
+  <button type="button" id="anhXemDong" onclick="closeXemAnh()" aria-label="Đóng">✕</button>
+  <button type="button" id="anhXemTruoc" onclick="chuyenAnhXem(-1)" aria-label="Ảnh trước">‹</button>
+  <img id="anhXemImg" src="" alt="Ảnh sự cố">
+  <button type="button" id="anhXemSau" onclick="chuyenAnhXem(1)" aria-label="Ảnh sau">›</button>
+  <div id="anhXemDem"></div>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -1339,6 +1377,17 @@ function distTxt(idA, idB){
 }
 let lastPendingSeen = null;   // null = chưa xác định mốc ban đầu (không báo động ngay lúc mới đăng nhập)
 const $ = id => document.getElementById(id);
+
+/** Bấm nút "mắt khỉ" cạnh ô mật khẩu để hiện/ẩn chữ đã gõ — giúp gõ đúng, đỡ phải đoán qua chấm ẩn,
+ *  nhất là gõ trên điện thoại. 🙈 (khỉ che mắt) = đang ẩn, bấm để xem; 🐵 (khỉ mở mắt) = đang hiện,
+ *  bấm để ẩn lại. Dùng chung 1 hàm cho cả 4 ô mật khẩu trong app thay vì viết riêng từng ô (mới,
+ *  18/09/2026). */
+function toggleMatKhauHien(btn, inputId){
+  const o = $(inputId);
+  const dangAn = o.type === 'password';
+  o.type = dangAn ? 'text' : 'password';
+  btn.textContent = dangAn ? '🐵' : '🙈';
+}
 const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').toLowerCase();
 
@@ -1425,13 +1474,37 @@ async function api(payload){
 }
 
 /** Đổi mã lỗi kết nối thành câu tiếng Việt nói rõ hỏng ở đâu — để lần sau nhìn thông báo là biết
- *  nguyên nhân, không phải mò nhật ký máy chủ như lần này. */
+ *  nguyên nhân, không phải mò nhật ký máy chủ như lần này. KHÔNG tự bịa thêm "đang hiển thị dữ liệu
+ *  cũ" ở đây nữa (lỗi cũ, 18/09/2026: câu đó bị viết cứng, hiện ra cả khi thật sự KHÔNG có dữ liệu cũ
+ *  nào) — việc có dữ liệu cũ hay không do nơi gọi (hienLoiKetNoi) tự biết và tự thêm câu, chỗ này chỉ
+ *  mô tả đúng lý do lỗi. */
 function moTaLoiKetNoi(e){
   const m = e && e.message;
-  if(m === 'QUA_HAN')    return 'Máy chủ phản hồi quá chậm (đã tự thử lại 3 lần). Mạng ở đây có thể đang yếu — bấm Làm mới để thử lại.';
-  if(m === 'MAT_MANG')   return 'Không có kết nối mạng. Kiểm tra wifi/4G rồi bấm Làm mới.';
-  if(m === 'MAY_CHU_LOI') return 'Máy chủ đang bận, chưa trả về được dữ liệu. Thử lại sau ít phút.';
-  return 'Không kết nối được máy chủ. Đang hiển thị dữ liệu lần tải gần nhất.';
+  if(m === 'QUA_HAN')    return 'Máy chủ phản hồi hơi chậm, đã thử lại vài lần.';
+  if(m === 'MAT_MANG')   return 'Không có kết nối mạng. Kiểm tra wifi/4G giúp mình nhé.';
+  if(m === 'MAY_CHU_LOI') return 'Máy chủ đang hơi bận, chưa phản hồi được.';
+  return 'Chưa tải được dữ liệu mới nhất.';
+}
+/** Hiện trạng thái "đang tải" nhẹ nhàng, màu trung tính — dùng ngay lúc BẮT ĐẦU gọi máy chủ, trước
+ *  khi biết thành hay bại. Vì 1 lượt gọi có thể thử lại tới 3 lần (xem api()), có lúc phải chờ tới
+ *  gần 1 phút mới biết kết quả — im lặng suốt thời gian đó còn đáng lo hơn cả 1 dòng chữ báo lỗi, nên
+ *  luôn cho người dùng biết "đang có việc diễn ra" thay vì màn hình im bặt (mới, 18/09/2026). */
+function hienDangTai(text){
+  $('offlineIcon').textContent = '⏳';
+  $('offlineMsg').className = 'msg info show';
+  $('offlineTxt').textContent = text;
+}
+/** Hiện đúng lý do KHI ĐÃ THẬT SỰ hết cách (thử lại xong vẫn không được) — chỉ lúc này mới đổi màu
+ *  sang cam để không "kêu ca" khi mới đang thử. `coDuLieuCu` truyền vào rõ ràng từ nơi gọi (biết chắc
+ *  có/không dữ liệu cũ), không đoán mò như bản trước. */
+function hienLoiKetNoi(e, coDuLieuCu){
+  $('offlineIcon').textContent = '🔄';
+  $('offlineMsg').className = 'msg warn show';
+  $('offlineTxt').textContent = moTaLoiKetNoi(e) + ' Đang tự thử lại.' +
+    (coDuLieuCu ? ' Đang hiển thị dữ liệu của lần tải gần nhất.' : '');
+}
+function anTrangThaiTai(){
+  $('offlineMsg').classList.remove('show');
 }
 
 /* ─── ĐĂNG NHẬP ─── */
@@ -1459,7 +1532,14 @@ loadPublicSettings();
 
 async function doLogin(){
   const u = $('uUser').value.trim().toLowerCase(), p = $('uPass').value;
-  if(!u || !p) return showLoginMsg('Nhập đủ tài khoản và mật khẩu.');
+  if(!u || !p){
+    // Ô mật khẩu đôi khi vẫn hiện sẵn mấy chấm ẩn (trình duyệt/bàn phím tự gợi ý mật khẩu đã lưu từ
+    // trước) dù giá trị thật đọc ra là rỗng — để nguyên như vậy dễ hiểu nhầm là "đã nhập rồi mà vẫn
+    // báo thiếu". Xoá hẳn ô mật khẩu khi rơi vào đúng trường hợp này để những gì hiện trên màn hình
+    // khớp với thông báo lỗi (mới, 18/09/2026).
+    if(!p) $('uPass').value = '';
+    return showLoginMsg('Nhập đủ tài khoản và mật khẩu.');
+  }
   $('loginBtn').disabled = true; $('loginBtn').innerHTML = '<span class="spin"></span> Đang kiểm tra…';
   $('loginMsg').classList.remove('show');
 
@@ -1484,6 +1564,30 @@ async function doLogin(){
 
 const ROLE_LABEL = {admin:'Quản trị', manager:'Quản lý chi nhánh', kythuat:'Kỹ thuật viên', kythuat_mang:'Kỹ thuật mạng'};
 const isKyThuat = () => SESSION && (SESSION.role==='kythuat' || SESSION.role==='kythuat_mang');
+
+/** Tự đặt lịch gọi lại `suco_list` — khoảng cách THAY ĐỔI theo trạng thái lúc gọi, không phải hằng số
+ *  cố định như trước (bảng đã chốt với anh Hưng, 18/09/2026):
+ *   - Tab trình duyệt đang ẩn        → không đặt lịch gì cả (visibilitychange tự khởi động lại khi hiện).
+ *   - Kỹ thuật viên                  → luôn 30 giây — không có tab Đặt phòng để mà "đang xem tab khác",
+ *     và chỉ vài tài khoản kỹ thuật, giãn nhịp không giúp giảm tải đáng kể nhưng lại làm chậm người
+ *     đang cầm việc thật ngoài hiện trường.
+ *   - Quản lý chi nhánh / Admin, đang xem ĐÚNG tab Bảo trì → 45 giây.
+ *   - Quản lý chi nhánh / Admin, đang xem tab KHÁC (Đặt phòng/Cài đặt) → 90 giây — vẫn cần biết có
+ *     sự cố mới hay không (đổi badge số), nhưng không cấp bách bằng lúc đang trực tiếp làm việc trên
+ *     màn hình đó, cộng thêm đây là nhóm ~30 tài khoản, giãn nhịp mới thực sự giảm tải đáng kể.
+ *  Gọi lại hàm này mỗi khi có thể đã đổi tab/hiện lại tab để nhịp áp dụng ngay, không đợi hết chu kỳ
+ *  cũ mới đổi (xem switchTab() và visibilitychange trong enterApp()). Tự huỷ lịch cũ trước khi đặt
+ *  lịch mới nên gọi lại nhiều lần từ nhiều nơi vẫn an toàn, không tạo ra 2 vòng lặp chạy song song. */
+let suCoTimerId = null;
+function taoLichSuCo(){
+  if(suCoTimerId){ clearTimeout(suCoTimerId); suCoTimerId = null; }
+  if(document.hidden) return;
+  const khoang = isKyThuat() ? 30000 : (TAB === 'baotri' ? 45000 : 90000);
+  suCoTimerId = setTimeout(async () => {
+    await loadSuCo(true);
+    taoLichSuCo();
+  }, khoang);
+}
 
 async function enterApp(){
   $('login').style.display='none'; $('app').style.display='block';
@@ -1512,9 +1616,26 @@ async function enterApp(){
 
   await khoiDongDuLieu();   // 1 lượt gọi duy nhất thay cho 8 lượt rời rạc như trước
 
-  if(!isKyThuat()) setInterval(()=>loadBookings(false,true), 30000);   // tự làm mới mỗi 30 giây
-  setInterval(()=>loadSuCo(true), 30000);
-  setInterval(()=>{ if(TAB==='baotri') drawSuCo(); }, 60000);   // tự cập nhật đếm ngược SLA mỗi phút, không cần gọi máy chủ
+  // Chỉ tự làm mới khi tab ĐANG ĐƯỢC XEM — tab bị thu nhỏ/chuyển sang tab khác/tắt màn hình vẫn giữ
+  // đăng nhập (localStorage nhớ vĩnh viễn) nên nếu không chặn ở đây, tab bị bỏ quên sẽ âm thầm gọi
+  // máy chủ mỗi 30 giây MÃI MÃI dù không ai nhìn tới — nhiều tab quên cùng lúc cộng dồn thành từng đợt
+  // dồn dập thấy rõ trong nhật ký thực thi, kể cả ngoài giờ hoạt động (mới, 18/09/2026, phát hiện qua
+  // nhật ký thực tế). Vừa xem lại tab thì làm mới ngay 1 lần cho hết cũ, không đợi tới mốc 30 giây kế.
+  //
+  // Đặt phòng: giữ nguyên 30 giây bất kể đang xem tab nào (đơn khách chờ duyệt, ít tài khoản quản lý
+  // hơn hẳn Bảo trì nên không đáng giãn) — nhưng tắt hẳn nếu tính năng đặt phòng đang bị khoá, vì khi
+  // đó chắc chắn không có đơn mới nào phát sinh được nữa, gọi chỉ tốn vô ích (mới, 18/09/2026).
+  if(!isKyThuat()) setInterval(()=>{ if(!document.hidden && PUBLIC_SETTINGS.datPhongBat) loadBookings(false,true); }, 30000);
+
+  taoLichSuCo();   // Bảo trì: nhịp THAY ĐỔI theo vai trò/tab đang xem — xem ghi chú trong hàm
+
+  setInterval(()=>{ if(TAB==='baotri' && !document.hidden) drawSuCo(); }, 60000);   // tự cập nhật đếm ngược SLA mỗi phút, không cần gọi máy chủ
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden) return;
+    if(!isKyThuat() && PUBLIC_SETTINGS.datPhongBat) loadBookings(false,true);
+    loadSuCo(true);
+    taoLichSuCo();   // tab vừa hiện lại — đặt lại lịch Bảo trì (trước đó bị huỷ hẳn lúc ẩn)
+  });
   moTicketTuLink();
 }
 
@@ -1525,6 +1646,7 @@ async function enterApp(){
  *  Nếu lượt gọi gộp này hỏng (mạng yếu), tự lùi về cách cũ — gọi rời từng phần — để app vẫn dùng được
  *  thay vì trắng màn hình. */
 async function khoiDongDuLieu(){
+  hienDangTai('⏳ Đang tải dữ liệu, chờ trong giây lát…');
   try{
     const j = await api({action:'khoi_dong'});
     if(!j.ok) throw new Error(j.error || 'FAIL');
@@ -1543,15 +1665,16 @@ async function khoiDongDuLieu(){
 
     SUCO = j.suco || [];
     xuLySuCoSauKhiTai();
-    $('offlineMsg').classList.remove('show');
+    anTrangThaiTai();
 
     // Các nút chuyển view phụ thuộc PUBLIC_SETTINGS nên phải dựng SAU khi đã có dữ liệu cài đặt.
     capNhatNutChuyenView();
     if(SESSION.role === 'admin') capNhatUIBookingSetting();
   }catch(e){
     console.warn('Khởi động gộp không thành công, lùi về cách gọi rời:', e.message);
-    $('offlineTxt').textContent = moTaLoiKetNoi(e);
-    $('offlineMsg').classList.add('show');
+    // Đây là lượt tải ĐẦU TIÊN của phiên làm việc — chưa từng có dữ liệu nào để gọi là "dữ liệu cũ"
+    // cả, nên coDuLieuCu luôn là false ở đây (khác lúc tự làm mới nền, xem loadBookings()).
+    hienLoiKetNoi(e, false);
     // PHẢI chờ xong cài đặt trước khi dựng nút chuyển view — quyền xem bản đồ của kỹ thuật viên phụ
     // thuộc đúng dữ liệu này; không chờ thì nút Bản đồ có thể không hiện dù admin đã bật.
     await loadPublicSettings();
@@ -2072,11 +2195,10 @@ async function loadBookings(manual, silent){
   if(manual){ $('refreshBtn').disabled = true; $('refreshBtn').innerHTML = '<span class="spin"></span>'; }
   try{
     const j = await api({ action:'list' });
-    if(j.ok){ DATA = j.data || []; $('offlineMsg').classList.remove('show'); }
+    if(j.ok){ DATA = j.data || []; anTrangThaiTai(); }
     else throw new Error(j.error||'LOAD_FAIL');
   }catch(e){
-    $('offlineTxt').textContent = moTaLoiKetNoi(e) + (DATA.length ? ' Đang hiển thị dữ liệu lần tải gần nhất.' : '');
-    $('offlineMsg').classList.add('show');
+    hienLoiKetNoi(e, DATA.length > 0);
   }finally{
     if(manual){ $('refreshBtn').disabled=false; $('refreshBtn').textContent='🔄 Làm mới'; }
   }
@@ -2100,6 +2222,7 @@ function switchTab(el){
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected','false'));
   el.setAttribute('aria-selected','true');
   TAB = el.dataset.t;
+  taoLichSuCo();   // nhịp Bảo trì phụ thuộc đúng tab vừa đổi (xem taoLichSuCo) — đặt lại lịch ngay, không đợi hết chu kỳ cũ
   const isBaoTri = TAB==='baotri', isCaiDat = TAB==='caidat';
   const isBooking = !isBaoTri && !isCaiDat;
   const isReportView = isBooking && BOOKING_VIEW==='report';
@@ -2115,7 +2238,14 @@ function switchTab(el){
   // Vào tab Bảo trì: admin mặc định mở ra là view Bảng (theo yêu cầu, mới 08/09/2026) — luôn đặt lại
   // đúng view mặc định mỗi lần bấm vào tab (giống cách trước đây luôn quay về Danh sách), các vai trò
   // khác không có nút chuyển view nên vẫn luôn ở Danh sách như cũ, dòng này với họ chỉ là vô hại.
-  if(isBaoTri){ toggleBaoTriView(SESSION.role==='admin' ? 'table' : 'list'); drawSuCo(); }
+  if(isBaoTri){
+    toggleBaoTriView(SESSION.role==='admin' ? 'table' : 'list');
+    drawSuCo();
+    // Quản lý/admin vừa chuyển vào đúng section này — làm mới ngay cho khỏi đợi tới 45 giây tiếp
+    // theo. Kỹ thuật viên bỏ qua vì họ đã luôn ở nhịp nhanh nhất (30s) mọi lúc, thêm vào đây chỉ tạo
+    // 1 lượt gọi trùng ngay lúc mới đăng nhập (switchTab tới đây trước khi khoiDongDuLieu() kịp chạy).
+    if(!isKyThuat()) loadSuCo(true);
+  }
   else if(isCaiDat){
     $('tkmTaiKhoanHienTai').textContent = '@'+SESSION.user;
     capNhatUIVanTay();
@@ -2570,19 +2700,70 @@ function taoNhieuDaXong(){ daXongHien += 40; drawSuCo(); }
 /** Chuyển link ảnh Drive sang endpoint ổn định để nhúng <img> (mới, 17/08/2026) — Google đã ngừng hỗ
  *  trợ ổn định dạng "uc?export=view" từ giữa 2024 (đổi chính sách third-party cookies), hay trả về
  *  403 hoặc chuyển sang trang đòi đăng nhập Gmail dù file đã chia sẻ "Anyone with the link". Chuyển
- *  sang "thumbnail?id=...&sz=w1600" (endpoint chính thức của Drive, đáng tin cậy hơn nhiều) NGAY LÚC
+ *  sang "thumbnail?id=...&sz=w..." (endpoint chính thức của Drive, đáng tin cậy hơn nhiều) NGAY LÚC
  *  HIỂN THỊ — nên áp dụng được luôn cho cả ảnh của ticket CŨ đã lưu link dạng thu cũ, không cần sửa
- *  lại dữ liệu trong Sheet. Chỉ cần trích đúng phần "id=" từ URL cũ, không quan tâm phần còn lại. */
-function driveImgUrl(u){
+ *  lại dữ liệu trong Sheet. Chỉ cần trích đúng phần "id=" từ URL cũ, không quan tâm phần còn lại.
+ *  Nhận thêm tham số cỡ ảnh (mặc định 1600, dùng cỡ lớn hơn khi xem full màn hình — xem openXemAnh,
+ *  mới 18/09/2026) — cùng 1 hàm dùng chung cho cả ảnh thu nhỏ lẫn ảnh xem to, không cần 2 hàm riêng. */
+function driveImgUrl(u, coLon){
   const m = String(u||'').match(/[?&]id=([^&]+)/);
-  return m ? 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1600' : u;
+  return m ? 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w'+(coLon||1600) : u;
 }
-/** Link khi bấm vào ảnh để xem đầy đủ — trỏ thẳng trang xem chính thức của Drive (ổn định với file đã
- *  chia sẻ "Anyone with the link"), thay vì mở thẳng URL ảnh thô hay bị đòi đăng nhập như trước. */
-function driveViewUrl(u){
-  const m = String(u||'').match(/[?&]id=([^&]+)/);
-  return m ? 'https://drive.google.com/file/d/'+m[1]+'/view' : u;
+
+/** Xem ảnh sự cố phóng to ngay trong app — thay cho cách cũ mở tab mới trỏ thẳng ra trang xem của
+ *  Google Drive (lộ ra app đang lưu ảnh trên Drive, lại thêm 1 tab nhìn không chuyên nghiệp). Vẫn
+ *  dùng đúng endpoint `thumbnail?id=...` ổn định sẵn có (xem driveImgUrl), chỉ xin cỡ lớn hơn — không
+ *  phải iframe trang Drive nên không vướng giới hạn chặn nhúng (X-Frame-Options) của họ. Giữ nguyên
+ *  hiện/giữ ảnh (long-press trên điện thoại, chuột phải trên máy tính) để lưu về máy vẫn hoạt động
+ *  bình thường vì bản chất vẫn là 1 thẻ <img> thật (mới, 18/09/2026).
+ *  Nhận cả BỘ ảnh (mảng) + vị trí đang bấm — cho vuốt/bấm mũi tên đổi sang ảnh kế bên trong cùng bộ
+ *  mà không phải đóng mở lại modal từng cái (mới, 18/09/2026, theo yêu cầu vuốt ngang đổi ảnh). */
+let ANH_XEM_DS = [], ANH_XEM_VITRI = 0;
+function openXemAnh(danhSach, viTri){
+  ANH_XEM_DS = danhSach; ANH_XEM_VITRI = viTri || 0;
+  capNhatAnhXem();
+  $('anhXemModal').classList.add('show');
 }
+function capNhatAnhXem(){
+  $('anhXemImg').src = ANH_XEM_DS[ANH_XEM_VITRI];
+  const nhieuHon1 = ANH_XEM_DS.length > 1;
+  $('anhXemTruoc').style.display = nhieuHon1 ? '' : 'none';
+  $('anhXemSau').style.display = nhieuHon1 ? '' : 'none';
+  $('anhXemDem').style.display = nhieuHon1 ? '' : 'none';
+  $('anhXemDem').textContent = (ANH_XEM_VITRI+1)+' / '+ANH_XEM_DS.length;
+}
+/** Đổi sang ảnh kế bên trong cùng bộ — vòng lại đầu/cuối cho vuốt liên tục thoải mái, không bị chặn
+ *  cứng ở 2 đầu. */
+function chuyenAnhXem(buoc){
+  if(ANH_XEM_DS.length < 2) return;
+  ANH_XEM_VITRI = (ANH_XEM_VITRI + buoc + ANH_XEM_DS.length) % ANH_XEM_DS.length;
+  capNhatAnhXem();
+}
+function closeXemAnh(){
+  $('anhXemModal').classList.remove('show');
+  $('anhXemImg').src = '';   // dừng tải/nhả bộ nhớ ảnh cỡ lớn ngay khi đóng
+}
+/** Vuốt ngang trên điện thoại để đổi ảnh — ngưỡng 50px tránh nhận nhầm lúc chỉ chạm nhẹ. Vuốt sang
+ *  trái (kéo tay từ phải qua trái, dx âm) = ảnh kế tiếp; vuốt phải = ảnh trước, đúng thói quen lướt
+ *  ảnh thông thường trên điện thoại. */
+(function(){
+  let xBatDau = null;
+  const modal = $('anhXemModal');
+  modal.addEventListener('touchstart', e => { xBatDau = e.touches[0].clientX; }, {passive:true});
+  modal.addEventListener('touchend', e => {
+    if(xBatDau === null) return;
+    const dx = e.changedTouches[0].clientX - xBatDau;
+    if(Math.abs(dx) > 50) chuyenAnhXem(dx < 0 ? 1 : -1);
+    xBatDau = null;
+  }, {passive:true});
+})();
+/** Phím mũi tên trái/phải đổi ảnh, phím Esc đóng modal — tiện cho admin dùng máy tính. */
+document.addEventListener('keydown', e => {
+  if(!$('anhXemModal').classList.contains('show')) return;
+  if(e.key === 'ArrowLeft') chuyenAnhXem(-1);
+  else if(e.key === 'ArrowRight') chuyenAnhXem(1);
+  else if(e.key === 'Escape') closeXemAnh();
+});
 
 /** Chỉ đường Google Maps tới chi nhánh (mới, 18/08/2026) — dùng chuẩn URL chính thức của Google, không
  *  cần API key, mở được app Google Maps trên điện thoại hoặc web trên máy tính. CỐ TÌNH không tự điền
@@ -2640,7 +2821,7 @@ function sucoHTML(t){
   acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\')">🕘 Lịch sử</button>';
   if(SESSION.sieuAdmin) acts += '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,xoaSuCo,\''+t.maSuCo+'\')">🗑️ Xoá</button>';
 
-  const photos = (imgs, label) => imgs.length ? '<div class="sc-photos">'+imgs.map(u=>'<a href="'+esc(driveViewUrl(u))+'" target="_blank" rel="noopener"><img src="'+esc(driveImgUrl(u))+'" alt="'+label+'" loading="lazy"></a>').join('')+'</div>' : '';
+  const photos = (imgs, label) => imgs.length ? '<div class="sc-photos">'+imgs.map((u,i)=>'<img src="'+esc(driveImgUrl(u))+'" alt="'+label+'" loading="lazy" onclick=\''+esc('openXemAnh('+JSON.stringify(imgs.map(x=>driveImgUrl(x,2000)))+','+i+')')+'\'>').join('')+'</div>' : '';
 
   // Mốc thời gian xử lý xong + chi nhánh xác nhận — hiện cả 2 kèm khoảng cách giữa chúng để thấy
   // ngay chi nhánh xác nhận chậm hay nhanh sau khi kỹ thuật báo xong, không cần mở Lịch sử mới biết.
@@ -2691,11 +2872,11 @@ async function xemLichSu(maSuCo){
 
     const anhBaoLoi = '<h4 style="font-size:13.5px;margin:16px 0 8px">📷 Ảnh báo lỗi</h4>' +
       ((t && t.anhBaoLoi && t.anhBaoLoi.length) ?
-        '<div class="sc-photos">'+t.anhBaoLoi.map(u=>'<a href="'+esc(driveViewUrl(u))+'" target="_blank" rel="noopener"><img src="'+esc(driveImgUrl(u))+'" loading="lazy"></a>').join('')+'</div>' :
+        '<div class="sc-photos">'+t.anhBaoLoi.map((u,i)=>'<img src="'+esc(driveImgUrl(u))+'" loading="lazy" onclick=\''+esc('openXemAnh('+JSON.stringify(t.anhBaoLoi.map(x=>driveImgUrl(x,2000)))+','+i+')')+'\'>').join('')+'</div>' :
         '<div style="font-size:12.5px;color:var(--txt-mute)">Không có ảnh đính kèm.</div>');
     const anhXong = '<h4 style="font-size:13.5px;margin:16px 0 8px">📷 Ảnh hoàn thành</h4>' +
       ((t && t.anhHoanThanh && t.anhHoanThanh.length) ?
-        '<div class="sc-photos">'+t.anhHoanThanh.map(u=>'<a href="'+esc(driveViewUrl(u))+'" target="_blank" rel="noopener"><img src="'+esc(driveImgUrl(u))+'" loading="lazy"></a>').join('')+'</div>' :
+        '<div class="sc-photos">'+t.anhHoanThanh.map((u,i)=>'<img src="'+esc(driveImgUrl(u))+'" loading="lazy" onclick=\''+esc('openXemAnh('+JSON.stringify(t.anhHoanThanh.map(x=>driveImgUrl(x,2000)))+','+i+')')+'\'>').join('')+'</div>' :
         '<div style="font-size:12.5px;color:var(--txt-mute)">Kỹ thuật chưa đính kèm ảnh khi báo xong.</div>');
 
     $('lsBody').innerHTML = timeline + anhBaoLoi + anhXong;
@@ -3160,6 +3341,7 @@ async function toggleBookingSetting(){
   try{
     const j = await api({action:'settings_set', key:'dat_phong_bat', value: on?'Y':'N'});
     if(!j.ok) throw new Error(j.error);
+    PUBLIC_SETTINGS.datPhongBat = on;   // để interval tự làm mới đơn (xem enterApp) áp dụng ngay, không cần tải lại trang
     toast('Đã '+(on?'BẬT':'TẮT')+' chức năng giữ phòng trên trang khách.','ok');
   }catch(e){
     $('bkToggle').checked = !on; $('bkStatusTxt').textContent = !on ? 'Đang bật' : 'Đang tắt';
@@ -3653,6 +3835,14 @@ async function toggleLoaiSuCoActive(ma, bat){
   const s = localStorage.getItem(CFG.PREFIX+'s');
   if(s){ try{ SESSION = JSON.parse(s); enterApp(); return; }catch(e){} }
   capNhatNutVanTayLogin();
+  // Trình duyệt/bàn phím đôi khi tự điền sẵn mật khẩu đã lưu (do có autocomplete="current-password")
+  // ngay cả khi người dùng CHƯA bấm hay gõ gì — nhìn vào chấm ẩn tưởng "đã nhập mật khẩu" trong khi
+  // chỉ là gợi ý tự động, dễ đăng nhập nhầm bằng mật khẩu cũ đã lưu của người khác dùng chung máy.
+  // Chủ động xoá trắng ngay khi vào trang, và xoá lại lần nữa sau 1 nhịp ngắn để bắt luôn trường hợp
+  // 1 số trình duyệt di động điền hơi trễ (sau khi trang đã chạy xong) — luôn buộc tự gõ mật khẩu
+  // thật mỗi lần, không dựa vào chấm ẩn hiện sẵn (mới, 18/09/2026).
+  $('uPass').value = '';
+  setTimeout(() => { $('uPass').value = ''; }, 400);
 })();
 </script>
 </body>
