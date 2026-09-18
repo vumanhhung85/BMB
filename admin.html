@@ -1423,9 +1423,15 @@ async function chanBamKep(btn, fn, ...args){
    chỉ 1 giây rớt sóng là hiện banner đỏ — trong khi chỉ cần thử lại sau 1-2 giây là xong. */
 
 /** Các action CHỈ ĐỌC — an toàn để tự gửi lại khi mạng chập chờn.
- *  Action GHI (tạo/sửa/xoá/đổi trạng thái) TUYỆT ĐỐI không được tự gửi lại: nếu request đã tới máy chủ
- *  và xử lý xong rồi mà phản hồi bị mất giữa đường, gửi lại sẽ tạo bản ghi TRÙNG — đúng lỗi chi nhánh
- *  báo trùng 1 sự cố 2-3 lần từng gặp. Với action ghi, báo lỗi rõ ràng để người dùng tự quyết định. */
+ *  Action GHI (tạo/sửa/xoá/đổi trạng thái) TUYỆT ĐỐI không được tự gửi lại khi gặp lỗi QUA_HAN/
+ *  MAT_MANG/MAY_CHU_LOI: nếu request đã tới máy chủ và xử lý xong rồi mà phản hồi bị mất giữa đường,
+ *  gửi lại sẽ tạo bản ghi TRÙNG — đúng lỗi chi nhánh báo trùng 1 sự cố 2-3 lần từng gặp. Với action
+ *  ghi, báo lỗi rõ ràng để người dùng tự quyết định.
+ *  2 NGOẠI LỆ (xử lý riêng trong api(), không nằm trong mảng này — mới, 18/09/2026):
+ *   - 'login': tuy là action ghi (tạo/cập nhật phiên đăng nhập) nhưng GHI ĐÈ theo thietBi, gửi lại
+ *     nhiều lần với cùng thiết bị không bao giờ tạo phiên trùng → an toàn tự thử lại như action đọc.
+ *   - Lỗi BAN_DANG_BAN_THU_LAI (máy chủ chưa giữ được khoá ghi, xem khoaHoacBan_ trong Code.gs): CHỨNG
+ *     MINH request chưa hề chạm tới dữ liệu → an toàn tự gửi lại dù là action ghi nào. */
 const ACTION_CHI_DOC = ['khoi_dong','list','suco_list','suco_lichsu','suco_list_da_xoa','kythuat_list',
   'kythuat_vitri_list','loaisuco_list','taikhoan_list','chinhanh_list','backup_thongtin','telegram_thongtin'];
 const API_TIMEOUT_MS = 25000;   // GAS lúc "khởi động lạnh" có thể mất tới ~10 giây — để rộng 25 giây
@@ -1451,7 +1457,12 @@ async function apiMotLan(payload, tokenUsed){
 async function api(payload){
   if(!CFG.API) throw new Error('NO_API');
   const tokenUsed = SESSION ? SESSION.token : '';
-  const soLanToiDa = ACTION_CHI_DOC.includes(payload.action) ? 3 : 1;   // action ghi: chỉ gửi đúng 1 lần
+  // 'login' được xếp chung diện an toàn tự gửi lại dù bản chất là 1 action ghi: phía máy chủ
+  // (ghiNhanPhienDangNhap) GHI ĐÈ đúng 1 dòng theo thietBi, không tạo thêm dòng nếu thiết bị đã có
+  // phiên — gửi lại nhiều lần với cùng thietBi không bao giờ tạo phiên trùng, an toàn tương đương
+  // action chỉ đọc (mới, 18/09/2026 — trước đây login chỉ được gửi đúng 1 lần, mạng/server chập chờn
+  // 1 giây là hiện lỗi ngay, trong khi mọi action đọc khác đã tự thử lại êm ả tới 3 lần).
+  let soLanToiDa = (ACTION_CHI_DOC.includes(payload.action) || payload.action === 'login') ? 3 : 1;
   let loiCuoi;
   for(let lan = 1; lan <= soLanToiDa; lan++){
     if(lan > 1) await new Promise(r=>setTimeout(r, (lan-1)*1500));   // nghỉ 1,5s rồi 3s trước khi thử lại
@@ -1464,9 +1475,17 @@ async function api(payload){
         if(SESSION && SESSION.token === tokenUsed) logout('Phiên đã hết hạn. Đăng nhập lại nhé.');
         throw new Error('BAD_TOKEN');
       }
+      // Máy chủ xác nhận RÕ RÀNG chưa giữ được khoá ghi → CHẮC CHẮN chưa đụng gì tới dữ liệu, khác hẳn
+      // timeout/mất mạng (request có thể đã tới máy chủ và xử lý xong, chỉ mất phản hồi trên đường về)
+      // — nên an toàn tự gửi lại thêm dù là action ghi vốn chỉ cho phép 1 lần (mới, 18/09/2026, xem
+      // hàm khoaHoacBan_ trong Code.gs).
+      if(j.error === 'BAN_DANG_BAN_THU_LAI'){
+        if(soLanToiDa < 3) soLanToiDa = 3;
+        throw new Error('BAN_DANG_BAN_THU_LAI');
+      }
       return j;
     }catch(e){
-      if(!['QUA_HAN','MAT_MANG','MAY_CHU_LOI'].includes(e.message)) throw e;   // lỗi nghiệp vụ: ném ra ngay
+      if(!['QUA_HAN','MAT_MANG','MAY_CHU_LOI','BAN_DANG_BAN_THU_LAI'].includes(e.message)) throw e;   // lỗi nghiệp vụ: ném ra ngay
       loiCuoi = e;
     }
   }
@@ -1483,6 +1502,7 @@ function moTaLoiKetNoi(e){
   if(m === 'QUA_HAN')    return 'Máy chủ phản hồi hơi chậm, đã thử lại vài lần.';
   if(m === 'MAT_MANG')   return 'Không có kết nối mạng. Kiểm tra wifi/4G giúp mình nhé.';
   if(m === 'MAY_CHU_LOI') return 'Máy chủ đang hơi bận, chưa phản hồi được.';
+  if(m === 'BAN_DANG_BAN_THU_LAI') return 'Máy chủ đang bận xử lý nhiều yêu cầu cùng lúc, đã thử lại vài lần.';
   return 'Chưa tải được dữ liệu mới nhất.';
 }
 /** Hiện trạng thái "đang tải" nhẹ nhàng, màu trung tính — dùng ngay lúc BẮT ĐẦU gọi máy chủ, trước
@@ -1555,7 +1575,12 @@ async function doLogin(){
     localStorage.setItem(CFG.PREFIX+'s', JSON.stringify(SESSION));
     enterApp();
   }catch(e){
+    // Lỗi KẾT NỐI (đã tự thử lại vài lần vẫn không xong — xem api()) hiện câu tiếng Việt rõ nghĩa
+    // qua moTaLoiKetNoi(), KHÔNG hiện thẳng mã lỗi nội bộ như 'QUA_HAN'/'MAY_CHU_LOI' ra màn hình đăng
+    // nhập (lỗi cũ, tới 18/09/2026: đăng nhập là chỗ DUY NHẤT trong app quên bước dịch này, nên chi
+    // nhánh thấy nguyên mã lỗi thay vì câu giải thích).
     if(e.message === 'NO_API') showLoginMsg('Chưa cấu hình máy chủ. Mở admin.html và dán URL Apps Script vào dòng CFG.API.');
+    else if(['QUA_HAN','MAT_MANG','MAY_CHU_LOI','BAN_DANG_BAN_THU_LAI'].includes(e.message)) showLoginMsg(moTaLoiKetNoi(e));
     else showLoginMsg(e.message);
   }finally{
     $('loginBtn').disabled = false; $('loginBtn').textContent = 'Đăng nhập';
