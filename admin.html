@@ -1436,6 +1436,31 @@ const ACTION_CHI_DOC = ['khoi_dong','list','suco_list','suco_lichsu','suco_list_
   'kythuat_vitri_list','loaisuco_list','taikhoan_list','chinhanh_list','backup_thongtin','telegram_thongtin'];
 const API_TIMEOUT_MS = 25000;   // GAS lúc "khởi động lạnh" có thể mất tới ~10 giây — để rộng 25 giây
 
+/* ─── CẦU DAO CHỐNG DỒN TẢI (mới, 18/09/2026) ───
+   Google giới hạn CỨNG 30 lượt thực thi đồng thời cho mỗi tài khoản, và chặn riêng việc khởi chạy quá
+   dồn dập trong thời gian ngắn. Vượt trần, Google trả về TRANG HTML báo lỗi thay vì JSON → phía đây
+   thành 'MAY_CHU_LOI' ("Máy chủ đang hơi bận"), và ĐĂNG NHẬP là thứ bị vạ lây rõ nhất vì phải giành
+   chỗ chung với mọi lượt tự làm mới chạy nền của ~30 chi nhánh.
+   Khi máy chủ đã báo quá tải, việc TỰ GỬI LẠI DỒN DẬP chỉ làm nó quá tải nặng thêm — đúng vòng xoáy
+   khiến một lúc nghẽn ngắn kéo dài thành cả đợt sập: càng lỗi → càng gửi lại → càng lỗi. Nên từ giờ:
+   ghi nhận mốc "máy chủ vừa báo bận", và trong khoảng nghỉ sau đó các lượt TỰ LÀM MỚI CHẠY NỀN tự
+   động bỏ qua lượt của mình (dữ liệu cũ vài chục giây hoàn toàn chấp nhận được), nhường toàn bộ chỗ
+   trống cho thao tác NGƯỜI DÙNG ĐANG TRỰC TIẾP CHỜ — trước hết là đăng nhập. */
+let maChuBanToi = 0;
+const NGHI_KHI_BAN_MS = 45000;
+function danhDauMayChuBan(){
+  // Cộng thêm ngẫu nhiên tối đa 15 giây để ~30 chi nhánh không cùng hết giờ nghỉ và ùa vào một lúc.
+  maChuBanToi = Date.now() + NGHI_KHI_BAN_MS + Math.random()*15000;
+}
+function mayChuDangBan(){ return Date.now() < maChuBanToi; }
+
+/** Giãn cách ngẫu nhiên ±25% quanh một mốc thời gian.
+ *  ~30 chi nhánh mở app vào đầu ca gần như cùng lúc, mà mọi nhịp tự làm mới đều là con số CHẴN cố
+ *  định (30/45/90 giây) — nên chúng khoá pha với nhau và bắn request thành từng chùm dồn vào cùng
+ *  một giây, dễ chạm trần 30 lượt đồng thời dù tính trung bình cả phút thì tải rất nhẹ. Thêm nhiễu
+ *  ngẫu nhiên vào mỗi chu kỳ để các chi nhánh tự tản đều ra, không cần phối hợp gì với nhau. */
+function gianCach(ms){ return Math.round(ms * (0.75 + Math.random()*0.5)); }
+
 /** Gọi máy chủ ĐÚNG 1 LẦN, có giới hạn thời gian chờ. Ném ra 3 mã lỗi kết nối riêng biệt để nơi gọi
  *  biết chính xác hỏng ở khâu nào thay vì gộp chung thành "không kết nối được". */
 async function apiMotLan(payload, tokenUsed){
@@ -1454,18 +1479,27 @@ async function apiMotLan(payload, tokenUsed){
   catch(e){ throw new Error('MAY_CHU_LOI'); }
 }
 
-async function api(payload){
+/** @param tuyChon.nen = true → đây là lượt TỰ LÀM MỚI CHẠY NỀN (không ai đang ngồi chờ kết quả).
+ *  Lượt chạy nền KHÔNG được tự gửi lại lần nào: kiểu gì vài chục giây nữa nó cũng tự chạy lại theo
+ *  lịch, nên gửi lại chỉ làm nặng thêm đúng lúc máy chủ đang đuối. Chỉ thao tác NGƯỜI DÙNG ĐANG CHỜ
+ *  (đăng nhập, mở app, bấm nút) mới được gửi lại. */
+async function api(payload, tuyChon){
   if(!CFG.API) throw new Error('NO_API');
+  const nen = !!(tuyChon && tuyChon.nen);
   const tokenUsed = SESSION ? SESSION.token : '';
   // 'login' được xếp chung diện an toàn tự gửi lại dù bản chất là 1 action ghi: phía máy chủ
   // (ghiNhanPhienDangNhap) GHI ĐÈ đúng 1 dòng theo thietBi, không tạo thêm dòng nếu thiết bị đã có
   // phiên — gửi lại nhiều lần với cùng thietBi không bao giờ tạo phiên trùng, an toàn tương đương
   // action chỉ đọc (mới, 18/09/2026 — trước đây login chỉ được gửi đúng 1 lần, mạng/server chập chờn
   // 1 giây là hiện lỗi ngay, trong khi mọi action đọc khác đã tự thử lại êm ả tới 3 lần).
-  let soLanToiDa = (ACTION_CHI_DOC.includes(payload.action) || payload.action === 'login') ? 3 : 1;
+  let soLanToiDa = 1;
+  if(!nen && (ACTION_CHI_DOC.includes(payload.action) || payload.action === 'login')) soLanToiDa = 3;
   let loiCuoi;
   for(let lan = 1; lan <= soLanToiDa; lan++){
-    if(lan > 1) await new Promise(r=>setTimeout(r, (lan-1)*1500));   // nghỉ 1,5s rồi 3s trước khi thử lại
+    // Giãn cách TĂNG DẦN + ngẫu nhiên (1,5s → 3s, lệch ±25%) thay vì cố định: nếu máy chủ đang nghẽn
+    // vì quá nhiều chi nhánh gọi cùng lúc, các lượt gửi lại phải TẢN RA chứ không được lại ùa vào
+    // cùng một thời điểm y như nhau.
+    if(lan > 1) await new Promise(r=>setTimeout(r, gianCach((lan-1)*1500)));
     try{
       const j = await apiMotLan(payload, tokenUsed);
       if(j.error === 'BAD_TOKEN'){
@@ -1480,12 +1514,16 @@ async function api(payload){
       // — nên an toàn tự gửi lại thêm dù là action ghi vốn chỉ cho phép 1 lần (mới, 18/09/2026, xem
       // hàm khoaHoacBan_ trong Code.gs).
       if(j.error === 'BAN_DANG_BAN_THU_LAI'){
-        if(soLanToiDa < 3) soLanToiDa = 3;
+        danhDauMayChuBan();
+        if(!nen && soLanToiDa < 3) soLanToiDa = 3;
         throw new Error('BAN_DANG_BAN_THU_LAI');
       }
       return j;
     }catch(e){
       if(!['QUA_HAN','MAT_MANG','MAY_CHU_LOI','BAN_DANG_BAN_THU_LAI'].includes(e.message)) throw e;   // lỗi nghiệp vụ: ném ra ngay
+      // MAY_CHU_LOI = máy chủ trả về trang HTML thay vì JSON — dấu hiệu điển hình của việc chạm trần
+      // 30 lượt đồng thời/khởi chạy quá dồn. QUA_HAN cũng thường là hệ quả của cùng nguyên nhân đó.
+      if(e.message === 'MAY_CHU_LOI' || e.message === 'QUA_HAN') danhDauMayChuBan();
       loiCuoi = e;
     }
   }
@@ -1608,10 +1646,23 @@ function taoLichSuCo(){
   if(suCoTimerId){ clearTimeout(suCoTimerId); suCoTimerId = null; }
   if(document.hidden) return;
   const khoang = isKyThuat() ? 30000 : (TAB === 'baotri' ? 45000 : 90000);
+  // gianCach(): lệch ngẫu nhiên ±25% mỗi chu kỳ để ~30 chi nhánh không bắn request thành chùm cùng giây
   suCoTimerId = setTimeout(async () => {
-    await loadSuCo(true);
+    if(!mayChuDangBan()) await loadSuCo(true);   // máy chủ vừa báo bận → bỏ qua lượt này, đỡ dồn thêm
     taoLichSuCo();
-  }, khoang);
+  }, gianCach(khoang));
+}
+
+/** Tự làm mới đơn đặt phòng chạy nền. Trước đây là setInterval(30000) cố định — nay tự đặt lịch lại
+ *  sau mỗi lượt với giãn cách ngẫu nhiên, cùng lý do với taoLichSuCo() (mới, 18/09/2026). */
+let donTimerId = null;
+function taoLichDon(){
+  if(donTimerId){ clearTimeout(donTimerId); donTimerId = null; }
+  if(isKyThuat()) return;   // kỹ thuật viên không có tab Đặt phòng
+  donTimerId = setTimeout(async () => {
+    if(!document.hidden && PUBLIC_SETTINGS.datPhongBat && !mayChuDangBan()) await loadBookings(false, true);
+    taoLichDon();
+  }, gianCach(30000));
 }
 
 async function enterApp(){
@@ -1650,16 +1701,21 @@ async function enterApp(){
   // Đặt phòng: giữ nguyên 30 giây bất kể đang xem tab nào (đơn khách chờ duyệt, ít tài khoản quản lý
   // hơn hẳn Bảo trì nên không đáng giãn) — nhưng tắt hẳn nếu tính năng đặt phòng đang bị khoá, vì khi
   // đó chắc chắn không có đơn mới nào phát sinh được nữa, gọi chỉ tốn vô ích (mới, 18/09/2026).
-  if(!isKyThuat()) setInterval(()=>{ if(!document.hidden && PUBLIC_SETTINGS.datPhongBat) loadBookings(false,true); }, 30000);
+  if(!isKyThuat()) taoLichDon();   // Đặt phòng: ~30 giây, giãn cách ngẫu nhiên — xem taoLichDon()
 
   taoLichSuCo();   // Bảo trì: nhịp THAY ĐỔI theo vai trò/tab đang xem — xem ghi chú trong hàm
 
   setInterval(()=>{ if(TAB==='baotri' && !document.hidden) drawSuCo(); }, 60000);   // tự cập nhật đếm ngược SLA mỗi phút, không cần gọi máy chủ
   document.addEventListener('visibilitychange', () => {
     if(document.hidden) return;
-    if(!isKyThuat() && PUBLIC_SETTINGS.datPhongBat) loadBookings(false,true);
-    loadSuCo(true);
+    // Vừa hiện lại tab: làm mới ngay cho hết cũ — nhưng vẫn nhường đường nếu máy chủ đang báo bận
+    // (đầu ca nhiều máy cùng mở màn hình một lúc sẽ tạo đúng cụm dồn cần tránh).
+    if(!mayChuDangBan()){
+      if(!isKyThuat() && PUBLIC_SETTINGS.datPhongBat) loadBookings(false,true);
+      loadSuCo(true);
+    }
     taoLichSuCo();   // tab vừa hiện lại — đặt lại lịch Bảo trì (trước đó bị huỷ hẳn lúc ẩn)
+    taoLichDon();
   });
   moTicketTuLink();
 }
@@ -1670,11 +1726,14 @@ async function enterApp(){
  *  ký thực thi phía Google (mới, 18/09/2026).
  *  Nếu lượt gọi gộp này hỏng (mạng yếu), tự lùi về cách cũ — gọi rời từng phần — để app vẫn dùng được
  *  thay vì trắng màn hình. */
+/** Đếm số vòng đã thử lại lượt khởi động gộp — xem phần catch bên dưới. */
+let khoiDongLanThu = 0;
 async function khoiDongDuLieu(){
   hienDangTai('⏳ Đang tải dữ liệu, chờ trong giây lát…');
   try{
     const j = await api({action:'khoi_dong'});
     if(!j.ok) throw new Error(j.error || 'FAIL');
+    khoiDongLanThu = 0;
 
     if(j.settings) PUBLIC_SETTINGS = j.settings;
     BRANCHES = j.branches || [];
@@ -1696,18 +1755,24 @@ async function khoiDongDuLieu(){
     capNhatNutChuyenView();
     if(SESSION.role === 'admin') capNhatUIBookingSetting();
   }catch(e){
-    console.warn('Khởi động gộp không thành công, lùi về cách gọi rời:', e.message);
+    console.warn('Khởi động gộp không thành công:', e.message);
     // Đây là lượt tải ĐẦU TIÊN của phiên làm việc — chưa từng có dữ liệu nào để gọi là "dữ liệu cũ"
     // cả, nên coDuLieuCu luôn là false ở đây (khác lúc tự làm mới nền, xem loadBookings()).
     hienLoiKetNoi(e, false);
-    // PHẢI chờ xong cài đặt trước khi dựng nút chuyển view — quyền xem bản đồ của kỹ thuật viên phụ
-    // thuộc đúng dữ liệu này; không chờ thì nút Bản đồ có thể không hiện dù admin đã bật.
-    await loadPublicSettings();
-    loadBranches();
-    await loadLoaiSuCo();
-    if(SESSION.role === 'admin'){ loadKyThuat(); loadBookingSetting(); }
-    if(!isKyThuat()) loadBookings();
-    loadSuCo();
+    // ĐÃ BỎ đường lùi "gọi rời từng phần" (cũ, tới 18/09/2026): khi lượt gọi gộp hỏng, nguyên nhân
+    // gần như luôn là máy chủ đang quá tải — mà đường lùi đó lại bắn tiếp 6 request nữa cho CÙNG một
+    // người dùng, nhân lên với ~30 chi nhánh cùng gặp sự cố một lúc thành đúng cú dồn tải khiến tình
+    // hình xấu thêm, chứ không cứu được gì. Giờ chỉ thử LẠI ĐÚNG lượt gọi gộp đó sau một khoảng nghỉ
+    // có giãn cách ngẫu nhiên, tối đa 3 vòng, rồi mới chịu thua.
+    if(khoiDongLanThu < 3){
+      khoiDongLanThu++;
+      const cho = gianCach(4000 * khoiDongLanThu);
+      hienDangTai('⏳ Máy chủ đang bận, tự thử lại sau ' + Math.round(cho/1000) + ' giây…');
+      setTimeout(khoiDongDuLieu, cho);
+      return;
+    }
+    // Hết 3 vòng vẫn không được: dựng tối thiểu giao diện để app không trắng màn hình, và để nhịp tự
+    // làm mới định kỳ (taoLichSuCo/taoLichDon) tự kéo dữ liệu về khi máy chủ rảnh trở lại.
     capNhatNutChuyenView();
   }
 }
@@ -2219,7 +2284,7 @@ async function loadBookings(manual, silent){
   if(!silent) $('list').innerHTML = '<div class="sk"></div><div class="sk"></div><div class="sk"></div>';
   if(manual){ $('refreshBtn').disabled = true; $('refreshBtn').innerHTML = '<span class="spin"></span>'; }
   try{
-    const j = await api({ action:'list' });
+    const j = await api({ action:'list' }, {nen: !!silent && !manual});
     if(j.ok){ DATA = j.data || []; anTrangThaiTai(); }
     else throw new Error(j.error||'LOAD_FAIL');
   }catch(e){
@@ -2612,7 +2677,9 @@ async function submitSuCo(guiTrung){
 /* ─── tải & hiển thị danh sách ─── */
 async function loadSuCo(silent){
   try{
-    const j = await api({action:'suco_list'});
+    // silent = lượt tự làm mới chạy nền (không ai ngồi chờ) → không tự gửi lại, nhường chỗ cho thao
+    // tác người dùng đang chờ trực tiếp; kiểu gì vài chục giây nữa cũng tự chạy lại (xem api()).
+    const j = await api({action:'suco_list'}, {nen: !!silent});
     if(j.ok) SUCO = j.data || [];
   }catch(e){ if(!silent) toast(moTaLoiKetNoi(e),'bad'); }
   xuLySuCoSauKhiTai();
