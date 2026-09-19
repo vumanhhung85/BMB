@@ -488,6 +488,10 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           </select>
           <select id="fMoiKT" onchange="drawSuCo()" style="display:none"><option value="">Mọi kỹ thuật viên</option></select>
           <select id="fMoiCN" onchange="drawSuCo()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
+          <select id="fMoiSapXep" onchange="doiSapXepSuCo()" title="Cách sắp xếp khung Sự cố chưa xử lý">
+            <option value="mucdo">↕ Mức độ trước</option>
+            <option value="moinhat">🆕 Mới nhất trước</option>
+          </select>
         </div>
         <div class="list" id="listSuCoChuaXuLy"></div>
       </div>
@@ -1671,18 +1675,24 @@ async function enterApp(){
   $('hRole').textContent = SESSION.fullName || SESSION.user;
   $('hBadge').textContent = ROLE_LABEL[SESSION.role] || SESSION.role;
   $('hBadge').className = 'badge' + (SESSION.role==='admin' ? ' admin' : '');
-  if(SESSION.role === 'admin'){
-    $('fBranch').style.display='';
-    $('caidatAdmin').style.display='';
-    $('cfgTelegramWrap').style.display='';
-  }
+  // Đặt lại RÕ RÀNG cả 2 chiều hiện/ẩn theo vai trò của phiên ĐANG đăng nhập — app không tải lại
+  // trang giữa các lượt đăng xuất/đăng nhập, nên DOM vẫn giữ nguyên trạng thái của tài khoản TRƯỚC
+  // đó nếu chỉ set display khi ĐÚNG điều kiện mà quên set lại khi KHÔNG đúng. Lỗi cũ (tới 19/09/2026):
+  // các dòng này trước đây chỉ có nhánh "nếu admin thì hiện", không có nhánh "nếu không thì ẩn" — nên
+  // đăng nhập admin xong đăng xuất, đăng nhập lại bằng vai trò khác vẫn thấy nguyên khung Cài đặt/Chi
+  // nhánh/Telegram của admin trên máy đó, phải bấm F5 mới hết. Sửa: luôn gán cả 2 nhánh mỗi lần vào.
+  const laAdmin = SESSION.role === 'admin';
+  $('fBranch').style.display = laAdmin ? '' : 'none';
+  $('caidatAdmin').style.display = laAdmin ? '' : 'none';
+  $('cfgTelegramWrap').style.display = laAdmin ? '' : 'none';
   // Các nút chuyển view (Bảng/Bản đồ/Danh sách/Báo sự cố) được dựng trong capNhatNutChuyenView(),
   // gọi SAU khi khoiDongDuLieu() đã nạp xong PUBLIC_SETTINGS — vì quyền xem bản đồ của kỹ thuật viên
   // phụ thuộc đúng cài đặt đó.
   // Kỹ thuật viên chỉ làm việc trong tab Bảo trì — không liên quan tới đặt phòng, nên ẩn hẳn tab
   // "Đặt phòng" và không tải dữ liệu đơn (đỡ 1 lượt gọi API mỗi lần vào + mỗi 30 giây tự làm mới).
+  // Cùng lý do trên: LUÔN gán lại display dù kết quả là '' hay 'none', không chỉ gán khi ẩn.
+  document.querySelector('.tab[data-t="dat-phong"]').style.display = isKyThuat() ? 'none' : '';
   if(isKyThuat()){
-    document.querySelector('.tab[data-t="dat-phong"]').style.display='none';
     switchTab(document.querySelector('.tab[data-t="baotri"]'));
     batDauChiaSeViTri();   // định kỳ nhẹ mỗi 5 phút trong lúc còn mở app — xem thêm ở nhanViec/batDauXuLy/submitBaoXong
   }
@@ -1780,12 +1790,13 @@ async function khoiDongDuLieu(){
 /** Hiện/ẩn các nút chuyển view (Bảng / Bản đồ / Danh sách / Báo sự cố) theo vai trò và theo cài đặt —
  *  tách riêng vì phải chạy SAU khi PUBLIC_SETTINGS đã được nạp (mới, 18/09/2026). */
 function capNhatNutChuyenView(){
-  if(SESSION.role === 'admin' || (isKyThuat() && PUBLIC_SETTINGS.kythuatXemBanDo)){
-    $('btnBtListView').style.display='';
-    $('btnBtMapView').style.display='';
-  }
-  if(SESSION.role === 'admin') $('btnBtTableView').style.display='';
-  if(SESSION.role === 'manager' || SESSION.role === 'admin') $('btnTaoSuCo').style.display='';
+  // Cùng lỗi/cách sửa như trong enterApp() ở trên: gán rõ cả 2 chiều '' / 'none', không chỉ khi đúng
+  // điều kiện, để không còn kẹt lại nút của vai trò phiên trước (mới, 19/09/2026).
+  const xemBanDo = SESSION.role === 'admin' || (isKyThuat() && PUBLIC_SETTINGS.kythuatXemBanDo);
+  $('btnBtListView').style.display = xemBanDo ? '' : 'none';
+  $('btnBtMapView').style.display = xemBanDo ? '' : 'none';
+  $('btnBtTableView').style.display = SESSION.role === 'admin' ? '' : 'none';
+  $('btnTaoSuCo').style.display = (SESSION.role === 'manager' || SESSION.role === 'admin') ? '' : 'none';
 }
 
 /** Mở thẳng đúng 1 ticket bảo trì nếu URL có ?ticket=<mã> — dùng cho nút "Xem thêm" trên tin nhắn
@@ -2760,7 +2771,13 @@ function drawSuCo(){
      nếu đã có; nếu chưa lấy được GPS lần nào (vd vừa mở lại tab, chưa mở bản đồ hay bấm hành động nào)
      thì tạm dùng chi nhánh xuất phát gắn với tài khoản làm điểm tham chiếu, như cách cũ. ── */
   let chuaXuLy = locSuCo(open, $('fMoiMuc').value, $('fMoiKT').value, $('fMoiCN').value, q);
-  if(isKyThuat()){
+  /* Cách sắp xếp do người dùng chọn (mới, 19/09/2026) — "Mới nhất trước" bỏ qua mức độ lẫn khoảng
+     cách, xếp thuần theo lúc báo giống view Bảng, để ticket vừa phát sinh không bị chìm dưới hàng
+     loạt ticket Khẩn cấp cũ. "Mức độ trước" (mặc định) giữ nguyên logic cũ bên dưới. */
+  $('fMoiSapXep').value = cheDoSapXepSuCo();
+  if(cheDoSapXepSuCo()==='moinhat'){
+    chuaXuLy = chuaXuLy.sort((a,b)=> String(b.taoLuc).localeCompare(String(a.taoLuc)));
+  } else if(isKyThuat()){
     const goc = VITRI_HIEN_TAI_KT || branchCoord(SESSION.branchId);
     chuaXuLy = chuaXuLy.sort((a,b)=>{
       if(a.mucDo!==b.mucDo) return a.mucDo-b.mucDo;
@@ -2788,6 +2805,18 @@ function drawSuCo(){
   $('btnXemTiepDaXong').style.display = daXong.length > daXongHien ? '' : 'none';
 }
 function taoNhieuDaXong(){ daXongHien += 40; drawSuCo(); }
+
+/** Ghi nhớ cách sắp xếp khung "Sự cố chưa xử lý" trên thiết bị này (mới, 19/09/2026). Chỉ là tuỳ
+ *  chọn hiển thị, không liên quan phiên đăng nhập — lưu localStorage để đăng xuất/đăng nhập lại vẫn
+ *  giữ. Bọc try/catch vì một số trình duyệt chế độ riêng tư chặn localStorage. */
+function cheDoSapXepSuCo(){
+  try{ return localStorage.getItem(CFG.PREFIX+'sx_suco')==='moinhat' ? 'moinhat' : 'mucdo'; }
+  catch(e){ return 'mucdo'; }
+}
+function doiSapXepSuCo(){
+  try{ localStorage.setItem(CFG.PREFIX+'sx_suco', $('fMoiSapXep').value==='moinhat' ? 'moinhat' : 'mucdo'); }catch(e){}
+  drawSuCo();
+}
 
 /** Chuyển link ảnh Drive sang endpoint ổn định để nhúng <img> (mới, 17/08/2026) — Google đã ngừng hỗ
  *  trợ ổn định dạng "uc?export=view" từ giữa 2024 (đổi chính sách third-party cookies), hay trả về
@@ -2976,9 +3005,10 @@ async function xemLichSu(maSuCo){
 }
 function closeLichSu(){ $('modalOverlay').style.display='none'; }
 
-/** Xem lại danh sách ticket ĐÃ XOÁ — chỉ đọc, không có nút khôi phục (xem ghi chú ở
- *  layDanhSachSuCoDaXoa bên Code.gs). Tái dùng đúng modal "Lịch sử" có sẵn thay vì dựng modal riêng,
- *  vì chỉ 1 modal hiện tại 1 lúc, không xung đột (mới, 11/09/2026). */
+/** Xem lại danh sách ticket ĐÃ XOÁ — siêu admin có thêm nút Khôi phục (mới, 20/09/2026; trước đây
+ *  cố tình không có nút này, xem lịch sử ghi chú ở layDanhSachSuCoDaXoa bên Code.gs — nay đổi theo
+ *  yêu cầu "lỡ xoá nhầm thì khôi phục lại được"). Tái dùng đúng modal "Lịch sử" có sẵn thay vì dựng
+ *  modal riêng, vì chỉ 1 modal hiện tại 1 lúc, không xung đột (mới, 11/09/2026). */
 async function xemSuCoDaXoa(){
   $('lsTieuDe').textContent = '🗑️ Sự cố đã xoá';
   $('lsBody').innerHTML = '<div class="sk" style="height:70px"></div><div class="sk" style="height:70px"></div>';
@@ -2989,7 +3019,10 @@ async function xemSuCoDaXoa(){
     $('lsBody').innerHTML = j.data.length ? j.data.map(t=>{
       const loai = LOAI_LOI[t.loaiLoi] || {ten:'Khác'};
       return '<div style="padding:12px 0;border-bottom:1px solid var(--line-soft)">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'+
         '<div style="font-weight:700;font-size:14px">'+esc(t.maSuCo)+' — '+esc(t.chinhanhTen)+(t.phong?' / '+esc(t.phong):'')+'</div>'+
+        (SESSION.sieuAdmin ? '<button class="btn btn-ok btn-sm" style="flex:none" onclick="chanBamKep(this,khoiPhucSuCo,\''+t.maSuCo+'\')">↩️ Khôi phục</button>' : '')+
+        '</div>'+
         '<div style="font-size:12.5px;color:var(--txt-mute);margin-top:2px">'+esc(loai.ten)+' · Báo lúc '+fmtVN(t.taoLuc)+'</div>'+
         (t.moTa?'<div style="font-size:13px;margin-top:4px">'+esc(t.moTa)+'</div>':'')+
         '<div style="font-size:12.5px;color:var(--bad);margin-top:6px">🗑️ Xoá bởi '+esc(t.xoaBoi)+' lúc '+fmtVN(t.xoaLuc)+'</div>'+
@@ -2997,6 +3030,22 @@ async function xemSuCoDaXoa(){
       '</div>';
     }).join('') : '<div class="empty" style="padding:24px 0">Chưa có sự cố nào bị xoá.</div>';
   }catch(e){ $('lsBody').innerHTML = '<div class="empty" style="padding:24px 0">Không tải được danh sách.</div>'; }
+}
+
+/** Khôi phục 1 ticket đã xoá nhầm — chỉ siêu admin thấy nút này (kiểm tra lại quyền ở server, nút ẩn
+ *  chỉ là lớp che ở UI, giống hệt xoaSuCo() bên dưới). Ticket trở lại y nguyên trạng thái trước khi bị
+ *  xoá, hiện lại ở mọi danh sách/bảng/bản đồ (mới, 20/09/2026). */
+async function khoiPhucSuCo(maSuCo){
+  if(!confirm('Khôi phục ticket '+maSuCo+'? Ticket sẽ hiện lại bình thường ở mọi danh sách.')) return;
+  try{
+    const j = await api({action:'suco_khoiphuc', maSuCo});
+    if(!j.ok) throw new Error(j.error);
+    toast('Đã khôi phục ticket '+maSuCo+'.','ok');
+    xemSuCoDaXoa();   // vẽ lại khung "đã xoá" cho mất dòng vừa khôi phục
+    loadSuCo(true);   // và cho ticket hiện lại ngay ở khung chính, không cần đợi tới chu kỳ tự làm mới
+  }catch(e){
+    toast(e.message==='FORBIDDEN' ? 'Bạn không có quyền khôi phục.' : 'Không khôi phục được, thử lại.','bad');
+  }
 }
 
 /** Xoá (ẩn) 1 ticket báo nhầm/trùng lặp — chỉ siêu admin thấy nút này (kiểm tra lại quyền ở server,
