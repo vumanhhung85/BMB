@@ -567,6 +567,26 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
   <div id="caidat" style="display:none">
     <div id="caidatAdmin" style="display:none">
     <div class="form-card ff-collapse">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open'); if(this.closest('.form-card').classList.contains('open')) xemLuuLuongTruyCap();">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">📊 Lưu lượng truy cập</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Số lượt đăng nhập theo ngày/giờ/chi nhánh/tài khoản — chỉ để xem xu hướng, không có hành động nào ở đây.</p>
+        </div>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
+      </button>
+      <div class="ff-body">
+        <div class="toolbar" style="margin-bottom:12px">
+          <select id="ttSoNgay" onchange="xemLuuLuongTruyCap()">
+            <option value="7">7 ngày gần nhất</option>
+            <option value="30" selected>30 ngày gần nhất</option>
+            <option value="90">90 ngày gần nhất</option>
+          </select>
+        </div>
+        <div id="ttThan"><div class="sk" style="height:140px"></div></div>
+      </div>
+    </div>
+
+    <div class="form-card ff-collapse">
       <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
         <div>
           <h3 style="font-size:18px;margin-bottom:6px">Chức năng giữ phòng đặt chỗ</h3>
@@ -1437,7 +1457,8 @@ async function chanBamKep(btn, fn, ...args){
  *   - Lỗi BAN_DANG_BAN_THU_LAI (máy chủ chưa giữ được khoá ghi, xem khoaHoacBan_ trong Code.gs): CHỨNG
  *     MINH request chưa hề chạm tới dữ liệu → an toàn tự gửi lại dù là action ghi nào. */
 const ACTION_CHI_DOC = ['khoi_dong','list','suco_list','suco_lichsu','suco_list_da_xoa','kythuat_list',
-  'kythuat_vitri_list','loaisuco_list','taikhoan_list','chinhanh_list','backup_thongtin','telegram_thongtin'];
+  'kythuat_vitri_list','loaisuco_list','taikhoan_list','chinhanh_list','backup_thongtin','telegram_thongtin',
+  'truycap_thongke'];
 const API_TIMEOUT_MS = 25000;   // GAS lúc "khởi động lạnh" có thể mất tới ~10 giây — để rộng 25 giây
 
 /* ─── CẦU DAO CHỐNG DỒN TẢI (mới, 18/09/2026) ───
@@ -3487,6 +3508,57 @@ async function toggleBookingSetting(){
   }catch(e){
     $('bkToggle').checked = !on; $('bkStatusTxt').textContent = !on ? 'Đang bật' : 'Đang tắt';
     toast('Không lưu được cài đặt. Thử lại.','bad');
+  }
+}
+
+/** Thống kê lưu lượng đăng nhập cho admin xem — thuần hiển thị, không có nút hành động nào (đúng yêu
+ *  cầu "chỉ phân tích"). Tái dùng đúng kiểu biểu đồ cột bằng div/CSS đã có sẵn ở drawReport() phía
+ *  trên, cho đồng bộ giao diện thay vì phải thêm thư viện vẽ biểu đồ mới (mới, 20/09/2026). */
+async function xemLuuLuongTruyCap(){
+  const box = $('ttThan');
+  box.innerHTML = '<div class="sk" style="height:140px"></div>';
+  try{
+    const j = await api({action:'truycap_thongke', soNgay: Number($('ttSoNgay').value)});
+    if(!j.ok) throw new Error(j.error);
+    const d = j.data;
+    const maxNgay = Math.max(1,...d.theoNgay.map(x=>x.soLuot));
+    const maxGio  = Math.max(1,...d.theoGio);
+
+    const barNgay = d.theoNgay.length ? d.theoNgay.map(x=>
+      '<div style="flex:1;min-width:22px;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end">'+
+      '<b style="font-size:10.5px;color:var(--yellow)">'+x.soLuot+'</b>'+
+      '<div style="width:100%;height:'+Math.max(6,x.soLuot/maxNgay*82)+'%;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--yellow),var(--gold))" title="'+x.ngay+': '+x.soLuot+' lượt"></div>'+
+      '<span style="font-size:9.5px;color:var(--txt-mute);white-space:nowrap">'+x.ngay.slice(8)+'/'+x.ngay.slice(5,7)+'</span></div>'
+    ).join('') : '<span style="color:var(--txt-mute);font-size:13.5px">Chưa có dữ liệu.</span>';
+
+    const barGio = d.theoGio.map((n,h)=>
+      '<div style="flex:1;min-width:14px;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end">'+
+      '<div style="width:100%;height:'+Math.max(4,n/maxGio*82)+'%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#8B7CF0,#5B4CC4)" title="'+h+'h: '+n+' lượt"></div>'+
+      (h%3===0 ? '<span style="font-size:8.5px;color:var(--txt-mute)">'+h+'h</span>' : '')+'</div>'
+    ).join('');
+
+    function bang(rows,cot){
+      return '<div class="tblwrap"><table><thead><tr><th>#</th><th>'+cot+'</th><th>Số lượt</th></tr></thead><tbody>'+
+        (rows.length ? rows.map((r,i)=>'<tr><td><b style="color:var(--yellow)">'+(i+1)+'</b></td><td>'+esc(r.ten)+'</td><td>'+r.soLuot+'</td></tr>').join('')
+          : '<tr><td colspan="3" style="color:var(--txt-mute)">Chưa có dữ liệu.</td></tr>')+
+        '</tbody></table></div>';
+    }
+
+    box.innerHTML =
+      '<div class="stats" style="margin-bottom:20px">'+
+        '<div class="stat"><div class="k">Tổng lượt đăng nhập</div><div class="v">'+d.tongSoLuot+'</div></div>'+
+        '<div class="stat y"><div class="k">Khoảng thời gian</div><div class="v" style="font-size:14px">'+d.tuNgay+' → '+d.denNgay+'</div></div>'+
+      '</div>'+
+      '<h3 style="font-size:16px;margin-bottom:10px">Theo ngày</h3>'+
+      '<div style="display:flex;gap:4px;align-items:flex-end;height:130px;background:rgba(42,21,71,.5);border:1px solid var(--line-soft);border-radius:16px;padding:14px;margin-bottom:22px;overflow-x:auto">'+barNgay+'</div>'+
+      '<h3 style="font-size:16px;margin-bottom:10px">Theo giờ trong ngày (cộng dồn cả khoảng)</h3>'+
+      '<div style="display:flex;gap:2px;align-items:flex-end;height:100px;background:rgba(42,21,71,.5);border:1px solid var(--line-soft);border-radius:16px;padding:14px;margin-bottom:22px">'+barGio+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'+
+        '<div><h3 style="font-size:16px;margin-bottom:10px">Theo chi nhánh</h3>'+bang(d.theoChiNhanh,'Chi nhánh')+'</div>'+
+        '<div><h3 style="font-size:16px;margin-bottom:10px">Theo tài khoản</h3>'+bang(d.theoTaiKhoan,'Tài khoản')+'</div>'+
+      '</div>';
+  }catch(e){
+    box.innerHTML = '<div class="empty" style="padding:24px 0">Không tải được thống kê. Thử lại.</div>';
   }
 }
 
