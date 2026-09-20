@@ -576,6 +576,10 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       </button>
       <div class="ff-body">
         <div class="toolbar" style="margin-bottom:12px">
+          <select id="ttNguonDuLieu" onchange="xemLuuLuongTruyCap()">
+            <option value="dangnhap">🔑 Đăng nhập (nội bộ)</option>
+            <option value="trangchu">🌐 Trang chủ (khách)</option>
+          </select>
           <select id="ttSoNgay" onchange="xemLuuLuongTruyCap()">
             <option value="7">7 ngày gần nhất</option>
             <option value="30" selected>30 ngày gần nhất</option>
@@ -1458,7 +1462,7 @@ async function chanBamKep(btn, fn, ...args){
  *     MINH request chưa hề chạm tới dữ liệu → an toàn tự gửi lại dù là action ghi nào. */
 const ACTION_CHI_DOC = ['khoi_dong','list','suco_list','suco_lichsu','suco_list_da_xoa','kythuat_list',
   'kythuat_vitri_list','loaisuco_list','taikhoan_list','chinhanh_list','backup_thongtin','telegram_thongtin',
-  'truycap_thongke'];
+  'truycap_thongke','truycap_thongke_trangchu'];
 const API_TIMEOUT_MS = 25000;   // GAS lúc "khởi động lạnh" có thể mất tới ~10 giây — để rộng 25 giây
 
 /* ─── CẦU DAO CHỐNG DỒN TẢI (mới, 18/09/2026) ───
@@ -3511,14 +3515,19 @@ async function toggleBookingSetting(){
   }
 }
 
-/** Thống kê lưu lượng đăng nhập cho admin xem — thuần hiển thị, không có nút hành động nào (đúng yêu
- *  cầu "chỉ phân tích"). Tái dùng đúng kiểu biểu đồ cột bằng div/CSS đã có sẵn ở drawReport() phía
- *  trên, cho đồng bộ giao diện thay vì phải thêm thư viện vẽ biểu đồ mới (mới, 20/09/2026). */
+const NHAN_NGUON_TRUYCAP = { truc_tiep:'Trực tiếp / gõ thẳng', facebook:'Facebook', zalo:'Zalo', tiktok:'TikTok', instagram:'Instagram', google:'Google', khac:'Khác' };
+
+/** Thống kê lưu lượng cho admin xem — thuần hiển thị, không có nút hành động nào (đúng yêu cầu "chỉ
+ *  phân tích"). Dùng chung 1 hàm cho cả 2 nguồn (đăng nhập nội bộ / trang chủ khách, chọn ở
+ *  #ttNguonDuLieu) vì biểu đồ theo ngày + theo giờ giống hệt nhau, chỉ khác 2 bảng xếp hạng cuối cùng
+ *  (mới, 20/09/2026). Tái dùng đúng kiểu biểu đồ cột bằng div/CSS đã có sẵn ở drawReport() phía trên,
+ *  cho đồng bộ giao diện thay vì phải thêm thư viện vẽ biểu đồ mới. */
 async function xemLuuLuongTruyCap(){
   const box = $('ttThan');
+  const laTrangChu = $('ttNguonDuLieu').value === 'trangchu';
   box.innerHTML = '<div class="sk" style="height:140px"></div>';
   try{
-    const j = await api({action:'truycap_thongke', soNgay: Number($('ttSoNgay').value)});
+    const j = await api({action: laTrangChu?'truycap_thongke_trangchu':'truycap_thongke', soNgay: Number($('ttSoNgay').value)});
     if(!j.ok) throw new Error(j.error);
     const d = j.data;
     const maxNgay = Math.max(1,...d.theoNgay.map(x=>x.soLuot));
@@ -3537,26 +3546,39 @@ async function xemLuuLuongTruyCap(){
       (h%3===0 ? '<span style="font-size:8.5px;color:var(--txt-mute)">'+h+'h</span>' : '')+'</div>'
     ).join('');
 
-    function bang(rows,cot){
+    function bang(rows,cot,nhan){
       return '<div class="tblwrap"><table><thead><tr><th>#</th><th>'+cot+'</th><th>Số lượt</th></tr></thead><tbody>'+
-        (rows.length ? rows.map((r,i)=>'<tr><td><b style="color:var(--yellow)">'+(i+1)+'</b></td><td>'+esc(r.ten)+'</td><td>'+r.soLuot+'</td></tr>').join('')
+        (rows.length ? rows.map((r,i)=>'<tr><td><b style="color:var(--yellow)">'+(i+1)+'</b></td><td>'+esc(nhan?(nhan[r.ten]||r.ten):r.ten)+'</td><td>'+r.soLuot+'</td></tr>').join('')
           : '<tr><td colspan="3" style="color:var(--txt-mute)">Chưa có dữ liệu.</td></tr>')+
         '</tbody></table></div>';
     }
 
+    // 2 bảng cuối khác nhau tuỳ nguồn: đăng nhập → chi nhánh + tài khoản; trang chủ → chi nhánh khách
+    // bấm vào từ link riêng + nguồn giới thiệu, kèm 2 thẻ tỉ lệ mobile/desktop.
+    const khungCuoi = laTrangChu
+      ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'+
+          '<div><h3 style="font-size:16px;margin-bottom:10px">Chi nhánh khách bấm từ link riêng</h3>'+bang(d.theoChiNhanh,'Chi nhánh')+'</div>'+
+          '<div><h3 style="font-size:16px;margin-bottom:10px">Nguồn giới thiệu</h3>'+bang(d.theoNguon,'Nguồn',NHAN_NGUON_TRUYCAP)+'</div>'+
+        '</div>'+
+        '<div class="stats">'+
+          '<div class="stat g"><div class="k">📱 Điện thoại</div><div class="v">'+d.soMobile+'</div></div>'+
+          '<div class="stat"><div class="k">💻 Máy tính</div><div class="v">'+d.soDesktop+'</div></div>'+
+        '</div>'
+      : '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'+
+          '<div><h3 style="font-size:16px;margin-bottom:10px">Theo chi nhánh</h3>'+bang(d.theoChiNhanh,'Chi nhánh')+'</div>'+
+          '<div><h3 style="font-size:16px;margin-bottom:10px">Theo tài khoản</h3>'+bang(d.theoTaiKhoan,'Tài khoản')+'</div>'+
+        '</div>';
+
     box.innerHTML =
       '<div class="stats" style="margin-bottom:20px">'+
-        '<div class="stat"><div class="k">Tổng lượt đăng nhập</div><div class="v">'+d.tongSoLuot+'</div></div>'+
+        '<div class="stat"><div class="k">'+(laTrangChu?'Tổng lượt mở trang':'Tổng lượt đăng nhập')+'</div><div class="v">'+d.tongSoLuot+'</div></div>'+
         '<div class="stat y"><div class="k">Khoảng thời gian</div><div class="v" style="font-size:14px">'+d.tuNgay+' → '+d.denNgay+'</div></div>'+
       '</div>'+
       '<h3 style="font-size:16px;margin-bottom:10px">Theo ngày</h3>'+
       '<div style="display:flex;gap:4px;align-items:flex-end;height:130px;background:rgba(42,21,71,.5);border:1px solid var(--line-soft);border-radius:16px;padding:14px;margin-bottom:22px;overflow-x:auto">'+barNgay+'</div>'+
       '<h3 style="font-size:16px;margin-bottom:10px">Theo giờ trong ngày (cộng dồn cả khoảng)</h3>'+
       '<div style="display:flex;gap:2px;align-items:flex-end;height:100px;background:rgba(42,21,71,.5);border:1px solid var(--line-soft);border-radius:16px;padding:14px;margin-bottom:22px">'+barGio+'</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'+
-        '<div><h3 style="font-size:16px;margin-bottom:10px">Theo chi nhánh</h3>'+bang(d.theoChiNhanh,'Chi nhánh')+'</div>'+
-        '<div><h3 style="font-size:16px;margin-bottom:10px">Theo tài khoản</h3>'+bang(d.theoTaiKhoan,'Tài khoản')+'</div>'+
-      '</div>';
+      khungCuoi;
   }catch(e){
     box.innerHTML = '<div class="empty" style="padding:24px 0">Không tải được thống kê. Thử lại.</div>';
   }
