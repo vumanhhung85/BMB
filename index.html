@@ -824,9 +824,39 @@ function fabClick(el, e) {
   return false;
 }
 
+/** Ghi 1 lượt "mở trang" cho admin xem thống kê lưu lượng — cố tình KHÔNG await và KHÔNG chặn boot()
+ *  chờ kết quả (chạy song song, "bắn rồi quên"): trang tải nhanh cho khách quan trọng hơn nhiều so
+ *  với việc đếm đúng ngay lập tức, và lỡ mất 1 lượt (mất mạng, quảng cáo chặn request) không ảnh
+ *  hưởng gì tới trải nghiệm khách. Chỉ gọi ĐÚNG 1 lần lúc trang tải xong (DOMContentLoaded ở cuối file
+ *  gọi boot() đúng 1 lần, không có setInterval nào gọi lại boot ở đây) — không lẫn với lượt tự làm mới
+ *  nào khác, nên không lo đếm trùng liên tục cho 1 khách (mới, 20/09/2026). */
+function ghiLuotMoTrangChu() {
+  if (!CFG.API) return;
+  try {
+    const p = new URLSearchParams(location.search);
+    const cn = (p.get('chi_nhanh') || p.get('cn') || '').toUpperCase().trim();
+    let nguon = 'truc_tiep';
+    if (document.referrer) {
+      try {
+        const host = new URL(document.referrer).hostname.replace(/^www\./, '');
+        nguon = /facebook|fb\.com/.test(host) ? 'facebook'
+              : /zalo/.test(host)     ? 'zalo'
+              : /tiktok/.test(host)   ? 'tiktok'
+              : /instagram/.test(host)? 'instagram'
+              : /google/.test(host)   ? 'google'
+              : 'khac';
+      } catch (e) { nguon = 'khac'; }
+    }
+    const thietBi = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'mobile' : 'desktop';
+    const q = new URLSearchParams({ action:'page_view', cn, nguon, thietBi });
+    fetch(CFG.API + '?' + q.toString(), { method:'GET' }).catch(()=>{});
+  } catch (e) { /* không để lỗi ở đây ảnh hưởng gì tới việc tải trang */ }
+}
+
 /* ─── KHỞI ĐỘNG ─── */
 async function boot() {
   $('yr').textContent = '2024';
+  ghiLuotMoTrangChu();
 
   BRANCHES = SEED.slice();
   try {
