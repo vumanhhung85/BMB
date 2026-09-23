@@ -1133,6 +1133,9 @@ const CFG = {
 };
 
 let SESSION = null, DATA = [], TAB = 'dat-phong';
+/* Số phiên bản danh sách đơn phòng do Worker trả về — gửi kèm mỗi lượt tự làm mới; không có gì mới thì
+   Worker trả "khongDoi" (vài chục byte) thay vì cả danh sách tới 500 đơn (tối ưu 24/09/2026). */
+let DON_VER = '';
 let PUBLIC_SETTINGS = { soThietBiToiDa: 3, idleTimeoutPhut: 720,
   sla: { 1:{tiepNhan:5,xuLy:240}, 2:{tiepNhan:30,xuLy:480}, 3:{tiepNhan:480,xuLy:2880}, 4:{tiepNhan:0,xuLy:20160} } };
 let idleTimer, idleAt;
@@ -1386,11 +1389,6 @@ function haversine(a,b,c,d){
   return 2*R*Math.asin(Math.sqrt(x));
 }
 function branchCoord(id){ const b=BRANCHES.find(x=>String(x.id)===String(id)); return b&&b.lat&&b.lng ? b : null; }
-function distTxt(idA, idB){
-  const a=branchCoord(idA), b=branchCoord(idB);
-  if(!a||!b) return '';
-  return ' — cách ~' + haversine(a.lat,a.lng,b.lat,b.lng).toFixed(1) + 'km';
-}
 let lastPendingSeen = null;   // null = chưa xác định mốc ban đầu (không báo động ngay lúc mới đăng nhập)
 const $ = id => document.getElementById(id);
 
@@ -1446,12 +1444,11 @@ async function chanBamKep(btn, fn, ...args){
  *  2 NGOẠI LỆ (xử lý riêng trong api(), không nằm trong mảng này — mới, 18/09/2026):
  *   - 'login': tuy là action ghi (tạo/cập nhật phiên đăng nhập) nhưng GHI ĐÈ theo thietBi, gửi lại
  *     nhiều lần với cùng thiết bị không bao giờ tạo phiên trùng → an toàn tự thử lại như action đọc.
- *   - Lỗi BAN_DANG_BAN_THU_LAI (máy chủ chưa giữ được khoá ghi, xem khoaHoacBan_ trong Code.gs): CHỨNG
- *     MINH request chưa hề chạm tới dữ liệu → an toàn tự gửi lại dù là action ghi nào. */
+ *  (Đã bỏ nhánh BAN_DANG_BAN_THU_LAI — mã lỗi riêng của khoá ghi GAS, Worker + D1 không dùng, 24/09/2026.) */
 const ACTION_CHI_DOC = ['khoi_dong','list','suco_list','suco_lichsu','suco_list_da_xoa','kythuat_list',
   'kythuat_vitri_list','loaisuco_list','taikhoan_list','chinhanh_list','telegram_thongtin',
   'truycap_thongke','truycap_thongke_trangchu'];
-const API_TIMEOUT_MS = 25000;   // GAS lúc "khởi động lạnh" có thể mất tới ~10 giây — để rộng 25 giây
+const API_TIMEOUT_MS = 15000;   // Worker thường phản hồi <1 giây; 15 giây là đủ rộng cho mạng 4G yếu (GAS cũ cần 25 giây)
 
 /* ─── CẦU DAO CHỐNG DỒN TẢI (mới, 18/09/2026) ───
    Google giới hạn CỨNG 30 lượt thực thi đồng thời cho mỗi tài khoản, và chặn riêng việc khởi chạy quá
@@ -1526,22 +1523,13 @@ async function api(payload, tuyChon){
         if(SESSION && SESSION.token === tokenUsed) logout('Phiên đã hết hạn. Đăng nhập lại nhé.');
         throw new Error('BAD_TOKEN');
       }
-      // Máy chủ xác nhận RÕ RÀNG chưa giữ được khoá ghi → CHẮC CHẮN chưa đụng gì tới dữ liệu, khác hẳn
-      // timeout/mất mạng (request có thể đã tới máy chủ và xử lý xong, chỉ mất phản hồi trên đường về)
-      // — nên an toàn tự gửi lại thêm dù là action ghi vốn chỉ cho phép 1 lần (mới, 18/09/2026, xem
-      // hàm khoaHoacBan_ trong Code.gs).
       // Chức năng chưa chuyển sang hệ thống mới (giai đoạn chuyển đổi) — báo rõ, không coi là lỗi mạng.
       if(j.error === 'CHUA_HO_TRO'){
         throw new Error('Chức năng này chưa có trên hệ thống mới — tạm xử lý ngoài hệ thống (gọi/Zalo).');
       }
-      if(j.error === 'BAN_DANG_BAN_THU_LAI'){
-        danhDauMayChuBan();
-        if(!nen && soLanToiDa < 3) soLanToiDa = 3;
-        throw new Error('BAN_DANG_BAN_THU_LAI');
-      }
       return j;
     }catch(e){
-      if(!['QUA_HAN','MAT_MANG','MAY_CHU_LOI','BAN_DANG_BAN_THU_LAI'].includes(e.message)) throw e;   // lỗi nghiệp vụ: ném ra ngay
+      if(!['QUA_HAN','MAT_MANG','MAY_CHU_LOI'].includes(e.message)) throw e;   // lỗi nghiệp vụ: ném ra ngay
       // MAY_CHU_LOI = máy chủ trả về trang HTML thay vì JSON — dấu hiệu điển hình của việc chạm trần
       // 30 lượt đồng thời/khởi chạy quá dồn. QUA_HAN cũng thường là hệ quả của cùng nguyên nhân đó.
       if(e.message === 'MAY_CHU_LOI' || e.message === 'QUA_HAN') danhDauMayChuBan();
@@ -1561,7 +1549,6 @@ function moTaLoiKetNoi(e){
   if(m === 'QUA_HAN')    return 'Máy chủ phản hồi hơi chậm, đã thử lại vài lần.';
   if(m === 'MAT_MANG')   return 'Không có kết nối mạng. Kiểm tra wifi/4G giúp mình nhé.';
   if(m === 'MAY_CHU_LOI') return 'Máy chủ đang hơi bận, chưa phản hồi được.';
-  if(m === 'BAN_DANG_BAN_THU_LAI') return 'Máy chủ đang bận xử lý nhiều yêu cầu cùng lúc, đã thử lại vài lần.';
   return 'Chưa tải được dữ liệu mới nhất.';
 }
 /** Hiện trạng thái "đang tải" nhẹ nhàng, màu trung tính — dùng ngay lúc BẮT ĐẦU gọi máy chủ, trước
@@ -1641,8 +1628,8 @@ async function doLogin(){
     // qua moTaLoiKetNoi(), KHÔNG hiện thẳng mã lỗi nội bộ như 'QUA_HAN'/'MAY_CHU_LOI' ra màn hình đăng
     // nhập (lỗi cũ, tới 18/09/2026: đăng nhập là chỗ DUY NHẤT trong app quên bước dịch này, nên chi
     // nhánh thấy nguyên mã lỗi thay vì câu giải thích).
-    if(e.message === 'NO_API') showLoginMsg('Chưa cấu hình máy chủ. Mở admin.html và dán URL Apps Script vào dòng CFG.API.');
-    else if(['QUA_HAN','MAT_MANG','MAY_CHU_LOI','BAN_DANG_BAN_THU_LAI'].includes(e.message)) showLoginMsg(moTaLoiKetNoi(e));
+    if(e.message === 'NO_API') showLoginMsg('Chưa cấu hình máy chủ. Mở admin.html và dán URL Worker vào dòng CFG.API.');
+    else if(['QUA_HAN','MAT_MANG','MAY_CHU_LOI'].includes(e.message)) showLoginMsg(moTaLoiKetNoi(e));
     else showLoginMsg(e.message);
   }finally{
     $('loginBtn').disabled = false; $('loginBtn').textContent = 'Đăng nhập';
@@ -1775,9 +1762,10 @@ async function khoiDongDuLieu(){
       LOAI_SUCO_LIST.forEach(l => LOAI_LOI[l.ma] = { ten:l.ten, mucDo:l.mucDo, loaiKT:l.loaiKT });
     }
     if(j.kythuat) KYTHUAT = j.kythuat;
-    if(j.bookings){ DATA = j.bookings; xuLyDonSauKhiTai(); }
+    if(j.bookings){ DATA = j.bookings; DON_VER = j.donVer || ''; xuLyDonSauKhiTai(); }
 
     SUCO = j.suco || [];
+    SUCO_MOC = j.sucoMoc || 0; SUCO_SO_LAN_DELTA = 0;
     xuLySuCoSauKhiTai();
     anTrangThaiTai();
 
@@ -1864,12 +1852,6 @@ function apDungDanhSachChiNhanh(){
   buildScChiNhanhSelect();
 }
 
-async function loadKyThuat(){
-  try{
-    const j = await api({action:'kythuat_list'});
-    if(j.ok) KYTHUAT = j.data || [];
-  }catch(e){}
-}
 
 /* ─── menu "⋮" dùng chung cho các danh sách gọn (.lrow) trong tab Cài đặt ─── */
 function toggleKebab(btn, ev){
@@ -2322,8 +2304,13 @@ async function loadBookings(manual, silent){
   if(!silent) $('list').innerHTML = '<div class="sk"></div><div class="sk"></div><div class="sk"></div>';
   if(manual){ $('refreshBtn').disabled = true; $('refreshBtn').innerHTML = '<span class="spin"></span>'; }
   try{
-    const j = await api({ action:'list' }, {nen: !!silent && !manual});
-    if(j.ok){ DATA = j.data || []; anTrangThaiTai(); }
+    // Bấm "Làm mới" bằng tay → luôn tải đủ (không gửi ver), phòng khi dữ liệu trên máy lệch.
+    const j = await api(manual ? { action:'list' } : { action:'list', ver: DON_VER }, {nen: !!silent && !manual});
+    if(j.ok){
+      if(!j.khongDoi) DATA = j.data || [];
+      DON_VER = j.ver || '';
+      anTrangThaiTai();
+    }
     else throw new Error(j.error||'LOAD_FAIL');
   }catch(e){
     hienLoiKetNoi(e, DATA.length > 0);
@@ -2713,12 +2700,30 @@ async function submitSuCo(guiTrung){
 }
 
 /* ─── tải & hiển thị danh sách ─── */
+/* Tải PHẦN THAY ĐỔI (tối ưu 24/09/2026): sau lượt tải đủ đầu tiên, mỗi lượt tự làm mới chỉ gửi mốc
+   thời gian đã có (SUCO_MOC), Worker trả đúng những ticket vừa đổi kể từ đó (thường 0–vài ticket) thay
+   vì cả danh sách tới 800 ticket. Ticket vừa rời phạm vi xem (bị xoá, điều phối sang người khác…) về
+   dạng {maSuCo, an:true} để gỡ khỏi danh sách. Cứ SUCO_DELTA_TOI_DA lượt thì tải đủ lại 1 lần cho chắc
+   chắn danh sách trên máy không bao giờ lệch lâu với máy chủ. */
+let SUCO_MOC = 0, SUCO_SO_LAN_DELTA = 0;
+const SUCO_DELTA_TOI_DA = 40;
+function gopSuCoThayDoi(ds){
+  if(!ds.length) return;
+  const m = new Map(SUCO.map(t => [t.maSuCo, t]));
+  ds.forEach(t => { if(t.an) m.delete(t.maSuCo); else m.set(t.maSuCo, t); });
+  SUCO = [...m.values()].sort((a,b) => a.taoLuc < b.taoLuc ? -1 : a.taoLuc > b.taoLuc ? 1 : 0);
+}
 async function loadSuCo(silent){
   try{
     // silent = lượt tự làm mới chạy nền (không ai ngồi chờ) → không tự gửi lại, nhường chỗ cho thao
     // tác người dùng đang chờ trực tiếp; kiểu gì vài chục giây nữa cũng tự chạy lại (xem api()).
-    const j = await api({action:'suco_list'}, {nen: !!silent});
-    if(j.ok) SUCO = j.data || [];
+    const dungDelta = SUCO_MOC > 0 && SUCO_SO_LAN_DELTA < SUCO_DELTA_TOI_DA;
+    const j = await api(dungDelta ? {action:'suco_list', sau: SUCO_MOC} : {action:'suco_list'}, {nen: !!silent});
+    if(j.ok){
+      if(j.delta){ gopSuCoThayDoi(j.data || []); SUCO_SO_LAN_DELTA++; }
+      else { SUCO = j.data || []; SUCO_SO_LAN_DELTA = 0; }
+      SUCO_MOC = j.moc || 0;
+    }
   }catch(e){ if(!silent) toast(moTaLoiKetNoi(e),'bad'); }
   xuLySuCoSauKhiTai();
 }
@@ -3533,13 +3538,6 @@ async function dongTicket(maSuCo){
 }
 
 /* ─── cài đặt: bật/tắt giữ phòng ─── */
-async function loadBookingSetting(){
-  try{
-    const r = await fetch(CFG.API + '?action=settings', {method:'GET'});
-    const j = await r.json();
-    if(j.ok){ PUBLIC_SETTINGS = Object.assign({}, PUBLIC_SETTINGS, j.data); capNhatUIBookingSetting(); }
-  }catch(e){}
-}
 
 /** Dựng công tắc "Cho phép khách đặt phòng" từ PUBLIC_SETTINGS đang có — tách riêng để dùng lại được
  *  với dữ liệu cài đặt lấy sẵn từ action gộp `khoi_dong` (mới, 18/09/2026). */
