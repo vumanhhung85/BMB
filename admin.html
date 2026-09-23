@@ -94,6 +94,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 #app{display:none}
 header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-filter:blur(16px);
   border-bottom:1px solid var(--line-soft)}
+#formTaoSuCo,#formDieuPhoi,#formBaoXong,#formChiNhanh,#formTaiKhoan,#formLoaiSuCo{scroll-margin-top:140px}
 .topbar{display:flex;align-items:center;gap:14px;height:66px}
 .topbar img{height:38px}
 .who{margin-left:auto;display:flex;align-items:center;gap:11px;font-size:13.5px}
@@ -565,51 +566,101 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
 
   <!-- ══════════ CÀI ĐẶT ══════════ -->
   <div id="caidat" style="display:none">
-    <div id="caidatAdmin" style="display:none">
-    <div class="form-card ff-collapse">
-      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open'); if(this.closest('.form-card').classList.contains('open')) xemLuuLuongTruyCap();">
-        <div>
-          <h3 style="font-size:18px;margin-bottom:6px">📊 Lưu lượng truy cập</h3>
-          <p style="color:var(--txt-mute);font-size:13.5px">Số lượt đăng nhập theo ngày/giờ/chi nhánh/tài khoản — chỉ để xem xu hướng, không có hành động nào ở đây.</p>
-        </div>
-        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
-      </button>
-      <div class="ff-body">
-        <div class="toolbar" style="margin-bottom:12px">
-          <select id="ttNguonDuLieu" onchange="xemLuuLuongTruyCap()">
-            <option value="dangnhap">🔑 Đăng nhập (nội bộ)</option>
-            <option value="trangchu">🌐 Trang chủ (khách)</option>
-          </select>
-          <select id="ttSoNgay" onchange="xemLuuLuongTruyCap()">
-            <option value="7">7 ngày gần nhất</option>
-            <option value="30" selected>30 ngày gần nhất</option>
-            <option value="90">90 ngày gần nhất</option>
-          </select>
-        </div>
-        <div id="ttThan"><div class="sk" style="height:140px"></div></div>
-      </div>
-    </div>
-
+    <div class="caidat-admin-only" style="display:none">
     <div class="form-card ff-collapse">
       <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
         <div>
-          <h3 style="font-size:18px;margin-bottom:6px">Chức năng giữ phòng đặt chỗ</h3>
-          <p style="color:var(--txt-mute);font-size:13.5px">Bật/tắt nút "Giữ phòng" trên trang khách.</p>
+          <h3 style="font-size:18px;margin-bottom:6px">Danh mục loại sự cố</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Thêm/sửa/ẩn loại sự cố dùng trong form Báo sự cố.</p>
         </div>
         <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
       </button>
       <div class="ff-body">
-      <p style="color:var(--txt-mute);font-size:13.5px">Khi tắt, trang khách sẽ ẩn nút "Giữ phòng" và máy chủ từ chối mọi đơn mới gửi lên. Đơn cũ vẫn xem và xử lý bình thường trong các tab bên trên.</p>
-      <div class="switch-row">
-        <div>
-          <b id="bkStatusTxt">Đang bật</b>
-          <div style="font-size:12.5px;color:var(--txt-mute)">Khách có thể giữ phòng qua trang chủ</div>
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm loại sự cố hay gặp, sửa mức độ ưu tiên mặc định, hoặc ẩn loại không còn dùng — áp dụng ngay cho form Báo sự cố, không cần sửa code.</p>
+      <div id="listLoaiSuCo" style="margin-bottom:14px"></div>
+      <button class="btn btn-y btn-sm" onclick="openThemLoaiSuCo()">+ Thêm loại sự cố</button>
+
+      <div class="form-card" id="formLoaiSuCo" style="display:none;margin-top:14px;padding:16px;max-width:640px">
+        <h3 id="lscTieuDe" style="font-size:15px;margin-bottom:12px">Thêm loại sự cố mới</h3>
+        <div class="field">
+          <label for="lscTen">Tên hiển thị</label>
+          <input id="lscTen" placeholder="vd: Hỏng máy lạnh phòng VIP" maxlength="80">
         </div>
-        <label class="switch">
-          <input type="checkbox" id="bkToggle" checked onchange="toggleBookingSetting()">
-          <span class="track"></span>
-        </label>
+        <div class="field">
+          <label>Mức độ ưu tiên mặc định</label>
+          <div id="lscMucDoPick" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+        <div class="field">
+          <label for="lscLoaiKT">Loại kỹ thuật phụ trách</label>
+          <select id="lscLoaiKT">
+            <option value="chung">Kỹ thuật chung</option>
+            <option value="mang">Kỹ thuật mạng</option>
+          </select>
+        </div>
+        <div class="bk-act" style="margin-top:6px">
+          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,submitLoaiSuCo)">Lưu</button>
+          <button class="btn btn-ghost btn-sm" onclick="$('formLoaiSuCo').style.display='none'">Huỷ</button>
+        </div>
       </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3 style="font-size:18px;margin-bottom:6px">Quản lý tài khoản</h3>
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm tài khoản mới cho quản lý chi nhánh hoặc kỹ thuật, sửa thông tin, đổi mật khẩu, vô hiệu hoá tạm thời hoặc xoá hẳn — có hiệu lực ngay, đăng xuất khỏi mọi thiết bị của người đó lập tức khi vô hiệu hoá/đổi mật khẩu/xoá.</p>
+      <button class="btn btn-y btn-sm" style="margin-bottom:14px" onclick="openThemTaiKhoan()">+ Thêm tài khoản</button>
+      <button class="btn btn-ghost btn-sm" style="margin-bottom:14px;margin-left:8px;color:var(--bad)" onclick="chanBamKep(this,resetAllPassUI)">🔑 Đặt lại mật khẩu hàng loạt</button>
+      <div class="toolbar" style="margin-bottom:12px">
+        <input id="qTaiKhoan" placeholder="Tìm tên, tài khoản, chi nhánh…" style="flex:1;min-width:180px" oninput="soHienTaiKhoan=SO_MOI_TRANG;drawTaiKhoanList()">
+        <select id="fTaiKhoanVaiTro" onchange="soHienTaiKhoan=SO_MOI_TRANG;drawTaiKhoanList()">
+          <option value="">Mọi vai trò</option>
+          <option value="admin">Quản trị</option>
+          <option value="manager">Quản lý chi nhánh</option>
+          <option value="kythuat">Kỹ thuật viên</option>
+          <option value="kythuat_mang">Kỹ thuật mạng</option>
+        </select>
+      </div>
+      <div id="listTaiKhoan"></div>
+
+      <div class="form-card" id="formTaiKhoan" style="display:none;margin-top:14px;padding:16px;max-width:640px">
+        <h3 id="tkTieuDe" style="font-size:15px;margin-bottom:12px">Thêm tài khoản mới</h3>
+        <div class="field">
+          <label for="tkTaikhoan">Tên đăng nhập <span class="req" style="color:var(--bad)">*</span></label>
+          <input id="tkTaikhoan" placeholder="chỉ chữ thường/số, vd: kythuat3" maxlength="40" autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="tkHoten">Họ tên <span class="req" style="color:var(--bad)">*</span></label>
+          <input id="tkHoten" maxlength="60">
+        </div>
+        <div class="field">
+          <label>Vai trò <span class="req" style="color:var(--bad)">*</span></label>
+          <div id="tkVaiTroPick" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+        <div class="field" id="tkChiNhanhWrap">
+          <label for="tkChiNhanh">Chi nhánh phụ trách <span class="req" style="color:var(--bad)">*</span></label>
+          <select id="tkChiNhanh"><option value="">— Chọn chi nhánh —</option></select>
+          <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Với kỹ thuật viên: chọn chi nhánh xuất phát (điểm tham chiếu tính khoảng cách điều phối), không nhất thiết là chi nhánh cố định.</div>
+        </div>
+        <div class="field" id="tkSieuAdminWrap" style="display:none">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="tkSieuAdmin" style="width:18px;height:18px">
+            🌟 Siêu admin (được xoá sự cố báo nhầm/trùng lặp)
+          </label>
+          <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Chỉ nên đánh dấu cho 1-2 admin thật sự tin cậy — xoá sự cố là hành động khó hoàn tác qua giao diện. Các admin khác vẫn làm được mọi việc khác bình thường, chỉ không thấy nút xoá.</div>
+        </div>
+        <div class="field">
+          <label for="tkEmail">Email (dùng cho tính năng quên mật khẩu)</label>
+          <input id="tkEmail" type="email" maxlength="80">
+        </div>
+        <div class="field" id="tkMatKhauWrap">
+          <label for="tkMatKhau">Mật khẩu ban đầu</label>
+          <input id="tkMatKhau" placeholder="Boom@2026" maxlength="60">
+          <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Để trống sẽ dùng mật khẩu mặc định <b>Boom@2026</b> — nên đổi lại ngay sau lần đăng nhập đầu tiên.</div>
+        </div>
+        <div class="bk-act" style="margin-top:6px">
+          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,submitTaiKhoan)">Lưu</button>
+          <button class="btn btn-ghost btn-sm" onclick="$('formTaiKhoan').style.display='none'">Huỷ</button>
+        </div>
       </div>
     </div>
 
@@ -618,8 +669,8 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Mã chi nhánh (vd: CN03) là khoá liên kết duy nhất giữa chi nhánh và tài khoản phụ trách — đổi tên/địa chỉ không ảnh hưởng liên kết. Tạm ngưng hoặc đóng hẳn 1 chi nhánh (mất mặt bằng, sửa chữa…) để khách không chọn được nữa khi đặt phòng hoặc báo sự cố.</p>
 
       <div class="toolbar" style="margin-bottom:12px">
-        <input id="qChiNhanh" placeholder="Tìm mã, tên, địa chỉ…" style="flex:1;min-width:180px" oninput="drawChiNhanhList()">
-        <select id="fChiNhanhTrangThai" onchange="drawChiNhanhList()">
+        <input id="qChiNhanh" placeholder="Tìm mã, tên, địa chỉ…" style="flex:1;min-width:180px" oninput="soHienChiNhanh=SO_MOI_TRANG;drawChiNhanhList()">
+        <select id="fChiNhanhTrangThai" onchange="soHienChiNhanh=SO_MOI_TRANG;drawChiNhanhList()">
           <option value="">Mọi trạng thái</option>
           <option value="hoat_dong">Đang hoạt động</option>
           <option value="tam_ngung">Tạm ngưng</option>
@@ -747,44 +798,6 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       </div>
     </div>
 
-    <div class="form-card ff-collapse">
-      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
-        <div>
-          <h3 style="font-size:18px;margin-bottom:6px">Danh mục loại sự cố</h3>
-          <p style="color:var(--txt-mute);font-size:13.5px">Thêm/sửa/ẩn loại sự cố dùng trong form Báo sự cố.</p>
-        </div>
-        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
-      </button>
-      <div class="ff-body">
-      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm loại sự cố hay gặp, sửa mức độ ưu tiên mặc định, hoặc ẩn loại không còn dùng — áp dụng ngay cho form Báo sự cố, không cần sửa code.</p>
-      <div id="listLoaiSuCo" style="margin-bottom:14px"></div>
-      <button class="btn btn-y btn-sm" onclick="openThemLoaiSuCo()">+ Thêm loại sự cố</button>
-
-      <div class="form-card" id="formLoaiSuCo" style="display:none;margin-top:14px;padding:16px;max-width:640px">
-        <h3 id="lscTieuDe" style="font-size:15px;margin-bottom:12px">Thêm loại sự cố mới</h3>
-        <div class="field">
-          <label for="lscTen">Tên hiển thị</label>
-          <input id="lscTen" placeholder="vd: Hỏng máy lạnh phòng VIP" maxlength="80">
-        </div>
-        <div class="field">
-          <label>Mức độ ưu tiên mặc định</label>
-          <div id="lscMucDoPick" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-        </div>
-        <div class="field">
-          <label for="lscLoaiKT">Loại kỹ thuật phụ trách</label>
-          <select id="lscLoaiKT">
-            <option value="chung">Kỹ thuật chung</option>
-            <option value="mang">Kỹ thuật mạng</option>
-          </select>
-        </div>
-        <div class="bk-act" style="margin-top:6px">
-          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,submitLoaiSuCo)">Lưu</button>
-          <button class="btn btn-ghost btn-sm" onclick="$('formLoaiSuCo').style.display='none'">Huỷ</button>
-        </div>
-      </div>
-      </div>
-    </div>
-
     <div class="form-card ff-collapse" style="max-width:560px">
       <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
         <div>
@@ -843,7 +856,32 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <div class="field" style="margin:0"><label style="color:var(--txt-mute)">Không cấp bách</label><div style="padding:12px 0;color:var(--txt-mute);font-size:13px">Gộp đợt bảo trì định kỳ</div></div>
         <div class="field" style="margin:0"><label for="slaM4XL">Xử lý xong trong (ngày)</label><input id="slaM4XL" type="number" min="0" step="1"></div>
       </div>
-      <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuSLA)">Lưu ngưỡng SLA</button>
+
+      <div style="border-top:1px solid var(--line-soft);margin:4px 0 16px"></div>
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">
+        <b>Cảnh báo tự động qua Telegram</b> — ticket quá hạn "Tiếp nhận" ở trên sẽ tự nhắn nhóm ngay khi phát hiện (mỗi ticket đúng 1 lần). Riêng ticket còn mở quá lâu thì gộp thành 1 bản điểm danh, gửi đúng giờ/thứ chọn dưới đây thay vì nhắc liên tục cả ngày.
+      </p>
+      <div class="row3" style="align-items:end;margin-bottom:10px">
+        <div class="field" style="margin:0"><label for="tdNguongNgay">Tồn đọng quá (ngày)</label><input id="tdNguongNgay" type="number" min="1" max="60" step="1"></div>
+        <div class="field" style="margin:0"><label for="tdGio">Giờ gửi (0–23)</label><input id="tdGio" type="number" min="0" max="23" step="1"></div>
+        <div class="field" style="margin:0">
+          <label>Gửi vào ngày</label>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:3px;font-size:12.5px;cursor:pointer"><input type="checkbox" class="tdThu" value="1" style="width:15px;height:15px">T2</label>
+            <label style="display:flex;align-items:center;gap:3px;font-size:12.5px;cursor:pointer"><input type="checkbox" class="tdThu" value="2" style="width:15px;height:15px">T3</label>
+            <label style="display:flex;align-items:center;gap:3px;font-size:12.5px;cursor:pointer"><input type="checkbox" class="tdThu" value="3" style="width:15px;height:15px">T4</label>
+            <label style="display:flex;align-items:center;gap:3px;font-size:12.5px;cursor:pointer"><input type="checkbox" class="tdThu" value="4" style="width:15px;height:15px">T5</label>
+            <label style="display:flex;align-items:center;gap:3px;font-size:12.5px;cursor:pointer"><input type="checkbox" class="tdThu" value="5" style="width:15px;height:15px">T6</label>
+            <label style="display:flex;align-items:center;gap:3px;font-size:12.5px;cursor:pointer"><input type="checkbox" class="tdThu" value="6" style="width:15px;height:15px">T7</label>
+            <label style="display:flex;align-items:center;gap:3px;font-size:12.5px;cursor:pointer"><input type="checkbox" class="tdThu" value="0" style="width:15px;height:15px">CN</label>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuSLA)">Lưu ngưỡng SLA</button>
+        <button class="btn btn-sm" onclick="chanBamKep(this,kiemTraTacVuNen)">🩺 Kiểm tra &amp; quét ngay</button>
+      </div>
+      <div id="slaNenTrangThai" style="margin-top:12px;font-size:13px;line-height:1.6;color:var(--txt-mute)"></div>
       </div>
     </div>
 
@@ -899,155 +937,28 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       </div>
     </div>
 
-    <div class="form-card ff-collapse" style="max-width:640px">
-      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open'); if(this.closest('.form-card').classList.contains('open')) loadBackupInfo();">
-        <div>
-          <h3 style="font-size:18px;margin-bottom:6px">Sao lưu Google Drive (tài khoản khác)</h3>
-          <p style="color:var(--txt-mute);font-size:13.5px">Sao lưu Sheet + toàn bộ ảnh (sự cố, chi nhánh) sang Drive của 1 tài khoản Google riêng, phòng khi tài khoản chính gặp sự cố.</p>
-        </div>
-        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
-      </button>
-      <div class="ff-body">
-        <div style="background:var(--plum2);border:1px solid var(--line-soft);border-radius:12px;padding:12px 14px;font-size:13px;margin-bottom:16px">
-          <b>Cách nối 2 tài khoản Google:</b>
-          <ol style="margin:8px 0 0;padding-left:20px;color:var(--txt-mute)">
-            <li>Đăng nhập Google Drive bằng tài khoản <b>khác</b> (tài khoản muốn giữ bản sao lưu) → tạo 1 thư mục mới.</li>
-            <li>Chia sẻ (Share) thư mục đó, cấp quyền <b>Người chỉnh sửa (Editor)</b> cho email: <b id="bkEmail" style="color:var(--yellow)">đang tải…</b> (chính là tài khoản đang chạy hệ thống này).</li>
-            <li>Mở thư mục đó, copy đoạn ID trong đường link (phần sau <code>/folders/</code>) → dán vào ô bên dưới → Lưu.</li>
-          </ol>
-        </div>
-        <div class="field">
-          <label for="bkFolderId">ID thư mục Google Drive (tài khoản khác)</label>
-          <div style="display:flex;gap:8px">
-            <input id="bkFolderId" placeholder="Dán ID thư mục vào đây" style="flex:1">
-            <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuBackupFolder)">Lưu</button>
-          </div>
-        </div>
-        <button class="btn btn-ok btn-sm" onclick="chayBackup()" id="btnChayBackup">💾 Sao lưu ngay</button>
-        <div style="font-size:12px;color:var(--txt-mute);margin-top:8px">Sheet lưu theo từng lần bấm (giữ lại lịch sử). Ảnh đồng bộ tăng dần — chỉ copy ảnh mới, không tạo trùng dù bấm nhiều lần. Nếu có rất nhiều ảnh tích luỹ từ trước, lần đầu sao lưu có thể cần bấm lại 1-2 lần mới copy hết (mỗi lần chạy sẽ tiếp tục đúng chỗ dở dang, không mất tiến độ).</div>
-        <div id="bkKetQua" style="font-size:12.5px;color:var(--txt-mute);margin-top:10px"></div>
-
-        <div style="border-top:1px solid var(--line-soft);margin:16px 0 14px"></div>
-        <div class="field">
-          <label for="bkSoNgay">Tự động sao lưu định kỳ mỗi (ngày) — 0 = tắt</label>
-          <div style="display:flex;gap:8px">
-            <input id="bkSoNgay" type="number" min="0" max="90" step="1" style="flex:1">
-            <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuLichBackup)">Lưu lịch</button>
-          </div>
-          <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Chạy tự động lúc 2h sáng, không cần ai bấm nút. Đổi số ngày ở đây bất cứ lúc nào, không cần sửa code hay deploy lại.</div>
-        </div>
-        <div id="bkLichTrangThai" style="font-size:12.5px;color:var(--txt-mute)"></div>
-      </div>
-    </div>
-
-    <div class="form-card">
-      <h3 style="font-size:18px;margin-bottom:6px">Quản lý tài khoản</h3>
-      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Thêm tài khoản mới cho quản lý chi nhánh hoặc kỹ thuật, sửa thông tin, đổi mật khẩu, vô hiệu hoá tạm thời hoặc xoá hẳn — có hiệu lực ngay, đăng xuất khỏi mọi thiết bị của người đó lập tức khi vô hiệu hoá/đổi mật khẩu/xoá.</p>
-      <button class="btn btn-y btn-sm" style="margin-bottom:14px" onclick="openThemTaiKhoan()">+ Thêm tài khoản</button>
-      <button class="btn btn-ghost btn-sm" style="margin-bottom:14px;margin-left:8px;color:var(--bad)" onclick="chanBamKep(this,resetAllPassUI)">🔑 Đặt lại mật khẩu hàng loạt</button>
-      <div class="toolbar" style="margin-bottom:12px">
-        <input id="qTaiKhoan" placeholder="Tìm tên, tài khoản, chi nhánh…" style="flex:1;min-width:180px" oninput="drawTaiKhoanList()">
-        <select id="fTaiKhoanVaiTro" onchange="drawTaiKhoanList()">
-          <option value="">Mọi vai trò</option>
-          <option value="admin">Quản trị</option>
-          <option value="manager">Quản lý chi nhánh</option>
-          <option value="kythuat">Kỹ thuật viên</option>
-          <option value="kythuat_mang">Kỹ thuật mạng</option>
-        </select>
-      </div>
-      <div id="listTaiKhoan"></div>
-
-      <div class="form-card" id="formTaiKhoan" style="display:none;margin-top:14px;padding:16px;max-width:640px">
-        <h3 id="tkTieuDe" style="font-size:15px;margin-bottom:12px">Thêm tài khoản mới</h3>
-        <div class="field">
-          <label for="tkTaikhoan">Tên đăng nhập <span class="req" style="color:var(--bad)">*</span></label>
-          <input id="tkTaikhoan" placeholder="chỉ chữ thường/số, vd: kythuat3" maxlength="40" autocapitalize="none" spellcheck="false">
-        </div>
-        <div class="field">
-          <label for="tkHoten">Họ tên <span class="req" style="color:var(--bad)">*</span></label>
-          <input id="tkHoten" maxlength="60">
-        </div>
-        <div class="field">
-          <label>Vai trò <span class="req" style="color:var(--bad)">*</span></label>
-          <div id="tkVaiTroPick" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-        </div>
-        <div class="field" id="tkChiNhanhWrap">
-          <label for="tkChiNhanh">Chi nhánh phụ trách <span class="req" style="color:var(--bad)">*</span></label>
-          <select id="tkChiNhanh"><option value="">— Chọn chi nhánh —</option></select>
-          <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Với kỹ thuật viên: chọn chi nhánh xuất phát (điểm tham chiếu tính khoảng cách điều phối), không nhất thiết là chi nhánh cố định.</div>
-        </div>
-        <div class="field" id="tkSieuAdminWrap" style="display:none">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="tkSieuAdmin" style="width:18px;height:18px">
-            🌟 Siêu admin (được xoá sự cố báo nhầm/trùng lặp)
-          </label>
-          <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Chỉ nên đánh dấu cho 1-2 admin thật sự tin cậy — xoá sự cố là hành động khó hoàn tác qua giao diện. Các admin khác vẫn làm được mọi việc khác bình thường, chỉ không thấy nút xoá.</div>
-        </div>
-        <div class="field">
-          <label for="tkEmail">Email (dùng cho tính năng quên mật khẩu)</label>
-          <input id="tkEmail" type="email" maxlength="80">
-        </div>
-        <div class="field" id="tkMatKhauWrap">
-          <label for="tkMatKhau">Mật khẩu ban đầu</label>
-          <input id="tkMatKhau" placeholder="Boom@2026" maxlength="60">
-          <div style="font-size:12px;color:var(--txt-mute);margin-top:4px">Để trống sẽ dùng mật khẩu mặc định <b>Boom@2026</b> — nên đổi lại ngay sau lần đăng nhập đầu tiên.</div>
-        </div>
-        <div class="bk-act" style="margin-top:6px">
-          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,submitTaiKhoan)">Lưu</button>
-          <button class="btn btn-ghost btn-sm" onclick="$('formTaiKhoan').style.display='none'">Huỷ</button>
-        </div>
-      </div>
-    </div>
-    </div>
-
-    <div class="form-card ff-collapse" style="max-width:560px">
+    <div class="form-card ff-collapse">
       <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
         <div>
-          <h3 style="font-size:18px;margin-bottom:6px">Đổi mật khẩu của tôi</h3>
-          <p style="color:var(--txt-mute);font-size:13.5px">Tài khoản đang đăng nhập: <span id="tkmTaiKhoanHienTai" style="color:var(--txt)"></span></p>
+          <h3 style="font-size:18px;margin-bottom:6px">Chức năng giữ phòng đặt chỗ</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Bật/tắt nút "Giữ phòng" trên trang khách.</p>
         </div>
         <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
       </button>
       <div class="ff-body">
-      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:10px">Đổi xong sẽ tự đăng xuất các thiết bị khác, không đăng xuất thiết bị đang dùng.</p>
-      <p id="dmkTrangThai" style="font-size:12.5px;margin-bottom:14px"></p>
-      <div id="dmkKhoiForm">
-      <div class="field">
-        <label for="tkmMatKhauCu">Mật khẩu hiện tại</label>
-        <div class="pw-wrap">
-          <input id="tkmMatKhauCu" type="password" maxlength="60" autocomplete="current-password">
-          <button type="button" class="pw-eye" onclick="toggleMatKhauHien(this,'tkmMatKhauCu')" aria-label="Hiện/ẩn mật khẩu">🙈</button>
+      <p style="color:var(--txt-mute);font-size:13.5px">Khi tắt, trang khách sẽ ẩn nút "Giữ phòng" và máy chủ từ chối mọi đơn mới gửi lên. Đơn cũ vẫn xem và xử lý bình thường trong các tab bên trên.</p>
+      <div class="switch-row">
+        <div>
+          <b id="bkStatusTxt">Đang bật</b>
+          <div style="font-size:12.5px;color:var(--txt-mute)">Khách có thể giữ phòng qua trang chủ</div>
         </div>
-      </div>
-      <div class="field">
-        <label for="tkmMatKhauMoi">Mật khẩu mới (tối thiểu 4 ký tự)</label>
-        <div class="pw-wrap">
-          <input id="tkmMatKhauMoi" type="password" maxlength="60" autocomplete="new-password">
-          <button type="button" class="pw-eye" onclick="toggleMatKhauHien(this,'tkmMatKhauMoi')" aria-label="Hiện/ẩn mật khẩu">🙈</button>
-        </div>
+        <label class="switch">
+          <input type="checkbox" id="bkToggle" checked onchange="toggleBookingSetting()">
+          <span class="track"></span>
+        </label>
       </div>
       </div>
-      <button class="btn btn-y btn-sm" onclick="chanBamKep(this,tuDoiMatKhau)">Đổi mật khẩu</button>
-
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line-soft)">
-        <label style="display:block;margin-bottom:4px">🔐 Đăng nhập nhanh bằng vân tay / khuôn mặt</label>
-        <p id="vtTrangThai" style="font-size:12.5px;color:var(--txt-mute);margin-bottom:10px">Đang kiểm tra thiết bị…</p>
-
-        <div id="vtKhoiBat" style="display:none">
-          <div class="field">
-            <label for="vtMatKhauXacNhan">Nhập mật khẩu hiện tại để bật</label>
-            <div class="pw-wrap">
-              <input id="vtMatKhauXacNhan" type="password" maxlength="60" autocomplete="current-password">
-              <button type="button" class="pw-eye" onclick="toggleMatKhauHien(this,'vtMatKhauXacNhan')" aria-label="Hiện/ẩn mật khẩu">🙈</button>
-            </div>
-          </div>
-          <button class="btn btn-y btn-sm" onclick="batVanTay()" id="vtBatBtn">Bật vân tay trên thiết bị này</button>
-        </div>
-        <button class="btn btn-ghost btn-sm" id="vtTatBtn" style="display:none" onclick="tatVanTay()">Tắt vân tay trên thiết bị này</button>
-
-        <p style="font-size:12px;color:var(--txt-mute);margin-top:10px">Đây là lớp mở khoá cục bộ ngay trên máy này bằng vân tay/khuôn mặt sẵn có của điện thoại — không phải xác thực với máy chủ. Mật khẩu thật vẫn luôn được máy chủ kiểm tra lại như cũ mỗi lần đăng nhập. Cần bật riêng trên từng thiết bị. Đổi mật khẩu ở trên sẽ tự cập nhật cho vân tay trên thiết bị này (nếu đang bật) — không cần bật lại.</p>
-      </div>
-      </div>
+    </div>
     </div>
 
     <div id="cfgTelegramWrap" style="display:none">
@@ -1105,22 +1016,96 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         </div>
       </div>
     </div>
-  </div>
-</div>
+
+    <div class="form-card ff-collapse" style="max-width:560px">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">Đổi mật khẩu của tôi</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Tài khoản đang đăng nhập: <span id="tkmTaiKhoanHienTai" style="color:var(--txt)"></span></p>
+        </div>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
+      </button>
+      <div class="ff-body">
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:10px">Đổi xong sẽ tự đăng xuất các thiết bị khác, không đăng xuất thiết bị đang dùng.</p>
+      <p id="dmkTrangThai" style="font-size:12.5px;margin-bottom:14px"></p>
+      <div id="dmkKhoiForm">
+      <div class="field">
+        <label for="tkmMatKhauCu">Mật khẩu hiện tại</label>
+        <div class="pw-wrap">
+          <input id="tkmMatKhauCu" type="password" maxlength="60" autocomplete="current-password">
+          <button type="button" class="pw-eye" onclick="toggleMatKhauHien(this,'tkmMatKhauCu')" aria-label="Hiện/ẩn mật khẩu">🙈</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="tkmMatKhauMoi">Mật khẩu mới (tối thiểu 4 ký tự)</label>
+        <div class="pw-wrap">
+          <input id="tkmMatKhauMoi" type="password" maxlength="60" autocomplete="new-password">
+          <button type="button" class="pw-eye" onclick="toggleMatKhauHien(this,'tkmMatKhauMoi')" aria-label="Hiện/ẩn mật khẩu">🙈</button>
+        </div>
+      </div>
+      </div>
+      <button class="btn btn-y btn-sm" onclick="chanBamKep(this,tuDoiMatKhau)">Đổi mật khẩu</button>
+
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line-soft)">
+        <label style="display:block;margin-bottom:4px">🔐 Đăng nhập nhanh bằng vân tay / khuôn mặt</label>
+        <p id="vtTrangThai" style="font-size:12.5px;color:var(--txt-mute);margin-bottom:10px">Đang kiểm tra thiết bị…</p>
+
+        <div id="vtKhoiBat" style="display:none">
+          <div class="field">
+            <label for="vtMatKhauXacNhan">Nhập mật khẩu hiện tại để bật</label>
+            <div class="pw-wrap">
+              <input id="vtMatKhauXacNhan" type="password" maxlength="60" autocomplete="current-password">
+              <button type="button" class="pw-eye" onclick="toggleMatKhauHien(this,'vtMatKhauXacNhan')" aria-label="Hiện/ẩn mật khẩu">🙈</button>
+            </div>
+          </div>
+          <button class="btn btn-y btn-sm" onclick="batVanTay()" id="vtBatBtn">Bật vân tay trên thiết bị này</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="vtTatBtn" style="display:none" onclick="tatVanTay()">Tắt vân tay trên thiết bị này</button>
+
+        <p style="font-size:12px;color:var(--txt-mute);margin-top:10px">Đây là lớp mở khoá cục bộ ngay trên máy này bằng vân tay/khuôn mặt sẵn có của điện thoại — không phải xác thực với máy chủ. Mật khẩu thật vẫn luôn được máy chủ kiểm tra lại như cũ mỗi lần đăng nhập. Cần bật riêng trên từng thiết bị. Đổi mật khẩu ở trên sẽ tự cập nhật cho vân tay trên thiết bị này (nếu đang bật) — không cần bật lại.</p>
+      </div>
+      </div>
+    </div>
+
+    <div class="caidat-admin-only" style="display:none">
+    <div class="form-card ff-collapse">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open'); if(this.closest('.form-card').classList.contains('open')) xemLuuLuongTruyCap();">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">📊 Lưu lượng truy cập</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Số lượt đăng nhập theo ngày/giờ/chi nhánh/tài khoản — chỉ để xem xu hướng, không có hành động nào ở đây.</p>
+        </div>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
+      </button>
+      <div class="ff-body">
+        <div class="toolbar" style="margin-bottom:12px">
+          <select id="ttNguonDuLieu" onchange="xemLuuLuongTruyCap()">
+            <option value="dangnhap">🔑 Đăng nhập (nội bộ)</option>
+            <option value="trangchu">🌐 Trang chủ (khách)</option>
+          </select>
+          <select id="ttSoNgay" onchange="xemLuuLuongTruyCap()">
+            <option value="7">7 ngày gần nhất</option>
+            <option value="30" selected>30 ngày gần nhất</option>
+            <option value="90">90 ngày gần nhất</option>
+          </select>
+        </div>
+        <div id="ttThan"><div class="sk" style="height:140px"></div></div>
+      </div>
+    </div>
+    </div>
 </div>
 
-<div id="modalOverlay" style="display:none" onclick="if(event.target===this) closeLichSu()">
+<div id="modalOverlay" style="display:none" onclick="if(event.target===this) dongLichSuNut()">
   <div class="form-card" style="max-width:520px;width:100%;max-height:80vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <h3 id="lsTieuDe" style="font-size:16px">Lịch sử xử lý</h3>
-      <button class="btn btn-ghost btn-sm" onclick="closeLichSu()">✕</button>
+      <button class="btn btn-ghost btn-sm" onclick="dongLichSuNut()">✕</button>
     </div>
     <div id="lsBody"></div>
   </div>
 </div>
 
-<div id="anhXemModal" onclick="if(event.target===this) closeXemAnh()">
-  <button type="button" id="anhXemDong" onclick="closeXemAnh()" aria-label="Đóng">✕</button>
+<div id="anhXemModal" onclick="if(event.target===this) dongAnhXemNut()">
+  <button type="button" id="anhXemDong" onclick="dongAnhXemNut()" aria-label="Đóng">✕</button>
   <button type="button" id="anhXemTruoc" onclick="chuyenAnhXem(-1)" aria-label="Ảnh trước">‹</button>
   <img id="anhXemImg" src="" alt="Ảnh sự cố">
   <button type="button" id="anhXemSau" onclick="chuyenAnhXem(1)" aria-label="Ảnh sau">›</button>
@@ -1140,8 +1125,11 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
    BOOM MUSIC BOX — bảng điều khiển chi nhánh
    ══════════════════════════════════════════════ */
 const CFG = {
-  API: 'https://script.google.com/macros/s/AKfycbyJd-5nGPtfObYNN3fbv1l_tGqVAPZo3W68d0pwwJTbQ2JljRkjzkcFPY3dkb6pVpFG/exec',
-  PREFIX: 'bmb_adm_'
+  /* BẢN 2 — chạy trên Cloudflare Worker + D1 (thay Google Apps Script). Sau khi `npx wrangler deploy`,
+     dán đúng địa chỉ Worker in ra ở cuối lệnh vào dòng dưới (dạng https://bmb-quanly-worker.xxx.workers.dev). */
+  API: 'https://bmb-quanly-worker.vumanhhung85.workers.dev',
+  /* Đổi tiền tố lưu trên máy để phiên/cài đặt của bản 2 không lẫn với bản GAS cũ khi dùng chung tên miền. */
+  PREFIX: 'bmb2_adm_'
 };
 
 let SESSION = null, DATA = [], TAB = 'dat-phong';
@@ -1461,7 +1449,7 @@ async function chanBamKep(btn, fn, ...args){
  *   - Lỗi BAN_DANG_BAN_THU_LAI (máy chủ chưa giữ được khoá ghi, xem khoaHoacBan_ trong Code.gs): CHỨNG
  *     MINH request chưa hề chạm tới dữ liệu → an toàn tự gửi lại dù là action ghi nào. */
 const ACTION_CHI_DOC = ['khoi_dong','list','suco_list','suco_lichsu','suco_list_da_xoa','kythuat_list',
-  'kythuat_vitri_list','loaisuco_list','taikhoan_list','chinhanh_list','backup_thongtin','telegram_thongtin',
+  'kythuat_vitri_list','loaisuco_list','taikhoan_list','chinhanh_list','telegram_thongtin',
   'truycap_thongke','truycap_thongke_trangchu'];
 const API_TIMEOUT_MS = 25000;   // GAS lúc "khởi động lạnh" có thể mất tới ~10 giây — để rộng 25 giây
 
@@ -1542,6 +1530,10 @@ async function api(payload, tuyChon){
       // timeout/mất mạng (request có thể đã tới máy chủ và xử lý xong, chỉ mất phản hồi trên đường về)
       // — nên an toàn tự gửi lại thêm dù là action ghi vốn chỉ cho phép 1 lần (mới, 18/09/2026, xem
       // hàm khoaHoacBan_ trong Code.gs).
+      // Chức năng chưa chuyển sang hệ thống mới (giai đoạn chuyển đổi) — báo rõ, không coi là lỗi mạng.
+      if(j.error === 'CHUA_HO_TRO'){
+        throw new Error('Chức năng này chưa có trên hệ thống mới — tạm xử lý ngoài hệ thống (gọi/Zalo).');
+      }
       if(j.error === 'BAN_DANG_BAN_THU_LAI'){
         danhDauMayChuBan();
         if(!nen && soLanToiDa < 3) soLanToiDa = 3;
@@ -1612,7 +1604,10 @@ async function loadPublicSettings(){
   try{
     const r = await fetch(CFG.API + '?action=settings', {method:'GET'});
     const j = await r.json();
-    if(j.ok){ PUBLIC_SETTINGS = j.data; }
+    // GỘP thay vì ghi đè (sửa 23/09/2026): GET ?action=settings là bản CÔNG KHAI, không có 3 cài đặt
+    // tồn đọng (giờ/thứ/ngưỡng) — ghi đè làm form SLA hiện lại giá trị mặc định, bấm Lưu lần sau là
+    // vô tình trả cả 3 về mặc định.
+    if(j.ok){ PUBLIC_SETTINGS = Object.assign({}, PUBLIC_SETTINGS, j.data); }
   }catch(e){}
 }
 loadPublicSettings();
@@ -1708,7 +1703,7 @@ async function enterApp(){
   // nhánh/Telegram của admin trên máy đó, phải bấm F5 mới hết. Sửa: luôn gán cả 2 nhánh mỗi lần vào.
   const laAdmin = SESSION.role === 'admin';
   $('fBranch').style.display = laAdmin ? '' : 'none';
-  $('caidatAdmin').style.display = laAdmin ? '' : 'none';
+  document.querySelectorAll('.caidat-admin-only').forEach(el => el.style.display = laAdmin ? '' : 'none');
   $('cfgTelegramWrap').style.display = laAdmin ? '' : 'none';
   // Các nút chuyển view (Bảng/Bản đồ/Danh sách/Báo sự cố) được dựng trong capNhatNutChuyenView(),
   // gọi SAU khi khoiDongDuLieu() đã nạp xong PUBLIC_SETTINGS — vì quyền xem bản đồ của kỹ thuật viên
@@ -1931,8 +1926,11 @@ async function loadChiNhanhList(){
     if(!j.ok) throw new Error(j.error);
     CHINHANH_LIST = j.data;
     drawChiNhanhList();
-  }catch(e){ $('listChiNhanh').innerHTML = '<div class="empty">Không tải được danh sách chi nhánh.</div>'; }
+  }catch(e){ $('listChiNhanh').innerHTML = '<div class="empty">' + ((e && e.message && e.message.indexOf('chưa có trên hệ thống mới')>=0) ? esc(e.message) : 'Không tải được danh sách chi nhánh.') + '</div>'; }
 }
+
+const SO_MOI_TRANG = 5;   // hiện mặc định 5 dòng, bấm "Xem thêm" lộ dần từng 5 dòng — danh sách
+let soHienChiNhanh = SO_MOI_TRANG, soHienTaiKhoan = SO_MOI_TRANG;   // reset về 5 khi gõ tìm/đổi lọc (xem oninput/onchange), GIỮ NGUYÊN khi danh sách tự tải lại sau sửa/thêm/xoá
 
 function drawChiNhanhList(){
   const q = norm($('qChiNhanh').value);
@@ -1940,7 +1938,9 @@ function drawChiNhanhList(){
   let list = CHINHANH_LIST.filter(c => (!f || c.trangThai===f) && (!q || norm(c.id+' '+c.name+' '+c.address).includes(q)));
   list = list.slice().sort((a,b)=> (a.priority||999) - (b.priority||999) || a.name.localeCompare(b.name));
   if(!list.length){ $('listChiNhanh').innerHTML = '<div class="empty">Không tìm thấy chi nhánh nào.</div>'; return; }
-  $('listChiNhanh').innerHTML = list.map(c => `
+  const conLai = list.length - soHienChiNhanh;
+  const xemThem = conLai > 0 ? `<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="soHienChiNhanh+=SO_MOI_TRANG;drawChiNhanhList()">Xem thêm (còn ${conLai})</button>` : '';
+  $('listChiNhanh').innerHTML = list.slice(0, soHienChiNhanh).map(c => `
     <div class="lrow" data-p="${CN_TRANGTHAI_PRI[c.trangThai]||4}">
       <div class="lrow-main">
         <div class="lrow-name">${esc(c.name)} <span class="st-pill">${esc(c.id)}</span> <span class="pri pri-${CN_TRANGTHAI_PRI[c.trangThai]||4}">${CN_TRANGTHAI_LABEL[c.trangThai]||c.trangThai}</span></div>
@@ -1960,7 +1960,7 @@ function drawChiNhanhList(){
           </div>
         </div>
       </div>
-    </div>`).join('');
+    </div>`).join('') + xemThem;
 }
 
 async function capNhatTrangThaiChiNhanh(id, trangThai){
@@ -2017,7 +2017,7 @@ function openThemChiNhanh(){
   $('cnId').disabled = false;
   cnAnhMoi = null; cnAnhCu = ''; drawCnPhotoBox();
   $('formChiNhanh').style.display='block';
-  $('formChiNhanh').scrollIntoView({behavior:'smooth',block:'center'});
+  requestAnimationFrame(()=>$('formChiNhanh').scrollIntoView({behavior:'smooth',block:'center'}));
 }
 function openSuaChiNhanh(id){
   const c = CHINHANH_LIST.find(x=>x.id===id); if(!c) return;
@@ -2035,7 +2035,7 @@ function openSuaChiNhanh(id){
   $('cnPriority').value = (c.priority && c.priority!==999) ? c.priority : '';
   cnAnhMoi = null; cnAnhCu = c.photo || ''; drawCnPhotoBox();
   $('formChiNhanh').style.display='block';
-  $('formChiNhanh').scrollIntoView({behavior:'smooth',block:'center'});
+  requestAnimationFrame(()=>$('formChiNhanh').scrollIntoView({behavior:'smooth',block:'center'}));
 }
 async function submitChiNhanh(){
   const name = $('cnName').value.trim();
@@ -2303,16 +2303,18 @@ setInterval(()=>{
   $('idleTxt').textContent = m<=5 ? 'Tự đăng xuất sau ' + m + ' phút' : '';
 },20000);
 
+/** Đăng xuất — tải lại HẲN trang thay vì tự tay xoá từng biến toàn cục. Lý do: TAB (đang xem tab
+ *  nào), BOOKING_VIEW, và nhiều biến trạng thái khác không được đăng xuất reset (chỉ SESSION/DATA/
+ *  SUCO/KYTHUAT/TAIKHOAN_LIST có), nên đổi tài khoản trên CÙNG 1 trang dễ giữ sót trạng thái của
+ *  người TRƯỚC — đúng lỗi đã gặp 19/09/2026 với khung Cài đặt (đã vá riêng lẻ), giờ lộ thêm ở tab Sự
+ *  cố (TAB vẫn còn 'baotri' từ phiên trước, vào lại tưởng mới nhưng nội dung cũ chưa kịp vẽ lại). Tải
+ *  lại trang xoá sạch TOÀN BỘ biến JS trong bộ nhớ, chặn đứt cả lớp lỗi này, không phải vá từng biến
+ *  một mỗi lần phát hiện thêm. Thông điệp (reason) gửi qua sessionStorage vì tải lại trang xoá hết
+ *  biến JS, không truyền thẳng được. */
 function logout(reason){
-  SESSION = null; DATA = []; lastPendingSeen = null;
-  SUCO = []; KYTHUAT = []; lastSuCoOpenSeen = null; TAIKHOAN_LIST = [];
   localStorage.removeItem(CFG.PREFIX+'s');
-  clearTimeout(idleTimer); idleAt = null;
-  $('app').style.display='none'; $('login').style.display='grid';
-  $('uPass').value='';
-  $('favicon').href = 'Logo_BoomBox.png';
-  capNhatNutVanTayLogin();   // đăng xuất KHÔNG xoá vân tay đã bật — chỉ về lại màn đăng nhập, nút vân tay vẫn hiện nếu đã bật trên máy này
-  if(reason) showLoginMsg(reason);
+  if(reason) sessionStorage.setItem(CFG.PREFIX+'logoutMsg', reason);
+  location.reload();
 }
 
 /* ─── TẢI ĐƠN ─── */
@@ -2377,7 +2379,7 @@ function switchTab(el){
     capNhatUIVanTay();
     capNhatUIDoiMK();
     capNhatUITelegramId();
-    if(SESSION.role==='admin'){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); loadBackupInfo(); }
+    if(SESSION.role==='admin'){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); }
   }
   else if(isReportView) drawReport();
   else draw();
@@ -2618,7 +2620,7 @@ function openTaoSuCo(){
   $('scSubmit').textContent = 'Gửi báo cáo';
   $('scGhiChuSua').style.display = 'none';
   $('formTaoSuCo').style.display='block';
-  $('formTaoSuCo').scrollIntoView({behavior:'smooth',block:'start'});
+  requestAnimationFrame(()=>$('formTaoSuCo').scrollIntoView({behavior:'smooth',block:'start'}));
 }
 /** Chính người đã tạo ticket tự sửa lại nội dung — CHỈ khi ticket còn ở trạng thái 'moi' (nút này chỉ
  *  hiện ra trong sucoHTML() đúng lúc đó, xem ghi chú ở suaSuCo() bên Code.gs). Tái dùng nguyên form
@@ -2641,7 +2643,7 @@ function openSuaSuCo(maSuCo){
   $('scSubmit').textContent = 'Lưu thay đổi';
   $('scGhiChuSua').style.display = '';
   $('formTaoSuCo').style.display='block';
-  $('formTaoSuCo').scrollIntoView({behavior:'smooth',block:'start'});
+  requestAnimationFrame(()=>$('formTaoSuCo').scrollIntoView({behavior:'smooth',block:'start'}));
 }
 function closeTaoSuCo(){ $('formTaoSuCo').style.display='none'; scDangSuaMa = null; }
 function onLoaiSuCoChange(){
@@ -2852,6 +2854,9 @@ function doiSapXepSuCo(){
  *  Nhận thêm tham số cỡ ảnh (mặc định 1600, dùng cỡ lớn hơn khi xem full màn hình — xem openXemAnh,
  *  mới 18/09/2026) — cùng 1 hàm dùng chung cho cả ảnh thu nhỏ lẫn ảnh xem to, không cần 2 hàm riêng. */
 function driveImgUrl(u, coLon){
+  // Ảnh mới lưu trên R2: phần tử là khoá (vd 'suco/SC.../baoloi_..jpg') → đọc qua Worker.
+  // Ảnh cũ vẫn là link Drive → giữ cách hiển thị thumbnail như trước.
+  if(u && !/^https?:/i.test(u)) return CFG.API.replace(/\/$/,'') + '/anh/' + encodeURI(u);
   const m = String(u||'').match(/[?&]id=([^&]+)/);
   return m ? 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w'+(coLon||1600) : u;
 }
@@ -2869,6 +2874,7 @@ function openXemAnh(danhSach, viTri){
   ANH_XEM_DS = danhSach; ANH_XEM_VITRI = viTri || 0;
   capNhatAnhXem();
   $('anhXemModal').classList.add('show');
+  moModalCoBack();
 }
 function capNhatAnhXem(){
   $('anhXemImg').src = ANH_XEM_DS[ANH_XEM_VITRI];
@@ -2889,6 +2895,9 @@ function closeXemAnh(){
   $('anhXemModal').classList.remove('show');
   $('anhXemImg').src = '';   // dừng tải/nhả bộ nhớ ảnh cỡ lớn ngay khi đóng
 }
+/** Đóng "bằng tay" (nút ✕/tap ra ngoài/phím Esc) — trả lại đúng 1 nấc lịch sử đã mượn lúc mở, không
+ *  thì bấm back điện thoại sau đó bị lệch (xem khối "Xử lý nút back điện thoại" cạnh modal Lịch sử). */
+function dongAnhXemNut(){ closeXemAnh(); dongModalCoBack(); }
 /** Vuốt ngang trên điện thoại để đổi ảnh — ngưỡng 50px tránh nhận nhầm lúc chỉ chạm nhẹ. Vuốt sang
  *  trái (kéo tay từ phải qua trái, dx âm) = ảnh kế tiếp; vuốt phải = ảnh trước, đúng thói quen lướt
  *  ảnh thông thường trên điện thoại. */
@@ -2908,7 +2917,7 @@ document.addEventListener('keydown', e => {
   if(!$('anhXemModal').classList.contains('show')) return;
   if(e.key === 'ArrowLeft') chuyenAnhXem(-1);
   else if(e.key === 'ArrowRight') chuyenAnhXem(1);
-  else if(e.key === 'Escape') closeXemAnh();
+  else if(e.key === 'Escape') dongAnhXemNut();
 });
 
 /** Chỉ đường Google Maps tới chi nhánh (mới, 18/08/2026) — dùng chuẩn URL chính thức của Google, không
@@ -3005,6 +3014,7 @@ async function xemLichSu(maSuCo){
   $('lsTieuDe').textContent = 'Lịch sử xử lý — '+maSuCo;
   $('lsBody').innerHTML = '<div class="sk" style="height:70px"></div><div class="sk" style="height:70px"></div>';
   $('modalOverlay').style.display='flex';
+  moModalCoBack();
   try{
     const j = await api({action:'suco_lichsu', maSuCo});
     if(!j.ok) throw new Error(j.error);
@@ -3029,6 +3039,42 @@ async function xemLichSu(maSuCo){
   }catch(e){ $('lsBody').innerHTML = '<div class="empty" style="padding:24px 0">Không tải được lịch sử.</div>'; }
 }
 function closeLichSu(){ $('modalOverlay').style.display='none'; }
+/** Nút ✕ / tap ra ngoài của modal Lịch sử — đóng "bằng tay" nên phải trả lại đúng 1 nấc lịch sử đã
+ *  mượn lúc mở (xem khối "Xử lý nút back điện thoại" bên dưới), không thì bấm back sau đó bị lệch. */
+function dongLichSuNut(){ closeLichSu(); dongModalCoBack(); }
+
+/* ─── Xử lý nút back của điện thoại: đóng modal đang mở trước, ở màn hình chính mới hỏi thoát ───
+   Mặc định trình duyệt/app không phân biệt gì: bấm back lúc đang xem modal (Lịch sử xử lý, xem ảnh…)
+   sẽ thoát/lùi trang luôn, rất dễ bấm nhầm mất luôn phần đang xem — đúng kiểu Mr. Hưng đã xử lý bên
+   app Lịch Hưng. Cách làm: mượn History API — mỗi lần mở 1 modal thì "mượn" thêm 1 nấc lịch sử, back
+   sẽ tiêu nấc đó trước; ta bắt sự kiện popstate để đóng đúng modal đang mở TRÊN CÙNG (ảnh xem có thể
+   mở lồng bên trong Lịch sử, nên kiểm tra ảnh xem trước) thay vì để trình duyệt điều hướng thật. Khi
+   không còn modal nào mà vẫn bấm back — tức đang ở màn hình chính (kể cả các tab Danh sách/Bản đồ/Cài
+   đặt, vì các tab này không phải modal, không mượn nấc lịch sử nào) — hỏi xác nhận thoát; bấm Huỷ thì
+   mượn lại nấc để giữ app lại, bấm Đồng ý thì để nguyên (JS không thể tự đóng tab/thoát hẳn ngay lập
+   tức — đây là giới hạn chung mọi app web/PWA; nếu app được mở từ icon riêng/bookmark như thường lệ,
+   đây là nấc lịch sử đầu tiên của phiên nên back tiếp theo sẽ thoát hẳn) (mới, 20/09/2026). */
+let NGAN_XEP_MODAL = 0;          // đang mượn bao nhiêu nấc lịch sử cho modal (0 = màn hình chính)
+let DANG_TU_DONG_MODAL = false;  // true khi chính ta vừa gọi history.back() để đóng modal — bỏ qua popstate đó, không xử lý lại
+
+function moModalCoBack(){ NGAN_XEP_MODAL++; history.pushState({ bmbModal:true }, ''); }
+function dongModalCoBack(){   // gọi khi NGƯỜI DÙNG tự đóng modal bằng tay (nút ✕/tap ra ngoài/phím Esc)
+  if(NGAN_XEP_MODAL <= 0) return;
+  NGAN_XEP_MODAL--;
+  DANG_TU_DONG_MODAL = true;
+  history.back();
+}
+function dongModalTrenCungKhiBack(){   // trả về true nếu vừa đóng được 1 modal đang mở
+  if($('anhXemModal').classList.contains('show')){ closeXemAnh(); NGAN_XEP_MODAL = Math.max(0,NGAN_XEP_MODAL-1); return true; }
+  if($('modalOverlay').style.display === 'flex'){ closeLichSu(); NGAN_XEP_MODAL = Math.max(0,NGAN_XEP_MODAL-1); return true; }
+  return false;
+}
+window.addEventListener('popstate', () => {
+  if(DANG_TU_DONG_MODAL){ DANG_TU_DONG_MODAL = false; return; }
+  if(dongModalTrenCungKhiBack()) return;
+  if(!confirm('Bạn có chắc muốn thoát ứng dụng?')) history.pushState({ bmbBase:true }, '');
+});
+history.pushState({ bmbBase:true }, '');   // nấc "đáy" ban đầu — có gì cho lần back đầu tiên tiêu
 
 /** Xem lại danh sách ticket ĐÃ XOÁ — siêu admin có thêm nút Khôi phục (mới, 20/09/2026; trước đây
  *  cố tình không có nút này, xem lịch sử ghi chú ở layDanhSachSuCoDaXoa bên Code.gs — nay đổi theo
@@ -3038,6 +3084,7 @@ async function xemSuCoDaXoa(){
   $('lsTieuDe').textContent = '🗑️ Sự cố đã xoá';
   $('lsBody').innerHTML = '<div class="sk" style="height:70px"></div><div class="sk" style="height:70px"></div>';
   $('modalOverlay').style.display='flex';
+  moModalCoBack();
   try{
     const j = await api({action:'suco_list_da_xoa'});
     if(!j.ok) throw new Error(j.error);
@@ -3121,7 +3168,7 @@ function openDieuPhoi(maSuCo){
     '<option value="'+esc(k.user)+'">'+esc(k.hoten)+(k.km!=null?' — cách ~'+k.km.toFixed(1)+'km':'')+'</option>'
   ).join('') : '<option value="">Chưa có kỹ thuật viên phù hợp — tạo tài khoản vai trò kythuat/kythuat_mang trước</option>';
   $('formDieuPhoi').style.display='block';
-  $('formDieuPhoi').scrollIntoView({behavior:'smooth',block:'start'});
+  requestAnimationFrame(()=>$('formDieuPhoi').scrollIntoView({behavior:'smooth',block:'start'}));
 }
 async function submitDieuPhoi(){
   const kt = $('dpKyThuat').value;
@@ -3445,7 +3492,7 @@ function openBaoXong(maSuCo){
   const t = SUCO.find(x=>x.maSuCo===maSuCo);
   $('bxTicketInfo').textContent = maSuCo + (t?' — '+t.chinhanhTen+(t.phong?' / '+t.phong:''):'');
   $('formBaoXong').style.display='block';
-  $('formBaoXong').scrollIntoView({behavior:'smooth',block:'start'});
+  requestAnimationFrame(()=>$('formBaoXong').scrollIntoView({behavior:'smooth',block:'start'}));
 }
 async function submitBaoXong(){
   // Không còn bắt buộc ảnh (đổi 17/08/2026) — chỉ NHẮC, vì có những lỗi không chụp được gì (sự cố
@@ -3490,7 +3537,7 @@ async function loadBookingSetting(){
   try{
     const r = await fetch(CFG.API + '?action=settings', {method:'GET'});
     const j = await r.json();
-    if(j.ok){ PUBLIC_SETTINGS = j.data; capNhatUIBookingSetting(); }
+    if(j.ok){ PUBLIC_SETTINGS = Object.assign({}, PUBLIC_SETTINGS, j.data); capNhatUIBookingSetting(); }
   }catch(e){}
 }
 
@@ -3596,10 +3643,44 @@ function fillCfgInputs(){
   $('slaM3TN').value = sla[3] ? sla[3].tiepNhan : 480;
   $('slaM3XL').value = sla[3] ? Math.round(sla[3].xuLy/60*10)/10 : 48;
   $('slaM4XL').value = sla[4] ? Math.round(sla[4].xuLy/1440*10)/10 : 14;
+  $('tdNguongNgay').value = PUBLIC_SETTINGS.tondongNguongNgay || 7;
+  $('tdGio').value = PUBLIC_SETTINGS.tondongGio != null ? PUBLIC_SETTINGS.tondongGio : 8;
+  const thuDaChon = String(PUBLIC_SETTINGS.tondongThu || '0,1,2,3,4,5,6').split(',');
+  document.querySelectorAll('.tdThu').forEach(cb => cb.checked = thuDaChon.includes(cb.value));
   $('cfgKtBanDo').checked = !!PUBLIC_SETTINGS.kythuatXemBanDo;
   $('cfgKtTuNhan').checked = !!PUBLIC_SETTINGS.kythuatTuNhanViec;
   $('cfgKtViTri').checked = !!PUBLIC_SETTINGS.kythuatXemViTriDongNghiep;
   $('cfgChuongGiay').value = PUBLIC_SETTINGS.chuongLapKhoangGiay || 25;
+  hienMocCron(PUBLIC_SETTINGS.cronChayCuoi);
+}
+
+/* ─── tác vụ nền SLA: chẩn đoán + quét tay (mới, 23/09/2026) ─── */
+function hienMocCron(isoStr){
+  const el = $('slaNenTrangThai'); if(!el) return;
+  if(!isoStr){ el.innerHTML = '⚠️ <b>Chưa ghi nhận lượt chạy nền nào</b> — Cron Trigger có thể chưa được khai trên Cloudflare. Bấm "Kiểm tra &amp; quét ngay" để xem chi tiết.'; return; }
+  const phut = Math.round((Date.now() - new Date(isoStr).getTime())/60000);
+  const gio = new Date(isoStr).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
+  el.innerHTML = (phut <= 20 ? '✅ Tác vụ nền đang chạy' : '⚠️ Tác vụ nền đã ngừng?') + ' — lần quét gần nhất: <b>' + gio + '</b> (' + phut + ' phút trước).';
+}
+async function kiemTraTacVuNen(){
+  const el = $('slaNenTrangThai'); el.textContent = 'Đang kiểm tra…';
+  try{
+    const j = await api({action:'sla_kiemtra'});
+    if(!j.ok) throw new Error(j.error);
+    const d = [];
+    const ok = (b, t, f) => d.push((b?'✅ ':'❌ ') + (b?t:f));
+    if(j.cronChayCuoi){
+      const phut = Math.round((Date.now()-new Date(j.cronChayCuoi).getTime())/60000);
+      ok(phut <= 20, 'Cron Trigger đang chạy — lần cuối ' + phut + ' phút trước.', 'Cron lần cuối chạy cách đây ' + phut + ' phút — kiểm tra lại Triggers trên Cloudflare.');
+    } else ok(false,'', 'Chưa thấy Cron Trigger chạy lần nào → vào Cloudflare: Worker → Settings → Triggers → Cron Triggers → thêm <b>*/10 * * * *</b>.');
+    ok(j.cotOk, 'Cột sla_canhbao_luc có trong D1' + (j.vuaThemCot ? ' (vừa tự thêm — đây chính là lý do trước giờ không cảnh báo).' : '.'), 'Thiếu cột sla_canhbao_luc và không tự thêm được: ' + (j.loiCot||''));
+    ok(j.tgBat, 'Biến TG_BAT = 1.', 'Biến môi trường TG_BAT chưa = 1 → mọi tin tự động đều bị tắt.');
+    ok(j.tgCauHinh, 'Đã cấu hình bot token + chat id.', 'Chưa cấu hình Telegram (token/chat id).');
+    if(j.loiQuet) ok(false,'', 'Lỗi khi quét: ' + j.loiQuet);
+    else if(j.soQuaHan != null) d.push(j.soQuaHan ? (j.daGui ? '📨 Vừa gửi cảnh báo ' + j.soQuaHan + ' ticket quá hạn vào group.' : '⚠️ Có ' + j.soQuaHan + ' ticket quá hạn nhưng gửi Telegram KHÔNG thành công.') : 'ℹ️ Hiện không có ticket nào quá hạn tiếp nhận (hoặc đã cảnh báo rồi).');
+    (j.loiGanDay||[]).forEach(l => d.push('<span style="opacity:.8">🧾 ' + new Date(l.luc).toLocaleString('vi-VN') + ': ' + esc(l.noiDung) + '</span>'));
+    el.innerHTML = d.join('<br>');
+  }catch(e){ el.textContent = 'Không kiểm tra được: ' + (e.message||e); }
 }
 
 async function luuChuongGiay(){
@@ -3637,9 +3718,14 @@ async function luuSLA(){
     ['sla_m3_tiepnhan_phut', Number($('slaM3TN').value)],
     ['sla_m3_xuly_phut',     Math.round(Number($('slaM3XL').value)*60)],
     ['sla_m4_tiepnhan_phut', 0],
-    ['sla_m4_xuly_phut',     Math.round(Number($('slaM4XL').value)*1440)]
+    ['sla_m4_xuly_phut',     Math.round(Number($('slaM4XL').value)*1440)],
+    ['tondong_nguong_ngay',  Number($('tdNguongNgay').value)],
+    ['tondong_gio',          Number($('tdGio').value)],
+    ['tondong_thu',          [...document.querySelectorAll('.tdThu:checked')].map(cb=>cb.value).join(',')]
   ];
-  if(fields.some(f=>isNaN(f[1]) || f[1]<0)) return toast('Nhập số hợp lệ (≥ 0) cho mọi ô.','bad');
+  if(fields.slice(0,-1).some(f=>isNaN(f[1]) || f[1]<0)) return toast('Nhập số hợp lệ (≥ 0) cho mọi ô.','bad');
+  if($('tdGio').value==='' || Number($('tdGio').value)<0 || Number($('tdGio').value)>23) return toast('Giờ gửi phải từ 0 đến 23.','bad');
+  if(!fields[fields.length-1][1]) return toast('Chọn ít nhất 1 ngày để gửi bản tổng hợp tồn đọng.','bad');
   try{
     for(const [key,value] of fields){ const j = await api({action:'settings_set', key, value:String(value)}); if(!j.ok) throw new Error(j.error); }
     await loadPublicSettings();
@@ -3692,64 +3778,6 @@ async function guiThuTelegram(){
   finally{ btn.disabled = false; btn.innerHTML = '📨 Gửi thử'; }
 }
 
-async function loadBackupInfo(){
-  $('bkEmail').textContent = 'đang tải…';
-  try{
-    const j = await api({action:'backup_thongtin'});
-    if(!j.ok) throw new Error(j.error);
-    $('bkEmail').textContent = j.email;
-    $('bkFolderId').value = j.folderId;
-    $('bkSoNgay').value = j.tuDongSoNgay || 0;
-    $('bkLichTrangThai').textContent = j.tuDongSoNgay
-      ? 'Đang bật — tự sao lưu mỗi ' + j.tuDongSoNgay + ' ngày, lúc 2h sáng.'
-      : 'Đang tắt — chỉ sao lưu khi bấm nút.';
-    if(j.lanCuoiLoi) $('bkKetQua').innerHTML = '⚠️ Lần gần nhất lỗi: '+esc(j.lanCuoiLoi);
-    else if(j.lanCuoiLuc) $('bkKetQua').innerHTML = '✅ Lần sao lưu gần nhất: '+fmtVN(j.lanCuoiLuc)+' — '+esc(j.lanCuoiTen);
-    else $('bkKetQua').textContent = 'Chưa từng sao lưu.';
-  }catch(e){ $('bkEmail').textContent = 'Không tải được.'; }
-}
-
-async function luuLichBackup(){
-  const soNgay = Number($('bkSoNgay').value);
-  if(isNaN(soNgay) || soNgay < 0) return toast('Nhập số ngày ≥ 0 (0 = tắt).','bad');
-  try{
-    const j = await api({action:'backup_lich', soNgay});
-    if(!j.ok){ const err = new Error(j.error); err.chiTiet = j.chiTiet; throw err; }
-    $('bkLichTrangThai').textContent = soNgay
-      ? 'Đang bật — tự sao lưu mỗi ' + soNgay + ' ngày, lúc 2h sáng.'
-      : 'Đang tắt — chỉ sao lưu khi bấm nút.';
-    toast(soNgay ? 'Đã bật lịch tự động mỗi '+soNgay+' ngày.' : 'Đã tắt lịch tự động.','ok');
-  }catch(e){
-    toast(e.chiTiet ? ('Không lưu được lịch — lỗi thật: '+e.chiTiet) : 'Không lưu được lịch.', 'bad');
-  }
-}
-
-async function luuBackupFolder(){
-  const id = $('bkFolderId').value.trim();
-  if(!id) return toast('Dán ID thư mục trước.','bad');
-  try{
-    const j = await api({action:'settings_set', key:'backup_drive_folder_id', value:id});
-    if(!j.ok) throw new Error(j.error);
-    toast('Đã lưu ID thư mục.','ok');
-  }catch(e){ toast('Không lưu được.','bad'); }
-}
-
-async function chayBackup(){
-  const btn = $('btnChayBackup');
-  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Đang sao lưu…';
-  try{
-    const j = await api({action:'backup_chay'});
-    if(!j.ok) throw new Error(j.error);
-    $('bkKetQua').innerHTML = '✅ Vừa sao lưu xong lúc '+fmtVN(new Date().toISOString())+' — '+esc(j.ten)+(j.soAnhMoi?' + '+j.soAnhMoi+' file ảnh mới':' (không có ảnh mới)');
-    toast('Đã sao lưu thành công.','ok');
-  }catch(e){
-    const map = {NO_FOLDER:'Chưa lưu ID thư mục.', FOLDER_NOT_FOUND:'Không mở được thư mục — kiểm tra lại ID và đã chia sẻ quyền chỉnh sửa cho đúng email chưa.', BACKUP_LOI:'Sao lưu thất bại, thử lại.'};
-    toast(map[e.message] || 'Không sao lưu được.','bad');
-    $('bkKetQua').textContent = map[e.message] || 'Sao lưu thất bại.';
-  }
-  finally{ btn.disabled = false; btn.innerHTML = '💾 Sao lưu ngay'; }
-}
-
 async function luuCfgSo(key, inputId, multiplier){
   const raw = Number($(inputId).value);
   if(!raw || raw <= 0) return toast('Nhập một số lớn hơn 0.','bad');
@@ -3771,7 +3799,7 @@ async function loadTaiKhoanList(){
     if(!j.ok) throw new Error(j.error);
     TAIKHOAN_LIST = j.data;
     drawTaiKhoanList();
-  }catch(e){ $('listTaiKhoan').innerHTML = '<div class="empty">Không tải được danh sách tài khoản.</div>'; }
+  }catch(e){ $('listTaiKhoan').innerHTML = '<div class="empty">' + ((e && e.message && e.message.indexOf('chưa có trên hệ thống mới')>=0) ? esc(e.message) : 'Không tải được danh sách tài khoản.') + '</div>'; }
 }
 
 function drawTaiKhoanList(){
@@ -3779,7 +3807,9 @@ function drawTaiKhoanList(){
   const f = $('fTaiKhoanVaiTro').value;
   let list = TAIKHOAN_LIST.filter(u => (!f || u.vaitro===f) && (!q || norm(u.taikhoan+' '+u.hoten+' '+u.chinhanhTen).includes(q)));
   if(!list.length){ $('listTaiKhoan').innerHTML = '<div class="empty">Không tìm thấy tài khoản nào.</div>'; return; }
-  $('listTaiKhoan').innerHTML = list.map(u => `
+  const conLai = list.length - soHienTaiKhoan;
+  const xemThem = conLai > 0 ? `<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px" onclick="soHienTaiKhoan+=SO_MOI_TRANG;drawTaiKhoanList()">Xem thêm (còn ${conLai})</button>` : '';
+  $('listTaiKhoan').innerHTML = list.slice(0, soHienTaiKhoan).map(u => `
     <div class="lrow" data-p="${u.kichhoat?4:1}">
       <div class="lrow-main">
         <div class="lrow-name">${esc(u.hoten||u.taikhoan)} <span class="st-pill">${esc(ROLE_LABEL[u.vaitro]||u.vaitro)}</span>${u.sieuAdmin?' <span class="pri pri-4">🌟 Siêu admin</span>':''}${u.kichhoat?'':' <span class="pri pri-1">Đã tắt</span>'}${(u.vaitro!=='admin'&&!u.doiMkBat)?' <span class="pri pri-1" title="Tài khoản này chưa được mở quyền tự đổi mật khẩu">🔒 Khoá đổi MK</span>':''}</div>
@@ -3795,7 +3825,7 @@ function drawTaiKhoanList(){
           <button class="kebab-item bad" onclick="chanBamKep(this,xoaTaiKhoanUI,'${esc(u.taikhoan)}')">Xoá</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`).join('') + xemThem;
 }
 
 /** Hiện đúng trạng thái khoá/mở của tính năng "Đổi mật khẩu của tôi" — admin có thể khoá riêng
@@ -3950,7 +3980,7 @@ function openThemTaiKhoan(){
   fillTkChiNhanhSelect('');
   renderTkVaiTroPick();
   $('formTaiKhoan').style.display='block';
-  $('formTaiKhoan').scrollIntoView({behavior:'smooth',block:'center'});
+  requestAnimationFrame(()=>$('formTaiKhoan').scrollIntoView({behavior:'smooth',block:'center'}));
 }
 
 function openSuaTaiKhoan(taikhoan){
@@ -3964,7 +3994,7 @@ function openSuaTaiKhoan(taikhoan){
   fillTkChiNhanhSelect(u.chinhanhId||'');
   renderTkVaiTroPick();
   $('formTaiKhoan').style.display='block';
-  $('formTaiKhoan').scrollIntoView({behavior:'smooth',block:'center'});
+  requestAnimationFrame(()=>$('formTaiKhoan').scrollIntoView({behavior:'smooth',block:'center'}));
 }
 
 async function submitTaiKhoan(){
@@ -4033,7 +4063,7 @@ function openThemLoaiSuCo(){
   $('lscTen').value = ''; $('lscLoaiKT').value = 'chung';
   renderLscMucDoPick();
   $('formLoaiSuCo').style.display='block';
-  $('formLoaiSuCo').scrollIntoView({behavior:'smooth',block:'center'});
+  requestAnimationFrame(()=>$('formLoaiSuCo').scrollIntoView({behavior:'smooth',block:'center'}));
 }
 function openSuaLoaiSuCo(ma){
   const l = LOAI_SUCO_LIST.find(x=>x.ma===ma); if(!l) return;
@@ -4042,7 +4072,7 @@ function openSuaLoaiSuCo(ma){
   $('lscTen').value = l.ten; $('lscLoaiKT').value = l.loaiKT;
   renderLscMucDoPick();
   $('formLoaiSuCo').style.display='block';
-  $('formLoaiSuCo').scrollIntoView({behavior:'smooth',block:'center'});
+  requestAnimationFrame(()=>$('formLoaiSuCo').scrollIntoView({behavior:'smooth',block:'center'}));
 }
 async function submitLoaiSuCo(){
   const ten = $('lscTen').value.trim();
@@ -4070,6 +4100,11 @@ async function toggleLoaiSuCoActive(ma, bat){
   const s = localStorage.getItem(CFG.PREFIX+'s');
   if(s){ try{ SESSION = JSON.parse(s); enterApp(); return; }catch(e){} }
   capNhatNutVanTayLogin();
+  // Thông điệp đăng xuất (nếu logout() có kèm lý do) gửi qua sessionStorage vì tải lại trang xoá hết
+  // biến JS — đọc ra rồi xoá luôn, không thì lần load trang sau (không phải do đăng xuất) lại hiện
+  // nhầm thông điệp cũ.
+  const msgDangXuat = sessionStorage.getItem(CFG.PREFIX+'logoutMsg');
+  if(msgDangXuat){ sessionStorage.removeItem(CFG.PREFIX+'logoutMsg'); showLoginMsg(msgDangXuat); }
   // Trình duyệt/bàn phím đôi khi tự điền sẵn mật khẩu đã lưu (do có autocomplete="current-password")
   // ngay cả khi người dùng CHƯA bấm hay gõ gì — nhìn vào chấm ẩn tưởng "đã nhập mật khẩu" trong khi
   // chỉ là gợi ý tự động, dễ đăng nhập nhầm bằng mật khẩu cũ đã lưu của người khác dùng chung máy.
