@@ -367,8 +367,10 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       </div>
     </div>
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" aria-selected="true"  data-t="dat-phong" onclick="switchTab(this)">📋 Đặt phòng <span class="n zero" id="nPending"></span></button>
-      <button class="tab" role="tab" aria-selected="false" data-t="baotri"   onclick="switchTab(this)">🛠️ Bảo trì <span class="n zero" id="nSuCo"></span></button>
+      <!-- Bảo trì đứng đầu + mặc định mở khi đăng nhập (24/09/2026): hiện đây là phần dùng hằng ngày; Đặt
+           phòng chỉ hiện với tài khoản chi nhánh khi công tắc giữ phòng ĐANG BẬT — xem capNhatHienTabDatPhong() -->
+      <button class="tab" role="tab" aria-selected="true"  data-t="baotri"   onclick="switchTab(this)">🛠️ Bảo trì <span class="n zero" id="nSuCo"></span></button>
+      <button class="tab" role="tab" aria-selected="false" data-t="dat-phong" onclick="switchTab(this)" style="display:none">📋 Đặt phòng <span class="n zero" id="nPending"></span></button>
       <button class="tab" role="tab" aria-selected="false" data-t="caidat"   onclick="switchTab(this)" id="tabCaiDat">⚙️ Cài đặt</button>
     </div>
   </div>
@@ -1151,7 +1153,7 @@ const CFG = {
   PREFIX: 'bmb2_adm_'
 };
 
-let SESSION = null, DATA = [], TAB = 'dat-phong';
+let SESSION = null, DATA = [], TAB = 'baotri';
 /* Số phiên bản danh sách đơn phòng do Worker trả về — gửi kèm mỗi lượt tự làm mới; không có gì mới thì
    Worker trả "khongDoi" (vài chục byte) thay vì cả danh sách tới 500 đơn (tối ưu 24/09/2026). */
 let DON_VER = '';
@@ -1717,9 +1719,12 @@ async function enterApp(){
   // Kỹ thuật viên chỉ làm việc trong tab Bảo trì — không liên quan tới đặt phòng, nên ẩn hẳn tab
   // "Đặt phòng" và không tải dữ liệu đơn (đỡ 1 lượt gọi API mỗi lần vào + mỗi 30 giây tự làm mới).
   // Cùng lý do trên: LUÔN gán lại display dù kết quả là '' hay 'none', không chỉ gán khi ẩn.
-  document.querySelector('.tab[data-t="dat-phong"]').style.display = isKyThuat() ? 'none' : '';
+  // Từ 24/09/2026: MỌI vai trò đăng nhập xong đều vào thẳng tab Bảo trì. Tab Đặt phòng: kỹ thuật không
+  // bao giờ thấy; tài khoản chi nhánh chỉ thấy khi công tắc giữ phòng đang BẬT (chưa nạp cài đặt thì ẩn
+  // trước, tránh chớp hiện rồi biến mất); admin luôn thấy để còn xử lý/xem báo cáo.
+  capNhatHienTabDatPhong(false);
+  switchTab(document.querySelector('.tab[data-t="baotri"]'), true);
   if(isKyThuat()){
-    switchTab(document.querySelector('.tab[data-t="baotri"]'));
     batDauChiaSeViTri();   // định kỳ nhẹ mỗi 5 phút trong lúc còn mở app — xem thêm ở nhanViec/batDauXuLy/submitBaoXong
   }
   requestNotifyPermission();
@@ -1727,6 +1732,12 @@ async function enterApp(){
   ['click','keydown','scroll','touchstart'].forEach(e=>document.addEventListener(e,resetIdle,{passive:true}));
 
   await khoiDongDuLieu();   // 1 lượt gọi duy nhất thay cho 8 lượt rời rạc như trước
+  capNhatHienTabDatPhong(true);   // đã có cài đặt thật → quyết định hiện/ẩn tab Đặt phòng
+  // Tài khoản chi nhánh: kiểm tra lại công tắc giữ phòng mỗi 5 phút (đọc bản cài đặt công khai, Worker
+  // đệm sẵn nên gần như không tốn gì) — admin bật/tắt thì tab tự hiện/ẩn, không cần đăng nhập lại.
+  if(!isKyThuat() && SESSION.role !== 'admin'){
+    setInterval(()=>{ if(!document.hidden) kiemTraCongTacDatPhong(); }, 5*60*1000);
+  }
 
   // Chỉ tự làm mới khi tab ĐANG ĐƯỢC XEM — tab bị thu nhỏ/chuyển sang tab khác/tắt màn hình vẫn giữ
   // đăng nhập (localStorage nhớ vĩnh viễn) nên nếu không chặn ở đây, tab bị bỏ quên sẽ âm thầm gọi
@@ -1744,6 +1755,7 @@ async function enterApp(){
   setInterval(()=>{ if(TAB==='baotri' && !document.hidden) drawSuCo(); }, 60000);   // tự cập nhật đếm ngược SLA mỗi phút, không cần gọi máy chủ
   document.addEventListener('visibilitychange', () => {
     if(document.hidden) return;
+    if(!isKyThuat() && SESSION.role !== 'admin') kiemTraCongTacDatPhong();
     // Vừa hiện lại tab: làm mới ngay cho hết cũ — nhưng vẫn nhường đường nếu máy chủ đang báo bận
     // (đầu ca nhiều máy cùng mở màn hình một lúc sẽ tạo đúng cụm dồn cần tránh).
     if(!mayChuDangBan()){
@@ -2352,7 +2364,7 @@ function xuLyDonSauKhiTai(){
 
 let BOOKING_VIEW = 'list';   // 'list' | 'report' — view con bên trong tab Đặt phòng
 
-function switchTab(el){
+function switchTab(el, khongTai){   // khongTai = true: chỉ đổi giao diện, chưa gọi máy chủ (lúc vừa đăng nhập, khoi_dong sẽ tải)
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected','false'));
   el.setAttribute('aria-selected','true');
   TAB = el.dataset.t;
@@ -2378,7 +2390,7 @@ function switchTab(el){
     // Quản lý/admin vừa chuyển vào đúng section này — làm mới ngay cho khỏi đợi tới 45 giây tiếp
     // theo. Kỹ thuật viên bỏ qua vì họ đã luôn ở nhịp nhanh nhất (30s) mọi lúc, thêm vào đây chỉ tạo
     // 1 lượt gọi trùng ngay lúc mới đăng nhập (switchTab tới đây trước khi khoiDongDuLieu() kịp chạy).
-    if(!isKyThuat()) loadSuCo(true);
+    if(!isKyThuat() && !khongTai) loadSuCo(true);
   }
   else if(isCaiDat){
     $('tkmTaiKhoanHienTai').textContent = '@'+SESSION.user;
@@ -3701,6 +3713,30 @@ async function dongTicket(maSuCo){
 
 /* ─── cài đặt: bật/tắt giữ phòng ─── */
 
+/** Hiện/ẩn tab Đặt phòng theo vai trò + công tắc giữ phòng (24/09/2026):
+ *   - Kỹ thuật viên: không bao giờ thấy.
+ *   - Admin: luôn thấy (kể cả khi tắt) để xử lý đơn cũ/xem báo cáo.
+ *   - Tài khoản chi nhánh (quản lý…): chỉ thấy khi công tắc ĐANG BẬT — tắt thì không có đơn mới nào
+ *     phát sinh được, hiện tab chỉ gây rối.
+ *  daCoCaiDat = false khi chưa nạp cài đặt từ máy chủ (vừa đăng nhập) → ẩn trước cho chắc.
+ *  Đang đứng ở tab Đặt phòng mà tab bị ẩn đi → tự chuyển về Bảo trì. */
+function capNhatHienTabDatPhong(daCoCaiDat){
+  if(!SESSION) return;
+  const tab = document.querySelector('.tab[data-t="dat-phong"]');
+  const hien = SESSION.role === 'admin'
+    || (!isKyThuat() && daCoCaiDat && !!(PUBLIC_SETTINGS && PUBLIC_SETTINGS.datPhongBat));
+  tab.style.display = hien ? '' : 'none';
+  if(!hien && TAB === 'dat-phong') switchTab(document.querySelector('.tab[data-t="baotri"]'));
+}
+async function kiemTraCongTacDatPhong(){
+  const cu = !!PUBLIC_SETTINGS.datPhongBat;
+  await loadPublicSettings();
+  const moi = !!PUBLIC_SETTINGS.datPhongBat;
+  if(cu === moi) return;
+  capNhatHienTabDatPhong(true);
+  if(moi){ loadBookings(false, true); toast('Chức năng giữ phòng vừa được mở — tab Đặt phòng đã hiện.','ok'); }
+}
+
 /** Dựng công tắc "Cho phép khách đặt phòng" từ PUBLIC_SETTINGS đang có — tách riêng để dùng lại được
  *  với dữ liệu cài đặt lấy sẵn từ action gộp `khoi_dong` (mới, 18/09/2026). */
 function capNhatUIBookingSetting(){
@@ -3715,6 +3751,7 @@ async function toggleBookingSetting(){
     const j = await api({action:'settings_set', key:'dat_phong_bat', value: on?'Y':'N'});
     if(!j.ok) throw new Error(j.error);
     PUBLIC_SETTINGS.datPhongBat = on;   // để interval tự làm mới đơn (xem enterApp) áp dụng ngay, không cần tải lại trang
+    capNhatHienTabDatPhong(true);
     toast('Đã '+(on?'BẬT':'TẮT')+' chức năng giữ phòng trên trang khách.','ok');
   }catch(e){
     $('bkToggle').checked = !on; $('bkStatusTxt').textContent = !on ? 'Đang bật' : 'Đang tắt';
