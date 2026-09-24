@@ -510,9 +510,11 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           </select>
           <select id="fMoiKT" onchange="drawSuCo()" style="display:none"><option value="">Mọi kỹ thuật viên</option></select>
           <select id="fMoiCN" onchange="drawSuCo()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
+          <!-- Mặc định "Mới nhất trước" (24/09/2026, theo yêu cầu) — "Mức độ trước" vẫn chọn được, chỉ
+               không còn là ưu tiên mặc định, nên xếp sau trong danh sách lựa chọn. -->
           <select id="fMoiSapXep" onchange="doiSapXepSuCo()" title="Cách sắp xếp khung Sự cố chưa xử lý">
-            <option value="mucdo">↕ Mức độ trước</option>
             <option value="moinhat">🆕 Mới nhất trước</option>
+            <option value="mucdo">↕ Mức độ trước</option>
           </select>
         </div>
         <div class="list" id="listSuCoChuaXuLy"></div>
@@ -3011,12 +3013,15 @@ function drawSuCo(){
 }
 function taoNhieuDaXong(){ daXongHien += 40; drawSuCo(); }
 
-/** Ghi nhớ cách sắp xếp khung "Sự cố chưa xử lý" trên thiết bị này (mới, 19/09/2026). Chỉ là tuỳ
- *  chọn hiển thị, không liên quan phiên đăng nhập — lưu localStorage để đăng xuất/đăng nhập lại vẫn
- *  giữ. Bọc try/catch vì một số trình duyệt chế độ riêng tư chặn localStorage. */
+/** Ghi nhớ cách sắp xếp khung "Sự cố chưa xử lý" trên thiết bị này (mới, 19/09/2026; đổi mặc định
+ *  24/09/2026: "Mới nhất trước" thay cho "Mức độ trước" — khớp đúng view Bảng vốn đã luôn xếp mới
+ *  nhất lên trên; mức độ vẫn chọn được, chỉ không còn là mặc định). Chỉ là tuỳ chọn hiển thị, không
+ *  liên quan phiên đăng nhập — lưu localStorage để đăng xuất/đăng nhập lại vẫn giữ. Ai đã từng TỰ chọn
+ *  "Mức độ trước" trước ngày đổi mặc định thì vẫn giữ đúng lựa chọn đó, không bị đổi ngược lại. Bọc
+ *  try/catch vì một số trình duyệt chế độ riêng tư chặn localStorage. */
 function cheDoSapXepSuCo(){
-  try{ return localStorage.getItem(CFG.PREFIX+'sx_suco')==='moinhat' ? 'moinhat' : 'mucdo'; }
-  catch(e){ return 'mucdo'; }
+  try{ return localStorage.getItem(CFG.PREFIX+'sx_suco')==='mucdo' ? 'mucdo' : 'moinhat'; }
+  catch(e){ return 'moinhat'; }
 }
 function doiSapXepSuCo(){
   try{ localStorage.setItem(CFG.PREFIX+'sx_suco', $('fMoiSapXep').value==='moinhat' ? 'moinhat' : 'mucdo'); }catch(e){}
