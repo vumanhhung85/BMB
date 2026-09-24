@@ -193,6 +193,25 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
   border-radius:18px;padding:20px;margin-bottom:18px}
 .photo-pick-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px}
 .photobox{display:flex;gap:9px;flex-wrap:wrap;margin-top:8px}
+/* Camera trong app (24/09/2026) — thay cho <input capture> mở app Camera riêng của máy */
+.cam-ov{position:fixed;inset:0;z-index:1990;background:#000;display:none;flex-direction:column}
+.cam-ov.show{display:flex}
+.cam-ov video{flex:1;min-height:0;width:100%;object-fit:contain;background:#000}
+.cam-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;background:linear-gradient(#000a,#0000);color:#fff;font-weight:700}
+.cam-top button{width:44px;height:44px;border-radius:50%;border:0;background:#fff2;color:#fff;font-size:20px}
+.cam-thumbs{display:flex;gap:8px;overflow-x:auto;padding:10px 14px 0;min-height:66px;background:#000}
+.cam-thumbs img{width:56px;height:56px;object-fit:cover;border-radius:10px;border:2px solid #fff4;flex:none}
+.cam-bot{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 22px calc(env(safe-area-inset-bottom,0px) + 18px);background:#000}
+.cam-bot .cam-side{width:88px;height:48px;border-radius:24px;border:1px solid #fff5;background:#fff1;color:#fff;font-weight:700;font-size:15px}
+.cam-shutter{width:76px;height:76px;border-radius:50%;border:5px solid #fff;background:#fff3;flex:none;transition:transform .08s}
+.cam-shutter:active{transform:scale(.9);background:#fff9}
+.cam-shutter:disabled{opacity:.35}
+.cam-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .15s}
+.cam-loi{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  padding:24px;text-align:center;color:#fff;background:#000e}
+.cam-loi.show{display:flex}
 .photobox .th{position:relative;width:74px;height:74px;border-radius:10px;overflow:hidden;border:1px solid var(--line-soft)}
 .photobox .th img{width:100%;height:100%;object-fit:cover}
 .photobox .th button{position:absolute;top:2px;right:2px;width:19px;height:19px;border-radius:50%;border:0;
@@ -424,7 +443,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       <div class="field">
         <label>Ảnh đính kèm (tối đa 6 ảnh)</label>
         <div class="photo-pick-row">
-          <button type="button" class="btn btn-ghost btn-sm" onclick="$('scAnhCam').click()">📷 Chụp ảnh</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="moCamera({boxId:'scPhotoBox', storeVar:'SC_ANH', inputDuPhong:'scAnhCam'})">📷 Chụp ảnh</button>
           <button type="button" class="btn btn-ghost btn-sm" onclick="$('scAnhLib').click()">🖼️ Chọn từ thư viện</button>
         </div>
         <input type="file" id="scAnhCam" accept="image/*" capture="environment" style="display:none" onchange="onPickAnh(this,'scPhotoBox','SC_ANH')">
@@ -461,7 +480,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
       <div class="field">
         <label>Ảnh sau khi xử lý (nên chụp, không bắt buộc — tối đa 6 ảnh)</label>
         <div class="photo-pick-row">
-          <button type="button" class="btn btn-ghost btn-sm" onclick="$('bxAnhCam').click()">📷 Chụp ảnh</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="moCamera({boxId:'bxPhotoBox', storeVar:'SC_ANH_XONG', inputDuPhong:'bxAnhCam'})">📷 Chụp ảnh</button>
           <button type="button" class="btn btn-ghost btn-sm" onclick="$('bxAnhLib').click()">🖼️ Chọn từ thư viện</button>
         </div>
         <input type="file" id="bxAnhCam" accept="image/*" capture="environment" style="display:none" onchange="onPickAnh(this,'bxPhotoBox','SC_ANH_XONG')">
@@ -779,7 +798,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <div class="field">
           <label>Ảnh đại diện chi nhánh</label>
           <div class="photo-pick-row">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="$('cnAnhCam').click()">📷 Chụp ảnh</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="moCamera({motAnh:true, maxW:1280, quality:0.72, inputDuPhong:'cnAnhCam'})">📷 Chụp ảnh</button>
             <button type="button" class="btn btn-ghost btn-sm" onclick="$('cnAnhLib').click()">🖼️ Chọn từ thư viện</button>
           </div>
           <input type="file" id="cnAnhCam" accept="image/*" capture="environment" style="display:none" onchange="onPickAnhChiNhanh(this)">
@@ -2606,6 +2625,125 @@ function drawPhotoBox(boxId, storeVar){
 }
 function removeAnh(boxId, storeVar, i){ window[storeVar].splice(i,1); drawPhotoBox(boxId, storeVar); }
 
+/* ══════════════ CAMERA TRONG APP (24/09/2026) ══════════════
+   LỖI THỰC TẾ: bấm "Chụp ảnh" (input capture) trên Android → máy mở APP CAMERA RIÊNG, trình duyệt bị
+   đẩy xuống nền. Máy RAM thấp, app Camera ngốn nhiều bộ nhớ → Android GIẾT tab trình duyệt đang nằm
+   nền để lấy RAM. Chụp xong quay lại, Chrome phải TẢI LẠI TRANG từ đầu → mất form + ảnh đã chụp, lúc
+   hiện logo Boom (màn hình khởi động), lúc về tab Đặt phòng (tab mặc định). Chọn ảnh từ thư viện nhẹ
+   hơn nên ít bị. Đây là giới hạn của hệ điều hành — sửa code nén ảnh KHÔNG khắc phục được, vì tab bị
+   giết TRƯỚC khi app kịp nhận ảnh.
+   XỬ LÝ DỨT ĐIỂM: không mở app Camera ngoài nữa — mở camera NGAY TRONG TRANG (getUserMedia), trình
+   duyệt luôn ở tiền cảnh nên không bao giờ bị giết. Chụp liên tiếp nhiều tấm không phải thoát ra vào.
+   Mỗi tấm vẽ thẳng từ khung hình video xuống kích thước đã nén (≤1000px), không bao giờ tạo ảnh
+   12–48MP trong bộ nhớ. Luồng camera xin độ phân giải vừa phải (1920) — đủ nét, nhẹ RAM.
+   Dự phòng: máy/trình duyệt không hỗ trợ hoặc từ chối quyền camera → nút "Dùng camera của máy"
+   (cách cũ, có cú bấm mới của người dùng nên trình duyệt cho mở). */
+let CAM = null;   // { stream, opts, facing, dem }
+const camCanvas = document.createElement('canvas');   // dùng lại 1 canvas duy nhất, không tạo mới mỗi tấm
+
+function camConLai(o){
+  if (o.motAnh) return 1;
+  return SO_ANH_TOI_DA - window[o.storeVar].length;
+}
+async function moCamera(opts){
+  opts = Object.assign({ maxW:1000, quality:0.65 }, opts);
+  if (!opts.motAnh && camConLai(opts) <= 0) return toast('Đã đủ ' + SO_ANH_TOI_DA + ' ảnh. Xoá bớt nếu muốn chụp lại.','bad');
+  CAM = { stream:null, opts, facing:'environment', dem:0 };
+  $('camThumbs').innerHTML = '';
+  $('camLoi').classList.remove('show');
+  $('camOv').classList.add('show');
+  moModalCoBack();
+  document.body.style.overflow = 'hidden';
+  capNhatDemCamera();
+  await batLuongCamera();
+}
+async function batLuongCamera(){
+  dungLuongCamera();
+  if (!navigator.mediaDevices?.getUserMedia) return camBaoLoi('Trình duyệt này không hỗ trợ camera trong ứng dụng.');
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({
+      audio:false,
+      video:{ facingMode:{ ideal: CAM.facing }, width:{ ideal:1920 }, height:{ ideal:1080 } }
+    });
+    if (!CAM) { st.getTracks().forEach(t => t.stop()); return; }   // đã đóng trong lúc chờ quyền
+    CAM.stream = st;
+    const v = $('camVideo'); v.srcObject = st;
+    try { await v.play(); } catch(e){}
+    $('camShutter').disabled = false;
+  } catch (e) {
+    const tuChoi = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
+    camBaoLoi(tuChoi
+      ? 'Chưa cho phép dùng camera. Bấm vào biểu tượng ổ khoá cạnh địa chỉ web → Quyền → Camera → Cho phép, rồi mở lại.'
+      : 'Không mở được camera trong ứng dụng (' + (e?.name || 'lỗi') + ').');
+  }
+}
+function camBaoLoi(msg){
+  $('camShutter').disabled = true;
+  $('camLoiMsg').textContent = msg + ' Bạn có thể dùng camera của máy thay thế.';
+  $('camLoi').classList.add('show');
+}
+function camDungCameraMay(){
+  const id = CAM?.opts?.inputDuPhong;
+  dongCamera();
+  if (id) $(id).click();   // chạy trong đúng cú bấm của người dùng → trình duyệt cho mở
+}
+function dungLuongCamera(){
+  if (CAM?.stream) { CAM.stream.getTracks().forEach(t => t.stop()); CAM.stream = null; }
+  const v = $('camVideo'); if (v) v.srcObject = null;
+}
+function dongCamera(doBack){   // doBack = true khi đóng do bấm nút Back (nấc lịch sử đã tự tiêu rồi)
+  if (!CAM) return;
+  if (!doBack) dongModalCoBack();
+  dungLuongCamera();
+  $('camOv').classList.remove('show');
+  document.body.style.overflow = '';
+  $('camThumbs').innerHTML = '';   // nhả ảnh xem trước khỏi bộ nhớ
+  CAM = null;
+}
+async function doiCamera(){
+  if (!CAM) return;
+  CAM.facing = CAM.facing === 'environment' ? 'user' : 'environment';
+  $('camShutter').disabled = true;
+  await batLuongCamera();
+}
+function capNhatDemCamera(){
+  if (!CAM) return;
+  const o = CAM.opts;
+  $('camDem').textContent = o.motAnh ? 'Ảnh đại diện chi nhánh'
+    : 'Đã chụp ' + window[o.storeVar].length + '/' + SO_ANH_TOI_DA;
+}
+function chupCamera(){
+  if (!CAM || !CAM.stream) return;
+  const v = $('camVideo'), o = CAM.opts;
+  if (!v.videoWidth) return toast('Camera đang khởi động, thử lại sau 1 giây.','bad');
+  if (!o.motAnh && camConLai(o) <= 0) { toast('Đã đủ ' + SO_ANH_TOI_DA + ' ảnh.','ok'); return dongCamera(); }
+  const scale = Math.min(1, o.maxW / v.videoWidth);
+  camCanvas.width = Math.round(v.videoWidth * scale);
+  camCanvas.height = Math.round(v.videoHeight * scale);
+  camCanvas.getContext('2d').drawImage(v, 0, 0, camCanvas.width, camCanvas.height);
+  const b64 = camCanvas.toDataURL('image/jpeg', o.quality);
+  camCanvas.width = camCanvas.height = 1;   // thu canvas về tối thiểu, nhả bộ nhớ đệm ảnh
+  const f = $('camFlash'); f.style.opacity = '.8'; setTimeout(() => f.style.opacity = '0', 90);
+  try { navigator.vibrate?.(30); } catch(e){}
+
+  if (o.motAnh) { cnAnhMoi = b64; drawCnPhotoBox(); return dongCamera(); }
+  window[o.storeVar].push(b64);
+  drawPhotoBox(o.boxId, o.storeVar);
+  const im = document.createElement('img'); im.src = b64; $('camThumbs').appendChild(im);
+  im.scrollIntoView({ inline:'end', block:'nearest' });
+  capNhatDemCamera();
+  if (camConLai(o) <= 0) { toast('Đã đủ ' + SO_ANH_TOI_DA + ' ảnh.','ok'); setTimeout(dongCamera, 350); }
+}
+// Chuyển app/khoá màn hình khi đang mở camera → tắt luồng camera ngay (đỡ pin, nhả camera cho app khác);
+// quay lại thì bật lại.
+document.addEventListener('visibilitychange', () => {
+  if (!CAM) return;
+  if (document.hidden) dungLuongCamera();
+  else if (!$('camLoi').classList.contains('show')) batLuongCamera();
+});
+// Nút Back của Android khi đang mở camera → đóng camera (không hỏi thoát app): camera mượn 1 nấc lịch
+// sử qua moModalCoBack() như các modal khác, xem dongModalTrenCungKhiBack().
+
 /* ─── tạo sự cố ─── */
 function buildScChiNhanhSelect(){
   if(SESSION && SESSION.role==='admin'){
@@ -3093,6 +3231,7 @@ function dongModalCoBack(){   // gọi khi NGƯỜI DÙNG tự đóng modal bằ
   history.back();
 }
 function dongModalTrenCungKhiBack(){   // trả về true nếu vừa đóng được 1 modal đang mở
+  if(CAM){ NGAN_XEP_MODAL = Math.max(0,NGAN_XEP_MODAL-1); dongCamera(true); return true; }
   if($('anhXemModal').classList.contains('show')){ closeXemAnh(); NGAN_XEP_MODAL = Math.max(0,NGAN_XEP_MODAL-1); return true; }
   if($('modalOverlay').style.display === 'flex'){ closeLichSu(); NGAN_XEP_MODAL = Math.max(0,NGAN_XEP_MODAL-1); return true; }
   return false;
@@ -4136,5 +4275,21 @@ async function toggleLoaiSuCoActive(ma, bat){
   setTimeout(() => { $('uPass').value = ''; }, 400);
 })();
 </script>
+<div class="cam-ov" id="camOv" aria-modal="true" role="dialog">
+  <video id="camVideo" playsinline muted autoplay></video>
+  <div class="cam-flash" id="camFlash"></div>
+  <div class="cam-top"><span id="camDem"></span><button type="button" onclick="dongCamera()" aria-label="Đóng">✕</button></div>
+  <div class="cam-thumbs" id="camThumbs"></div>
+  <div class="cam-bot">
+    <button type="button" class="cam-side" onclick="doiCamera()">🔄 Đổi</button>
+    <button type="button" class="cam-shutter" id="camShutter" onclick="chupCamera()" aria-label="Chụp"></button>
+    <button type="button" class="cam-side" onclick="dongCamera()">Xong</button>
+  </div>
+  <div class="cam-loi" id="camLoi">
+    <div id="camLoiMsg" style="font-size:15px;line-height:1.5"></div>
+    <button type="button" class="btn btn-y" onclick="camDungCameraMay()">📷 Dùng camera của máy</button>
+    <button type="button" class="btn btn-ghost" onclick="dongCamera()">Đóng</button>
+  </div>
+</div>
 </body>
 </html>
