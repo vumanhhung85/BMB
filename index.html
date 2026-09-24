@@ -316,6 +316,22 @@ section{padding:54px 0}
 .m-foot{padding:16px 22px 22px;display:flex;gap:10px;flex-wrap:wrap}
 .m-foot .btn{flex:1;min-width:130px}
 
+.lh-main{border:1px solid rgba(255,210,26,.35);background:rgba(255,210,26,.06);border-radius:18px;padding:16px}
+.lh-main h4{font-family:'Baloo 2';font-size:20px;color:var(--yellow);line-height:1.2}
+.lh-meta{color:var(--txt-dim);font-size:13.5px;margin:4px 0 12px}
+.lh-btns{display:flex;gap:10px}
+.lh-btns .btn{flex:1}
+.lh-zalo{background:#0068FF!important;color:#fff!important;border-color:#0068FF!important}
+.lh-sub{margin-top:16px;color:var(--txt-mute);font-size:13px;font-weight:600}
+.lh-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line-soft)}
+.lh-row:last-child{border-bottom:0}
+.lh-row .t{flex:1;min-width:0}
+.lh-row .t b{display:block;font-size:14.5px}
+.lh-row .t span{color:var(--txt-mute);font-size:12.5px}
+.lh-row .btn{padding:8px 12px}
+.lh-wait{text-align:center;padding:26px 0;color:var(--txt-dim)}
+.lh-sel{width:100%;margin:10px 0 12px}
+
 /* ============ FORM ============ */
 .field{margin-bottom:15px}
 .field label{display:block;font-size:13.5px;font-weight:600;margin-bottom:6px;color:var(--txt-dim)}
@@ -432,14 +448,10 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
     </nav>
     <div class="nav-cta">
       <a href="admin.html" class="btn btn-ghost btn-sm" title="Dành cho quản lý chi nhánh">Quản lý</a>
-      <button class="btn btn-y btn-sm" onclick="openBooking()">Giữ phòng</button>
+      <button class="btn btn-y btn-sm" id="navBookBtn" onclick="openBooking()">Giữ phòng</button>
     </div>
   </div>
 </header>
-
-<div id="bookingOffBanner" style="display:none;background:linear-gradient(90deg,#4B1272,#8B2FBE);color:#F6EEFF;text-align:center;padding:11px 16px;font-size:13.5px;font-weight:600">
-  📴 Hệ thống giữ phòng qua web đang tạm đóng. Vui lòng gọi trực tiếp chi nhánh hoặc nhắn Zalo để giữ chỗ.
-</div>
 
 <main id="top">
 
@@ -521,7 +533,7 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
       <div class="feat"><div class="ic">🎧</div><h3>Thu âm mang về</h3><p>Nhiều chi nhánh có sẵn phòng thu. Hát xong có file để đăng luôn.</p></div>
       <div class="feat"><div class="ic">🌙</div><h3>Mở tới 6 giờ sáng</h3><p>Tan ca khuya, tan deadline, tan lòng — vẫn còn chỗ để hát.</p></div>
       <div class="feat"><div class="ic">📍</div><h3>30 chi nhánh</h3><p>TP.HCM, Bình Dương, Đồng Nai, Cần Thơ, Đà Lạt, Nha Trang và còn nữa.</p></div>
-      <div class="feat"><div class="ic">⚡</div><h3>Giữ phòng 30 giây</h3><p>Điền tên và số điện thoại. Quản lý chi nhánh xác nhận, bạn nhận tin nhắn.</p></div>
+      <div class="feat" id="featWebForm"><div class="ic">⚡</div><h3>Giữ phòng 30 giây</h3><p>Điền tên và số điện thoại. Quản lý chi nhánh xác nhận, bạn nhận tin nhắn.</p></div>
     </div>
   </div>
 </section>
@@ -536,7 +548,7 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
     <div class="steps">
       <div class="step"><h3>Chọn chi nhánh</h3><p>Bấm "Gần tôi nhất" hoặc tìm theo quận. Bản đồ chỉ luôn đường đi.</p></div>
       <div class="step"><h3>Chọn ngày và giờ</h3><p>Khung giờ hiển thị theo lịch mở cửa thật của chi nhánh đó.</p></div>
-      <div class="step"><h3>Nhận mã giữ phòng</h3><p>Mã 6 ký tự gửi ngay trên màn hình và qua email nếu bạn để lại.</p></div>
+      <div class="step" id="stepWebForm"><h3>Nhận mã giữ phòng</h3><p>Mã 6 ký tự gửi ngay trên màn hình và qua email nếu bạn để lại.</p></div>
       <div class="step"><h3>Quản lý xác nhận</h3><p>Nhân viên chi nhánh duyệt trong ít phút rồi gọi hoặc nhắn lại cho bạn.</p></div>
     </div>
   </div>
@@ -555,7 +567,7 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
       <div class="feat"><h3>Đi một mình được không?</h3><p>Được. Phòng nhỏ nhất vừa 1–2 người và đó là loại được đặt nhiều nhất.</p></div>
       <div class="feat"><h3>Tôi muốn huỷ thì sao?</h3><p>Gọi thẳng hotline chi nhánh trong thẻ thông tin. Không phạt, không phiền.</p></div>
       <div class="feat"><h3>Có chỗ để xe không?</h3><p>Tất cả chi nhánh đều có chỗ để xe máy. Ô tô tuỳ chi nhánh, gọi hỏi trước cho chắc.</p></div>
-      <div class="feat"><h3>Muốn mở chi nhánh nhượng quyền?</h3><p>Liên hệ hotline tổng hoặc fanpage. Hệ thống đang mở rộng liên tục.</p></div>
+      <div class="feat"><h3>Muốn mở chi nhánh nhượng quyền?</h3><p>Nhắn fanpage Boom Music Box hoặc gọi chi nhánh gần bạn để được kết nối. Hệ thống đang mở rộng liên tục.</p></div>
     </div>
   </div>
 </section>
@@ -579,7 +591,7 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
       <div>
         <h4>Dành cho nội bộ</h4>
         <a href="admin.html">Trang quản lý chi nhánh</a>
-        <a href="#" onclick="openBooking();return false">Giữ phòng hộ khách</a>
+        <a href="#" id="staffBookLink" onclick="openBooking();return false">Giữ phòng hộ khách</a>
       </div>
       <div>
         <h4>Kết nối</h4>
@@ -595,11 +607,28 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
 </footer>
 
 <div class="fab">
-  <a href="#" class="zalo" id="fabZalo" title="Chat Zalo" aria-label="Chat Zalo" onclick="return fabClick(this, event)">Zalo</a>
-  <a href="#" class="tel" id="fabTel" title="Gọi hotline" aria-label="Gọi hotline" onclick="return fabClick(this, event)">📞</a>
+  <a href="#" class="zalo" id="fabZalo" title="Nhắn Zalo chi nhánh gần bạn" aria-label="Nhắn Zalo chi nhánh gần bạn" onclick="return fabClick(this, event)">Zalo</a>
+  <a href="#" class="tel" id="fabTel" title="Gọi chi nhánh gần bạn" aria-label="Gọi chi nhánh gần bạn" onclick="return fabClick(this, event)">📞</a>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
+
+<!-- ══════════ HỘP LIÊN HỆ CHI NHÁNH (24/09/2026) ══════════
+     Mở khi khách bấm Gọi/Zalo mà CHƯA xác định được chi nhánh nào (chưa bấm chi nhánh, chưa có vị trí).
+     Boom không có tổng đài chung → tìm đúng chi nhánh gần khách, rồi khách bấm Gọi/Zalo của chính chi
+     nhánh đó (cú bấm mới → Zalo mở được app, xem ghi chú ở fabClick()). -->
+<div class="overlay" id="ovLienHe" onclick="if(event.target===this)closeModal('ovLienHe')">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="lhTitle" style="max-width:460px">
+    <div class="m-head">
+      <div>
+        <h3 id="lhTitle">Liên hệ chi nhánh gần bạn</h3>
+        <p>Mỗi chi nhánh tự nhận khách — gọi thẳng chi nhánh là nhanh nhất.</p>
+      </div>
+      <button class="x" onclick="closeModal('ovLienHe')" aria-label="Đóng">✕</button>
+    </div>
+    <div class="m-body" id="lhBody"></div>
+  </div>
+</div>
 
 <!-- ══════════ MODAL: CHI TIẾT CHI NHÁNH ══════════ -->
 <div class="overlay" id="ovDetail" onclick="if(event.target===this)closeModal('ovDetail')">
@@ -723,8 +752,8 @@ footer{border-top:1px solid var(--line-soft);padding:44px 0 30px;background:rgba
 /* ─── CẤU HÌNH ─── PHẢI trùng đúng CFG.API trong admin.html */
 const CFG = {
   API: 'https://bmb-quanly-worker.vumanhhung85.workers.dev',
-  HOTLINE: '0899887034',         // hotline tổng (Hoàng Diệu 2)
-  ZALO: '0899887034',
+  // KHÔNG có hotline/Zalo tổng: Boom không có tổng đài chung, mỗi chi nhánh tự nhận khách (24/09/2026).
+  // Mọi nút Gọi/Zalo luôn trỏ tới số của 1 chi nhánh cụ thể — xem chiNhanhMucTieu() / moLienHe().
   DATA_PREFIX: 'bmb_v1_'         // KHÔNG đổi — khoá lưu localStorage
 };
 
@@ -777,52 +806,141 @@ function initials(b) {
   return ((w[0]?.[0]||'B') + (w[w.length-1]?.[0]||'')).toUpperCase();
 }
 
-/** Nút gọi/Zalo nổi (FAB) — trỏ đúng theo mức ưu tiên (mới, 18/08/2026):
- *  1. Chi nhánh khách ĐANG XEM/CHỌN (bấm vào thẻ, ghim bản đồ, hoặc mở chi tiết) — activeId.
- *  2. Nếu chưa chọn gì nhưng đã biết vị trí khách (đã bấm "Gần tôi nhất") — chi nhánh gần nhất.
- *  3. Chưa có gì cả (mới vào trang, chưa bấm gì) — hotline chung của thương hiệu.
- *  Gọi hàm này ở MỌI nơi activeId hoặc userPos có thể đổi (setActive, sau khi có vị trí) để nút luôn
- *  khớp đúng ngữ cảnh hiện tại, không cần bấm lại gì thêm. */
+/** Đổi nhãn nút + ẩn nội dung chỉ đúng khi có form web, theo trạng thái BOOKING_ENABLED hiện tại
+ *  (Phương án 3, 24/09/2026). Card chi nhánh và modal chi tiết tự đọc BOOKING_ENABLED mỗi lần vẽ
+ *  (xem branchCard() và showDetail()) nên không cần đụng vào ở đây. */
+function capNhatGiaoDienGiuPhong() {
+  const nhan = BOOKING_ENABLED ? 'Giữ phòng' : '📞 Gọi giữ phòng';
+  $('navBookBtn').textContent = nhan;
+  $('staffBookLink').textContent = BOOKING_ENABLED ? 'Giữ phòng hộ khách' : 'Gọi chi nhánh hộ khách';
+  $('featWebForm').style.display = BOOKING_ENABLED ? '' : 'none';
+  $('stepWebForm').style.display = BOOKING_ENABLED ? '' : 'none';
+}
+
+/* ══════════ GỌI / ZALO — KHÔNG CÓ TỔNG ĐÀI CHUNG (viết lại 24/09/2026) ══════════
+   Boom không có hotline tổng, mỗi chi nhánh tự nhận khách → mọi nút Gọi/Zalo PHẢI trỏ tới 1 chi nhánh
+   cụ thể. "Chi nhánh mục tiêu" theo thứ tự ưu tiên:
+     1. Chi nhánh khách ĐANG XEM/CHỌN (bấm thẻ, ghim bản đồ, mở chi tiết) — activeId.
+     2. Chi nhánh GẦN NHẤT theo vị trí khách (đã bấm "Gần tôi nhất", hoặc đã từng cho phép định vị).
+     3. Chưa biết gì → KHÔNG đoán bừa 1 số nào: mở hộp "Liên hệ chi nhánh gần bạn" (moLienHe), tự xin
+        định vị ngay trong cú bấm đó, tìm ra chi nhánh gần nhất rồi hiện nút Gọi/Zalo của ĐÚNG chi nhánh
+        đó. Khách từ chối định vị → chọn chi nhánh theo tỉnh/thành trong cùng hộp.
+   Vì sao ở trường hợp 3 không tự gọi luôn sau khi định vị xong: (a) Zalo chỉ mở được app nếu điều
+   hướng nằm trong đúng cú bấm của khách — chờ định vị xong mới chuyển là mất cú bấm, ra lỗi "không tìm
+   thấy trang" (lỗi thực tế đã gặp); (b) khách thấy rõ TÊN + KHOẢNG CÁCH chi nhánh trước khi gọi, không
+   bị bất ngờ gọi tới một nơi mình không biết. */
+
+function chiNhanhGanNhat(n = 1) {
+  if (!userPos) return [];
+  return BRANCHES.filter(x => x.lat && x.lng && x.phone)
+    .map(x => ({ ...x, _d: haversine(userPos[0], userPos[1], x.lat, x.lng) }))
+    .sort((a, b) => a._d - b._d).slice(0, n);
+}
+function chiNhanhMucTieu() {
+  const b = activeId && BRANCHES.find(x => x.id === activeId && x.phone);
+  return b || chiNhanhGanNhat(1)[0] || null;
+}
+const telUrl = b => 'tel:' + b.phone;
+const zaloUrl = b => 'https://zalo.me/' + b.phone;
+
+/** Gắn sẵn href của 2 nút nổi theo chi nhánh mục tiêu. Chưa có → để '#', bấm sẽ mở hộp liên hệ.
+ *  Gọi lại ở MỌI nơi activeId hoặc userPos có thể đổi. */
 function capNhatFab() {
-  let b = activeId ? BRANCHES.find(x => x.id === activeId) : null;
-  if (!b && userPos) {
-    let bestD = Infinity;
-    BRANCHES.forEach(x => {
-      if (!x.lat || !x.lng) return;
-      const d = haversine(userPos[0], userPos[1], x.lat, x.lng);
-      if (d < bestD) { bestD = d; b = x; }
-    });
-  }
-  if (b && b.phone) {
-    $('fabTel').href = 'tel:' + b.phone;
-    $('fabZalo').href = 'https://zalo.me/' + b.phone;
-  } else {
-    $('fabTel').href = 'tel:' + CFG.HOTLINE;
-    $('fabZalo').href = 'https://zalo.me/' + CFG.ZALO;
-  }
+  const b = chiNhanhMucTieu();
+  $('fabTel').href  = b ? telUrl(b)  : '#';
+  $('fabZalo').href = b ? zaloUrl(b) : '#';
+  $('fabTel').title  = b ? 'Gọi ' + b.short : 'Gọi chi nhánh gần bạn';
+  $('fabZalo').title = b ? 'Nhắn Zalo ' + b.short : 'Nhắn Zalo chi nhánh gần bạn';
   return b;
 }
 
-/** Bấm nút Gọi/Zalo nổi lúc CHƯA chọn chi nhánh nào và CHƯA có vị trí (mới vào trang) — thay vì gọi
- *  thẳng hotline chung, tự xin định vị rồi tìm chi nhánh gần nhất trước, giống hệt hành vi nút "Gần
- *  tôi nhất" (mới, 18/08/2026). Nếu đã có activeId/userPos rồi thì `href` đã đúng sẵn, cho điều hướng
- *  chạy bình thường luôn, không cần chặn gì. Nếu trình duyệt không hỗ trợ định vị hoặc khách từ chối
- *  quyền, rơi về hotline chung — không để khách bị kẹt không gọi được. */
+/** Bấm nút nổi: đã có chi nhánh mục tiêu → đi thẳng theo href (trong đúng cú bấm), kèm báo tên chi
+ *  nhánh đang được gọi; chưa có → mở hộp liên hệ. */
 function fabClick(el, e) {
-  if (activeId || userPos) return true;
-  if (!navigator.geolocation) return true;
+  const b = capNhatFab();
+  if (b) {
+    toast((el.id === 'fabTel' ? 'Đang gọi ' : 'Mở Zalo ') + b.short + (b._d != null ? ` (${b._d.toFixed(1)} km)` : ''), 'ok');
+    return true;
+  }
   e.preventDefault();
-  toast('Đang tìm chi nhánh gần bạn…', 'ok');
+  moLienHe();
+  return false;
+}
+
+/** Hộp "Liên hệ chi nhánh gần bạn" — dùng cho FAB và nút "📞 Gọi giữ phòng" ở menu khi chưa biết chi
+ *  nhánh nào. Tự xin định vị ngay (đang trong cú bấm của khách nên hộp thoại xin quyền hiện bình thường). */
+function moLienHe() {
+  openModal('ovLienHe');
+  if (userPos) return veLienHeGanNhat();
+  if (!navigator.geolocation) return veLienHeChonTay('Trình duyệt không hỗ trợ định vị.');
+  $('lhBody').innerHTML = '<div class="lh-wait"><span class="spin"></span><br><br>Đang tìm chi nhánh gần bạn…<br><small>Nếu máy hỏi quyền vị trí, bấm <b>Cho phép</b>.</small></div>';
   navigator.geolocation.getCurrentPosition(pos => {
     userPos = [pos.coords.latitude, pos.coords.longitude];
-    const b = capNhatFab();
-    toast(b ? `Chi nhánh gần bạn nhất: ${b.short}` : 'Đã xác định được vị trí của bạn.', 'ok');
-    location.href = el.href;
+    capNhatFab();
+    try { render(); } catch (e) {}
+    if ($('ovLienHe').classList.contains('show')) veLienHeGanNhat();
   }, () => {
-    toast('Không lấy được vị trí — dùng hotline chung.', 'bad');
-    location.href = el.href;
-  }, { enableHighAccuracy:true, timeout:8000, maximumAge:60000 });
-  return false;
+    if ($('ovLienHe').classList.contains('show')) veLienHeChonTay('Chưa lấy được vị trí của bạn.');
+  }, { enableHighAccuracy:true, timeout:10000, maximumAge:120000 });
+}
+
+function dongLienHeNut(b) {
+  return `<a class="btn btn-y" href="${esc(telUrl(b))}" onclick="closeModal('ovLienHe')">📞 Gọi ${esc(b.short)}</a>
+          <a class="btn lh-zalo" href="${esc(zaloUrl(b))}" onclick="closeModal('ovLienHe')">💬 Zalo</a>`;
+}
+function veLienHeGanNhat() {
+  const ds = chiNhanhGanNhat(4);
+  if (!ds.length) return veLienHeChonTay('Chưa có chi nhánh nào có số liên hệ.');
+  const [b, ...khac] = ds;
+  $('lhBody').innerHTML = `
+    <div class="lh-main">
+      <h4>${esc(b.short)}</h4>
+      <div class="lh-meta">📍 Cách bạn ${b._d.toFixed(1)} km · ${isOpenNow(b) ? '🟢 Đang mở cửa' : '🔴 Đang đóng cửa'}<br>${esc(b.address)}</div>
+      <div class="lh-btns">${dongLienHeNut(b)}</div>
+    </div>
+    ${khac.length ? `<div class="lh-sub">Chi nhánh khác gần bạn</div>` + khac.map(x => `
+      <div class="lh-row">
+        <div class="t"><b>${esc(x.short)}</b><span>${x._d.toFixed(1)} km · ${isOpenNow(x) ? 'Đang mở' : 'Đang đóng'}</span></div>
+        <a class="btn btn-ghost btn-sm" href="${esc(telUrl(x))}" onclick="closeModal('ovLienHe')">📞 Gọi</a>
+        <a class="btn btn-sm lh-zalo" href="${esc(zaloUrl(x))}" onclick="closeModal('ovLienHe')">Zalo</a>
+      </div>`).join('') : ''}
+    <div style="margin-top:14px;text-align:center"><a href="#" onclick="veLienHeChonTay('');return false" style="color:var(--txt-mute);font-size:13px">Chọn chi nhánh khác theo tỉnh/thành →</a></div>`;
+}
+function veLienHeChonTay(lyDo) {
+  const nhom = {};
+  BRANCHES.filter(b => b.phone).forEach(b => (nhom[b.region || 'Khác'] ||= []).push(b));
+  const opts = Object.keys(nhom).map(r => `<optgroup label="${esc(r)}">` +
+    nhom[r].map(b => `<option value="${esc(b.id)}">${esc(b.short)}</option>`).join('') + '</optgroup>').join('');
+  $('lhBody').innerHTML = `
+    ${lyDo ? `<p style="color:var(--txt-dim);font-size:14px">${esc(lyDo)} Chọn chi nhánh bạn muốn liên hệ:</p>` : `<p style="color:var(--txt-dim);font-size:14px">Chọn chi nhánh bạn muốn liên hệ:</p>`}
+    <select id="lhSel" class="lh-sel" onchange="veLienHeDaChon()"><option value="">— Chọn chi nhánh —</option>${opts}</select>
+    <div id="lhChon"></div>
+    ${navigator.geolocation ? `<div style="margin-top:14px;text-align:center"><a href="#" onclick="userPos=null;moLienHe();return false" style="color:var(--txt-mute);font-size:13px">📍 Thử định vị lại</a></div>` : ''}`;
+}
+function veLienHeDaChon() {
+  const b = BRANCHES.find(x => x.id === $('lhSel').value);
+  $('lhChon').innerHTML = b ? `
+    <div class="lh-main">
+      <h4>${esc(b.short)}</h4>
+      <div class="lh-meta">${isOpenNow(b) ? '🟢 Đang mở cửa' : '🔴 Đang đóng cửa'} · ${esc(b.address)}</div>
+      <div class="lh-btns">${dongLienHeNut(b)}</div>
+    </div>` : '';
+}
+
+/** Dò trước vị trí NGAY LÚC TẢI TRANG nếu quyền ĐÃ được cấp sẵn từ trước (không tự ý xin quyền mới ở
+ *  đây — tôn trọng quyền riêng tư, chỉ hỏi khi khách chủ động bấm "Gần tôi nhất" hoặc FAB). Mục đích:
+ *  với khách đã từng cho phép, FAB có sẵn đúng số chi nhánh gần nhất NGAY LẦN BẤM ĐẦU TIÊN, không cần
+ *  đợi qua lần bấm thứ 2 mới đúng (mới, 24/09/2026). */
+async function doVoTruocViTri() {
+  try {
+    if (!navigator.permissions?.query) return;
+    const kq = await navigator.permissions.query({ name: 'geolocation' });
+    if (kq.state !== 'granted') return;
+    navigator.geolocation.getCurrentPosition(pos => {
+      userPos = [pos.coords.latitude, pos.coords.longitude];
+      capNhatFab();
+    }, () => {}, { enableHighAccuracy:false, timeout:5000, maximumAge:120000 });
+  } catch (e) {}
 }
 
 /** Tham số thống kê lượt mở trang (chi nhánh giới thiệu, nguồn truy cập, loại thiết bị) — gửi KÈM
@@ -877,7 +995,7 @@ async function boot() {
     // Mất kết nối/quá hạn — dùng SEED; vẫn cho thử giữ phòng, máy chủ sẽ tự chặn nếu đang tắt.
     console.warn('Dùng dữ liệu dự phòng:', e.message);
   }
-  $('bookingOffBanner').style.display = BOOKING_ENABLED ? 'none' : 'block';
+  capNhatGiaoDienGiuPhong();
 
   BRANCHES = BRANCHES.filter(b => b.active !== false)
                      .sort((a,b) => (a.priority||999) - (b.priority||999));
@@ -892,6 +1010,7 @@ async function boot() {
   initMap();
   render();
   openFromLink();
+  doVoTruocViTri();
 
   $('q').addEventListener('input', debounce(render, 220));
   $('bPhone').addEventListener('input', e => e.target.value = e.target.value.replace(/[^\d]/g,''));
@@ -956,7 +1075,10 @@ function openFromLink() {
   const b = BRANCHES.find(x => x.id === id);
   if (!b) { toast('Không tìm thấy chi nhánh trong đường dẫn này.', 'bad'); return; }
   map.setView([b.lat, b.lng], 14);
-  setTimeout(() => openBooking(b.id), 300);
+  setActive(b.id, false);   // nút nổi Gọi/Zalo trỏ luôn về đúng chi nhánh trong link
+  // Công tắc giữ phòng TẮT: KHÔNG tự bấm số ngay khi vừa mở trang (khách chưa bấm gì) — mở thẻ chi tiết
+  // chi nhánh, nơi có sẵn nút Gọi (đầu) + Zalo (cuối) để khách tự chọn (24/09/2026).
+  setTimeout(() => BOOKING_ENABLED ? openBooking(b.id) : showDetail(b.id), 300);
 }
 
 function findNearest() {
@@ -1108,7 +1230,9 @@ function cardHTML(b) {
     <div class="c-actions">
       <a class="btn btn-ghost btn-sm" href="tel:${esc(b.phone)}" onclick="event.stopPropagation()">📞 Gọi</a>
       <a class="btn btn-ghost btn-sm" href="${esc(mapsUrl(b))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺️ Chỉ đường</a>
-      <button class="btn btn-y btn-sm" onclick="event.stopPropagation();openBooking('${b.id}')">Giữ phòng</button>
+      ${BOOKING_ENABLED
+        ? `<button class="btn btn-y btn-sm" onclick="event.stopPropagation();openBooking('${b.id}')">Giữ phòng</button>`
+        : `<a class="btn btn-y btn-sm" href="https://zalo.me/${esc(b.phone)}" onclick="event.stopPropagation()">💬 Zalo</a>`}
     </div>
   </article>`;
 }
@@ -1163,7 +1287,13 @@ function showDetail(id) {
 
   $('dCall').href = 'tel:' + b.phone;
   $('dMap').href = mapsUrl(b);
-  $('dBook').onclick = () => { closeModal('ovDetail'); openBooking(b.id); };
+  if (BOOKING_ENABLED) {
+    $('dBook').textContent = '🎤 Giữ phòng';
+    $('dBook').onclick = () => { closeModal('ovDetail'); openBooking(b.id); };
+  } else {
+    $('dBook').textContent = '💬 Nhắn Zalo';
+    $('dBook').onclick = () => zaloGiuPhong(b.id);
+  }
   openModal('ovDetail');
 }
 
@@ -1186,11 +1316,23 @@ function buildBranchSelect() {
   $('bBranch').innerHTML = '<option value="">— Chọn chi nhánh —</option>' +
     BRANCHES.map(b => `<option value="${b.id}">${esc(b.short)} — ${esc(b.region)}</option>`).join('');
 }
+/** Công tắc giữ phòng TẮT: gọi đúng chi nhánh — theo id nếu nút gắn với 1 chi nhánh, nếu không thì
+ *  chi nhánh mục tiêu (đang xem / gần nhất); vẫn chưa biết → hộp liên hệ. Không còn hotline chung. */
+function goiGiuPhong(id) {
+  const b = (id && BRANCHES.find(x => x.id === id && x.phone)) || chiNhanhMucTieu();
+  if (b) { toast('Đang gọi ' + b.short, 'ok'); location.href = telUrl(b); }
+  else moLienHe();
+}
+function zaloGiuPhong(id) {
+  const b = (id && BRANCHES.find(x => x.id === id && x.phone)) || chiNhanhMucTieu();
+  if (b) location.href = zaloUrl(b); else moLienHe();
+}
+
 function openBooking(id) {
-  if (!BOOKING_ENABLED) {
-    toast('Hệ thống giữ phòng qua web đang tạm đóng. Vui lòng gọi trực tiếp chi nhánh nhé.', 'bad');
-    return;
-  }
+  // Công tắc giữ phòng đang TẮT (Phương án 3, 24/09/2026): KHÔNG hiện thông báo "tạm đóng", KHÔNG mở
+  // form — chuyển thẳng sang gọi điện, đúng số chi nhánh (theo nút / đang xem / gần nhất). Nhu
+  // cầu giữ phòng vẫn được đáp ứng ngay, chỉ đổi kênh, tắt bao lâu cũng không tạo cảm giác "web hỏng".
+  if (!BOOKING_ENABLED) { goiGiuPhong(id); return; }
   $('bForm').style.display = ''; $('bDone').style.display = 'none'; $('bFoot').style.display = '';
   $('bSubmit').disabled = false; $('bSubmit').innerHTML = 'Gửi yêu cầu giữ phòng';
   pickedTime = null;
@@ -1201,6 +1343,7 @@ function openBooking(id) {
   $('bDate').max = max.toISOString().slice(0,10);
   if (!$('bDate').value || $('bDate').value < iso) $('bDate').value = iso;
   if (id) $('bBranch').value = id;
+  else if (!$('bBranch').value) { const mt = chiNhanhMucTieu(); if (mt) $('bBranch').value = mt.id; }   // chọn sẵn chi nhánh đang xem/gần nhất
   clearErrors();
   onBranchPick();
   openModal('ovBook');
@@ -1285,7 +1428,9 @@ function rateLimited() {
 }
 
 async function submitBooking() {
-  if (!BOOKING_ENABLED) { closeModal('ovBook'); return toast('Hệ thống giữ phòng qua web đang tạm đóng.', 'bad'); }
+  // Hiếm khi xảy ra: form đang mở thì công tắc bị tắt giữa chừng (openBooking() đã chặn từ lúc mở form
+  // rồi, đây chỉ là lưới an toàn). Cùng cách xử lý với openBooking(): chuyển sang gọi, không báo lỗi.
+  if (!BOOKING_ENABLED) { closeModal('ovBook'); goiGiuPhong($('bBranch').value); return; }
   if ($('bHp').value) return;                       // bot điền honeypot
   if (!validate()) return;
   if (rateLimited()) return toast('Bạn đã gửi khá nhiều yêu cầu. Thử lại sau 10 phút nhé.', 'bad');
@@ -1320,14 +1465,14 @@ async function submitBooking() {
       }, 15000);
       const j = await r.json();
       if (j.ok) { code = j.code; online = true; }
-      else if (j.error === 'BOOKING_DISABLED') {
-        BOOKING_ENABLED = false;
-        $('bookingOffBanner').style.display = 'block';
-        $('bSubmit').disabled = false; $('bSubmit').textContent = 'Gửi yêu cầu giữ phòng';
-        closeModal('ovBook');
-        return toast('Hệ thống giữ phòng qua web đang tạm đóng. Vui lòng gọi trực tiếp chi nhánh nhé.', 'bad');
-      }
-      else if (LOI_DAT_PHONG[j.error]) {
+      else if (j.error === 'BOOKING_DISABLED') {   // hiếm khi tới đây (openBooking đã chặn từ trước) — cùng 1 xử lý
+      BOOKING_ENABLED = false;
+      capNhatGiaoDienGiuPhong();
+      closeModal('ovBook');
+      goiGiuPhong($('bBranch').value);
+      return;
+    }
+    else if (LOI_DAT_PHONG[j.error]) {
         // Máy chủ TỪ CHỐI hẳn đơn (dữ liệu sai / gửi quá nhiều) — báo đúng lý do cho khách sửa, KHÔNG giả
         // mã offline như lúc mất mạng, vì đơn này gửi lại y nguyên vẫn sẽ bị từ chối (mới, 24/09/2026).
         $('bSubmit').disabled = false; $('bSubmit').textContent = 'Gửi yêu cầu giữ phòng';
