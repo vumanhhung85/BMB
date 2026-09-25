@@ -17,8 +17,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<!-- SheetJS — đọc/ghi file Excel ngay trong trình duyệt, dùng cho nút Nhập/Xuất chi nhánh ở tab Cài đặt -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --yellow:#FFD21A;--gold:#F5A11B;--purple:#8B2FBE;--grape:#4B1272;--magenta:#D633C6;
@@ -957,6 +955,23 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         </div>
         <button class="btn btn-y btn-sm" style="margin-top:8px" onclick="chanBamKep(this,luuChuongGiay)">Lưu</button>
       </div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line-soft)">
+        <div class="switch-row">
+          <div>
+            <b>🌙 Giờ yên lặng</b>
+            <div style="font-size:12.5px;color:var(--txt-mute)">Trong khung giờ này: <b>không gửi</b> nhắc SLA quá hạn (dồn lại thành 1 tin gộp lúc hết giờ yên lặng); tin Telegram tự động khác vẫn gửi nhưng <b>không kêu chuông</b>; chuông lặp trên app kỹ thuật tạm nghỉ. Việc gấp thật thì chi nhánh gọi điện trực tiếp.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="cfgYenLangBat">
+            <span class="track"></span>
+          </label>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
+          <div class="field" style="max-width:140px"><label for="cfgYenLangTu">Từ (giờ)</label><input type="number" id="cfgYenLangTu" min="0" max="23" step="1"></div>
+          <div class="field" style="max-width:140px"><label for="cfgYenLangDen">Đến (giờ)</label><input type="number" id="cfgYenLangDen" min="0" max="23" step="1"></div>
+        </div>
+        <button class="btn btn-y btn-sm" style="margin-top:8px" onclick="chanBamKep(this,luuYenLang)">Lưu</button>
+      </div>
       </div>
     </div>
 
@@ -1139,14 +1154,37 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<!-- xlsx-js-style: bản SheetJS có hỗ trợ tô màu/định dạng ô — dùng để xuất Excel dạng báo cáo có
-     trang trí (bản gốc "xlsx" của SheetJS miễn phí KHÔNG ghi được màu/kiểu chữ khi xuất file). -->
-<script src="https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"
-        integrity="sha256-HHq/KZP/LNYeUI+SaOms2gCYyXlvOSXSug0leQcmU+I=" crossorigin=""></script>
+<!-- xlsx-js-style (bản SheetJS có tô màu/định dạng ô, dùng cho MỌI chức năng Excel: nhập/xuất chi
+     nhánh, file mẫu, báo cáo sự cố) — KHÔNG còn nạp bằng thẻ script ở đây nữa (24/09/2026): nạp ngầm
+     khi trình duyệt rảnh sau đăng nhập, hoặc ngay lúc bấm nút Excel nếu chưa có — xem napXLSX().
+     Trước đó file còn nạp THÊM bản xlsx.full.min.js (~900KB) trong <head>: bị bản này ghi đè biến
+     XLSX nên hoàn toàn thừa, lại chặn hiển thị trang lúc mở — đã bỏ hẳn. -->
 <script>
 /* ══════════════════════════════════════════════
    BOOM MUSIC BOX — bảng điều khiển chi nhánh
    ══════════════════════════════════════════════ */
+/** Nạp thư viện Excel đúng 1 lần, khi cần (24/09/2026). Trả về Promise — gọi lại nhiều lần vẫn chỉ tải
+ *  1 lần. Giữ nguyên mã kiểm tra toàn vẹn (SRI) như thẻ script cũ. */
+let _napXLSX = null;
+function napXLSX(){
+  if(typeof XLSX !== 'undefined') return Promise.resolve();
+  if(_napXLSX) return _napXLSX;
+  _napXLSX = new Promise((ok, loi) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+    sc.integrity = 'sha256-HHq/KZP/LNYeUI+SaOms2gCYyXlvOSXSug0leQcmU+I=';
+    sc.crossOrigin = '';
+    sc.onload = () => ok();
+    sc.onerror = () => { _napXLSX = null; loi(new Error('XLSX')); };
+    document.head.appendChild(sc);
+  });
+  return _napXLSX;
+}
+async function canXLSX(){
+  try{ await napXLSX(); return true; }
+  catch(e){ toast('Chưa tải được thư viện Excel (kiểm tra kết nối mạng rồi thử lại).','bad'); return false; }
+}
+
 const CFG = {
   /* BẢN 2 — chạy trên Cloudflare Worker + D1 (thay Google Apps Script). Sau khi `npx wrangler deploy`,
      dán đúng địa chỉ Worker in ra ở cuối lệnh vào dòng dưới (dạng https://bmb-quanly-worker.xxx.workers.dev). */
@@ -1734,6 +1772,8 @@ async function enterApp(){
   ['click','keydown','scroll','touchstart'].forEach(e=>document.addEventListener(e,resetIdle,{passive:true}));
 
   await khoiDongDuLieu();   // 1 lượt gọi duy nhất thay cho 8 lượt rời rạc như trước
+  // Nạp ngầm thư viện Excel lúc trình duyệt rảnh — tới lúc bấm nút Excel là đã sẵn, không phải chờ.
+  if(!isKyThuat()) (window.requestIdleCallback || (f => setTimeout(f, 4000)))(() => napXLSX().catch(()=>{}));
   capNhatHienTabDatPhong(true);   // đã có cài đặt thật → quyết định hiện/ẩn tab Đặt phòng
   // Tài khoản chi nhánh: kiểm tra lại công tắc giữ phòng mỗi 5 phút (đọc bản cài đặt công khai, Worker
   // đệm sẵn nên gần như không tốn gì) — admin bật/tắt thì tab tự hiện/ẩn, không cần đăng nhập lại.
@@ -2088,7 +2128,8 @@ async function submitChiNhanh(){
 /* ─── xuất / nhập Excel ─── */
 function today8(){ const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
 
-function xuatMauChiNhanh(){
+async function xuatMauChiNhanh(){
+  if(!await canXLSX()) return;
   const sample = [{
     'Mã chi nhánh (để trống nếu là CN mới)':'', 'Tên chi nhánh':'Boom Music Box Ví Dụ', 'Tên rút gọn':'Ví Dụ',
     'Loại hình':'Karaoke mini', 'Địa chỉ':'123 Đường ABC, Phường X, TP.HCM', 'Khu vực':'TP.HCM',
@@ -2107,8 +2148,9 @@ function xuatMauChiNhanh(){
   XLSX.writeFile(wb, 'mau-nhap-chi-nhanh.xlsx');
 }
 
-function xuatChiNhanhHienTai(){
+async function xuatChiNhanhHienTai(){
   if(!CHINHANH_LIST.length) return toast('Chưa có chi nhánh nào để xuất.','bad');
+  if(!await canXLSX()) return;
   const header = CN_FIELD_MAP.map(f=>f.label);
   const data = CHINHANH_LIST.map(c=>{
     const o = {};
@@ -2131,6 +2173,7 @@ async function onFileNhapChiNhanh(ev){
   const file = ev.target.files[0];
   ev.target.value = '';
   if(!file) return;
+  if(!await canXLSX()) return;
   try{
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, {type:'array'});
@@ -2210,8 +2253,19 @@ function ticketCanChuongLap(t){
 function dangTamTatChuong(){
   return Date.now() < Number(localStorage.getItem(CHUONG_SNOOZE_KEY) || 0);
 }
+/** Giờ yên lặng (mặc định 23:00–07:00 giờ VN, admin chỉnh trong Cài đặt) — chuông lặp tạm nghỉ, khớp
+ *  đúng luật phía Worker (trongGioYenLang trong index.js): nửa đêm không ai xử lý được, kêu chỉ khiến
+ *  anh em tắt hẳn thông báo (24/09/2026). Tính theo giờ VN dù máy đặt múi giờ nào. */
+function trongGioYenLangClient(){
+  const P = PUBLIC_SETTINGS;
+  if(P.yenLangBat === false) return false;
+  const tu = P.yenLangTu != null ? Number(P.yenLangTu) : 23, den = P.yenLangDen != null ? Number(P.yenLangDen) : 7;
+  if(tu === den) return false;
+  const h = new Date(Date.now() + 7*3600e3).getUTCHours();
+  return tu < den ? (h >= tu && h < den) : (h >= tu || h < den);
+}
 function coTicketCanChuongLap(){
-  if(!isKyThuat() || dangTamTatChuong()) return false;
+  if(!isKyThuat() || dangTamTatChuong() || trongGioYenLangClient()) return false;
   return SUCO.some(t => t.trangThai!=='dong' && (t.mucDo===1||t.mucDo===2) && ticketCanChuongLap(t));
 }
 function dungChuongLap(){
@@ -2240,6 +2294,11 @@ function veNutChuongLap(){
   const btn = $('btnChuongLap');
   if(!isKyThuat()){ btn.style.display='none'; return; }
   btn.style.display='';
+  if(trongGioYenLangClient()){
+    btn.textContent = '🌙';
+    btn.title = 'Giờ yên lặng ' + (PUBLIC_SETTINGS.yenLangTu ?? 23) + ':00–' + (PUBLIC_SETTINGS.yenLangDen ?? 7) + ':00 — chuông tạm nghỉ, tự bật lại sau đó';
+    return;
+  }
   if(dangTamTatChuong()){
     const phutConLai = Math.ceil((Number(localStorage.getItem(CHUONG_SNOOZE_KEY)||0) - Date.now())/60000);
     btn.textContent = '🔕 '+Math.max(phutConLai,1)+'p';
@@ -3489,8 +3548,8 @@ function vienMongO(mauHex){
  *  xlsx-js-style (nạp qua thẻ script ở đầu file) vì bản "xlsx" gốc của SheetJS miễn phí KHÔNG ghi
  *  được màu/kiểu chữ khi xuất — chỉ đọc được, không xuất được, nên phải dùng đúng bản fork này.
  *  (mới, 08/09/2026, theo yêu cầu khách hàng cần bảng dễ nhìn để theo dõi.) */
-function xuatExcelSuCo(){
-  if(typeof XLSX === 'undefined') return toast('Chưa tải được thư viện xuất Excel (kiểm tra kết nối mạng rồi thử lại).','bad');
+async function xuatExcelSuCo(){
+  if(!await canXLSX()) return;
   const rows = filteredBangSuCo();
   if(!rows.length) return toast('Không có dòng nào để xuất.','bad');
 
@@ -3853,6 +3912,9 @@ function fillCfgInputs(){
   $('cfgKtTuNhan').checked = !!PUBLIC_SETTINGS.kythuatTuNhanViec;
   $('cfgKtViTri').checked = !!PUBLIC_SETTINGS.kythuatXemViTriDongNghiep;
   $('cfgChuongGiay').value = PUBLIC_SETTINGS.chuongLapKhoangGiay || 25;
+  $('cfgYenLangBat').checked = PUBLIC_SETTINGS.yenLangBat !== false;
+  $('cfgYenLangTu').value = PUBLIC_SETTINGS.yenLangTu ?? 23;
+  $('cfgYenLangDen').value = PUBLIC_SETTINGS.yenLangDen ?? 7;
   hienMocCron(PUBLIC_SETTINGS.cronChayCuoi);
 }
 
@@ -3883,6 +3945,22 @@ async function kiemTraTacVuNen(){
     (j.loiGanDay||[]).forEach(l => d.push('<span style="opacity:.8">🧾 ' + new Date(l.luc).toLocaleString('vi-VN') + ': ' + esc(l.noiDung) + '</span>'));
     el.innerHTML = d.join('<br>');
   }catch(e){ el.textContent = 'Không kiểm tra được: ' + (e.message||e); }
+}
+
+async function luuYenLang(){
+  const bat = $('cfgYenLangBat').checked;
+  const tu = Number($('cfgYenLangTu').value), den = Number($('cfgYenLangDen').value);
+  if([tu,den].some(v => $('cfgYenLangTu').value==='' || $('cfgYenLangDen').value==='' || isNaN(v) || v<0 || v>23 || v%1))
+    return toast('Giờ phải là số nguyên từ 0 đến 23.','bad');
+  if(bat && tu === den) return toast('Giờ bắt đầu và kết thúc không được trùng nhau.','bad');
+  try{
+    for(const [key,value] of [['yen_lang_bat', bat?'Y':'N'], ['yen_lang_tu', tu], ['yen_lang_den', den]]){
+      const j = await api({action:'settings_set', key, value:String(value)}); if(!j.ok) throw new Error(j.error);
+    }
+    Object.assign(PUBLIC_SETTINGS, { yenLangBat: bat, yenLangTu: tu, yenLangDen: den });
+    capNhatChuongLap();
+    toast(bat ? `Đã lưu: yên lặng từ ${tu}:00 đến ${den}:00 (giờ VN).` : 'Đã tắt giờ yên lặng.','ok');
+  }catch(e){ toast('Không lưu được, thử lại.','bad'); }
 }
 
 async function luuChuongGiay(){
