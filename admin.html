@@ -191,6 +191,14 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
   border-radius:18px;padding:20px;margin-bottom:18px}
 .photo-pick-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px}
 .photobox{display:flex;gap:9px;flex-wrap:wrap;margin-top:8px}
+.tb-khoi{border:1px solid var(--line-soft);border-radius:14px;padding:14px 16px;margin-bottom:12px;background:rgba(255,255,255,.02)}
+.tb-khoi:last-child{margin-bottom:0}
+.tb-mo{color:var(--txt-mute);font-size:12.5px;margin-top:4px;line-height:1.5}
+.tb-tick{display:flex;gap:10px;align-items:flex-start;margin-top:10px;cursor:pointer;font-size:13.5px}
+.tb-tick input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--yellow)}
+.tb-ok{color:var(--ok)} .tb-dung{color:var(--warn)}
+.tg-bang{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+.tg-bang td{padding:6px 4px;border-bottom:1px solid var(--line-soft)}
 /* Camera trong app (24/09/2026) — thay cho <input capture> mở app Camera riêng của máy */
 .cam-ov{position:fixed;inset:0;z-index:1990;background:#000;display:none;flex-direction:column}
 .cam-ov.show{display:flex}
@@ -1014,7 +1022,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <ol style="margin:8px 0 0;padding-left:20px;color:var(--txt-mute)">
             <li>Chat với <b>@BotFather</b> trên Telegram → gõ <code>/newbot</code> → đặt tên → copy đoạn <b>token</b> nó trả về, dán vào ô bên dưới.</li>
             <li>Tạo group Telegram mới (hoặc dùng group có sẵn) → thêm bot vừa tạo vào group → gửi thử 1 tin bất kỳ trong group.</li>
-            <li>Mở trên trình duyệt: <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> → tìm số ở mục <code>"chat":{"id":...}</code> (group thường là số âm, vd <code>-1001234567890</code>) → dán vào ô Chat ID bên dưới.</li>
+            <li>Lấy Chat ID nhóm: nếu đã bấm <b>⚡ Kích hoạt bot nhắn riêng</b> (bên dưới) thì gõ <code>/chatid</code> trong nhóm, bot trả lời ngay. Nếu chưa kích hoạt: mở <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> → tìm số ở mục <code>"chat":{"id":...}</code> (nhóm thường là số âm, vd <code>-1001234567890</code>) → dán vào ô Chat ID bên dưới.</li>
           </ol>
         </div>
         <div class="field">
@@ -1030,27 +1038,49 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
           <button class="btn btn-ghost btn-sm" onclick="guiThuTelegram()" id="btnTgTest">📨 Gửi thử</button>
         </div>
         <div id="tgKetQua" style="font-size:12.5px;color:var(--txt-mute);margin-top:10px"></div>
+        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft)">
+          <b>🤖 Bot nhắn riêng từng tài khoản</b>
+          <div style="font-size:12.5px;color:var(--txt-mute);margin:4px 0 10px;line-height:1.5">Dùng chung bot ở trên. Kỹ thuật và quản lý chi nhánh tự bấm <b>Kết nối Telegram</b> trong mục 🔔 Thông báo của họ → chỉ nhận đúng tin của mình (sự cố được giao, sự cố/đơn giữ phòng của chi nhánh), không ồn như nhóm. Nhóm chung vẫn giữ nguyên cho lãnh đạo.<br>Bấm <b>Kích hoạt</b> 1 lần sau khi lưu token (và mỗi khi đổi token). Sau khi kích hoạt, muốn lấy Chat ID nhóm mới: thêm bot vào nhóm rồi gõ <code>/chatid</code> trong nhóm.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-y btn-sm" onclick="chanBamKep(this,kichHoatBotRieng)">⚡ Kích hoạt bot nhắn riêng</button>
+            <button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,kiemTraBotRieng)">🔍 Kiểm tra & xem ai đã kết nối</button>
+          </div>
+          <div id="tgRiengKetQua" style="font-size:12.5px;color:var(--txt-mute);margin-top:10px"></div>
+        </div>
       </div>
     </div>
     </div>
 
-    <div class="form-card ff-collapse" style="max-width:640px;margin-top:14px">
+    <!-- 🔔 THÔNG BÁO (27/09/2026) — thay khối "Liên kết Telegram cá nhân" nhập ID tay cũ. Mỗi tài khoản
+         kỹ thuật / quản lý chi nhánh tự kết nối Telegram riêng bằng 1 nút (mở thẳng bot trên app
+         Telegram); admin nhận qua nhóm chung nên không có phần này. -->
+    <div class="form-card ff-collapse open" style="max-width:640px;margin-top:14px" id="cardThongBao">
       <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
         <div>
-          <h3 style="font-size:18px;margin-bottom:6px">🔗 Liên kết Telegram cá nhân</h3>
-          <p style="color:var(--txt-mute);font-size:13.5px" id="tgTrangThai">Đang kiểm tra…</p>
+          <h3 style="font-size:18px;margin-bottom:6px">🔔 Thông báo</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px" id="tbTomTat">Cách nhận thông báo trên thiết bị này và qua Telegram.</p>
         </div>
         <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
       </button>
       <div class="ff-body">
-        <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:10px">Liên kết để bấm được nút ✅ 📍 🔒 ngay trên tin nhắn Telegram (điều phối/xác nhận/đóng ticket) thay vì phải mở app. Nhắn bất kỳ nội dung gì cho <b>@userinfobot</b> trên Telegram, copy số ID (chỉ toàn chữ số) rồi dán vào đây.</p>
-        <div class="field">
-          <label for="tgIdInput">Telegram ID (dạng số)</label>
-          <input id="tgIdInput" inputmode="numeric" placeholder="vd: 123456789" maxlength="20">
+        <div class="tb-khoi">
+          <b>Thông báo trong ứng dụng</b>
+          <div class="tb-mo">Luôn bật. Khi đang mở ứng dụng, sự cố/đơn mới hiện ngay trên màn hình kèm tiếng báo.</div>
+          <label class="tb-tick">
+            <input type="checkbox" id="tbHeThong" onchange="doiThongBaoHeThong(this)">
+            <span>Hiện thêm thông báo của Windows / điện thoại khi tab ứng dụng đang mở</span>
+          </label>
         </div>
-        <div class="bk-act">
-          <button class="btn btn-y btn-sm" onclick="chanBamKep(this,luuTelegramId)">Lưu liên kết</button>
-          <button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,goLienKetTelegram)">Gỡ liên kết</button>
+        <div class="tb-khoi" id="tbKhoiTelegram">
+          <b>Telegram</b> <span style="color:var(--txt-mute);font-size:12.5px">(kênh phụ, không bắt buộc)</span>
+          <div class="tb-mo" id="tbTgMoTa">Kết nối để nhận thông báo riêng của tài khoản này ngay cả khi không mở ứng dụng.</div>
+          <div id="tbTgTrangThai" style="font-size:13.5px;margin:8px 0"></div>
+          <div class="bk-act" id="tbTgNut"></div>
+          <div class="tb-mo" id="tbTgLenh" style="display:none;margin-top:10px">Trong Telegram gõ <b>/viec</b> xem việc đang cần xử lý · <b>/tamdung</b> tạm dừng · <b>/tiep</b> nhận lại · <b>/ngat</b> ngắt kết nối.</div>
+        </div>
+        <div class="tb-khoi" id="tbKhoiAdminNhom" style="display:none">
+          <b>Telegram</b>
+          <div class="tb-mo">Tài khoản quản trị nhận thông báo qua <b>nhóm chung</b> (cấu hình ở mục 📨 Cấu hình Telegram phía trên). Kỹ thuật và quản lý chi nhánh tự kết nối Telegram riêng trong tài khoản của họ.</div>
         </div>
       </div>
     </div>
@@ -1767,7 +1797,7 @@ async function enterApp(){
   if(isKyThuat()){
     batDauChiaSeViTri();   // định kỳ nhẹ mỗi 5 phút trong lúc còn mở app — xem thêm ở nhanViec/batDauXuLy/submitBaoXong
   }
-  requestNotifyPermission();
+  // Không tự bật hộp thoại xin quyền thông báo nữa (27/09/2026) — người dùng tự tick trong Cài đặt → 🔔 Thông báo.
   resetIdle();
   ['click','keydown','scroll','touchstart'].forEach(e=>document.addEventListener(e,resetIdle,{passive:true}));
 
@@ -2214,10 +2244,6 @@ async function onFileNhapChiNhanh(ev){
 }
 
 /* ─── CẢNH BÁO ĐƠN MỚI: âm thanh + biểu tượng trang + thông báo hệ thống ─── */
-function requestNotifyPermission(){
-  if(!('Notification' in window) || Notification.permission !== 'default') return;
-  setTimeout(()=>{ Notification.requestPermission(); }, 1200);  // hỏi nhẹ nhàng, không chặn màn hình đăng nhập
-}
 
 function playPing(){
   try{
@@ -2351,7 +2377,7 @@ function checkNewBookings(count){
     const soMoi = count - lastPendingSeen;
     playPing();
     toast(soMoi === 1 ? '🎤 Có 1 đơn giữ phòng mới!' : '🎤 Có ' + soMoi + ' đơn giữ phòng mới!', 'ok');
-    if('Notification' in window && Notification.permission === 'granted'){
+    if(thongBaoHeThongBat()){
       const n = new Notification('🎤 Boom Music Box — Đơn mới', {
         body: soMoi === 1 ? 'Có 1 đơn giữ phòng đang chờ duyệt.' : 'Có ' + soMoi + ' đơn giữ phòng đang chờ duyệt.',
         icon: 'Logo_BoomBox.png', tag: 'boom-booking'
@@ -2978,7 +3004,7 @@ function xuLySuCoSauKhiTai(){
         : 'Ticket bảo trì của chi nhánh vừa có cập nhật mới!';
     playPing();
     toast('🛠️ '+msg, SESSION.role==='admin' ? 'bad' : 'ok');
-    if('Notification' in window && Notification.permission==='granted'){
+    if(thongBaoHeThongBat()){
       const n = new Notification('🛠️ Boom Music Box — Bảo trì', { body: msg, icon:'Logo_BoomBox.png', tag:'boom-suco' });
       n.onclick = () => { window.focus(); n.close(); };
     }
@@ -4143,31 +4169,153 @@ async function tuDoiMatKhau(){
   }
 }
 
-/** Hiện đúng trạng thái liên kết Telegram cá nhân — mới, 08/09/2026 (nút bấm inline keyboard). */
-function capNhatUITelegramId(){
-  $('tgIdInput').value = SESSION.telegramId || '';
-  $('tgTrangThai').textContent = SESSION.telegramId
-    ? '✅ Đã liên kết với Telegram ID ' + SESSION.telegramId
-    : 'Chưa liên kết — nút bấm trên tin nhắn Telegram sẽ không có tác dụng với tài khoản này.';
+/* ══════════ 🔔 THÔNG BÁO: hệ thống (Windows/điện thoại) + Telegram riêng (27/09/2026) ══════════ */
+
+/** Thông báo hệ thống (Notification API) là tuỳ chọn THEO THIẾT BỊ — ô tick trong mục 🔔 Thông báo.
+ *  Chưa từng chọn: coi như bật nếu trình duyệt đã cho phép từ trước (giữ nguyên hành vi cũ), ngược lại tắt.
+ *  Không còn tự bật hộp thoại xin quyền ngay sau khi đăng nhập nữa — chỉ hỏi khi người dùng tự tick. */
+const TB_HT_KEY = CFG.PREFIX + 'tbHeThong';
+function thongBaoHeThongBat(){
+  if(!('Notification' in window) || Notification.permission !== 'granted') return false;
+  try{ const v = localStorage.getItem(TB_HT_KEY); return v === null ? true : v === '1'; }catch(e){ return true; }
 }
-/** Lưu (hoặc gỡ, nếu input rỗng) Telegram ID cá nhân — dùng cho khối "Liên kết Telegram cá nhân". */
-async function luuTelegramId(){
-  const id = $('tgIdInput').value.trim();
-  if(id && !/^\d{5,15}$/.test(id)) return toast('Telegram ID chỉ gồm số, lấy từ @userinfobot.','bad');
+async function doiThongBaoHeThong(el){
+  if(!('Notification' in window)){ el.checked = false; return toast('Trình duyệt này không hỗ trợ thông báo hệ thống.','bad'); }
+  if(el.checked && Notification.permission !== 'granted'){
+    let kq = Notification.permission;
+    if(kq === 'default'){ try{ kq = await Notification.requestPermission(); }catch(e){} }
+    if(kq !== 'granted'){
+      el.checked = false;
+      return toast('Trình duyệt đang chặn thông báo. Bấm biểu tượng ổ khoá cạnh địa chỉ web → Thông báo → Cho phép, rồi tick lại.','bad');
+    }
+  }
+  try{ localStorage.setItem(TB_HT_KEY, el.checked ? '1' : '0'); }catch(e){}
+  toast(el.checked ? 'Đã bật thông báo hệ thống trên thiết bị này.' : 'Đã tắt thông báo hệ thống trên thiết bị này.','ok');
+}
+
+let TG_RIENG = null;          // trạng thái kết nối Telegram riêng của tài khoản đang đăng nhập
+let tgChoKetNoiTimer = null;  // đang chờ người dùng bấm Start trong Telegram → tự kiểm tra lại
+const TG_NHAN_GI = {
+  manager: 'Sẽ nhận: sự cố của chi nhánh (tiếp nhận, phân công kỹ thuật, kỹ thuật báo xong cần xác nhận) và đơn giữ phòng mới.',
+  kythuat: 'Sẽ nhận: sự cố được giao cho anh/chị, sự cố chờ nhận, phản hồi của chi nhánh sau khi báo xong.',
+  kythuat_mang: 'Sẽ nhận: sự cố được giao cho anh/chị, sự cố chờ nhận, phản hồi của chi nhánh sau khi báo xong.'
+};
+
+/** Vẽ lại mục 🔔 Thông báo — gọi mỗi lần mở tab Cài đặt (giữ tên hàm cũ để không phải sửa chỗ gọi). */
+async function capNhatUITelegramId(){
+  $('tbHeThong').checked = thongBaoHeThongBat();
+  const laAdmin = SESSION.role === 'admin';
+  $('tbKhoiTelegram').style.display = laAdmin ? 'none' : '';
+  $('tbKhoiAdminNhom').style.display = laAdmin ? '' : 'none';
+  if(laAdmin) return;
+  $('tbTgMoTa').textContent = 'Kết nối để nhận thông báo riêng của tài khoản này ngay cả khi không mở ứng dụng. ' + (TG_NHAN_GI[SESSION.role] || '');
+  $('tbTgTrangThai').textContent = 'Đang kiểm tra…';
   try{
-    const j = await api({action:'tu_lienket_telegram', telegramId:id});
+    const j = await api({action:'tg_trang_thai'});
     if(!j.ok) throw new Error(j.error);
-    SESSION.telegramId = j.telegramId || '';
-    localStorage.setItem(CFG.PREFIX+'s', JSON.stringify(SESSION));
-    capNhatUITelegramId();
-    toast(SESSION.telegramId ? 'Đã lưu liên kết Telegram.' : 'Đã gỡ liên kết Telegram.','ok');
+    TG_RIENG = j;
+  }catch(e){ $('tbTgTrangThai').textContent = 'Chưa kiểm tra được trạng thái Telegram (' + moTaLoiKetNoi(e) + ')'; $('tbTgNut').innerHTML=''; return; }
+  veTelegramRieng();
+}
+function veTelegramRieng(){
+  const t = TG_RIENG || {};
+  $('tbTgLenh').style.display = t.ketNoi ? '' : 'none';
+  if(!t.coBot){
+    $('tbTgTrangThai').innerHTML = '<span class="tb-dung">Hệ thống chưa cài bot Telegram — báo admin nếu cần.</span>';
+    $('tbTgNut').innerHTML = ''; return;
+  }
+  if(t.ketNoi){
+    $('tbTgTrangThai').innerHTML = t.tamDung
+      ? '<span class="tb-dung">⏸️ Đã kết nối' + (t.ten ? ' (' + esc(t.ten) + ')' : '') + ' — đang TẠM DỪNG thông báo.</span>'
+      : '<span class="tb-ok">✅ Đã kết nối' + (t.ten ? ' với ' + esc(t.ten) : '') + ' — đang nhận thông báo.</span>';
+    $('tbTgNut').innerHTML =
+      (t.tamDung
+        ? '<button class="btn btn-y btn-sm" onclick="chanBamKep(this,doiTamDungTg,false)">▶️ Nhận lại</button>'
+        : '<button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,doiTamDungTg,true)">⏸️ Tạm dừng</button>') +
+      (t.bot ? '<a class="btn btn-ghost btn-sm" href="https://t.me/' + esc(t.bot) + '" target="_blank" rel="noopener">💬 Mở bot</a>' : '') +
+      '<button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,ngatTelegramRieng)">🔕 Ngắt kết nối</button>';
+    $('tbTomTat').textContent = t.tamDung ? 'Telegram: đang tạm dừng.' : 'Telegram: đang nhận thông báo riêng.';
+    return;
+  }
+  $('tbTgTrangThai').textContent = 'Chưa kết nối.';
+  $('tbTomTat').textContent = 'Telegram: chưa kết nối.';
+  // Nút là 1 đường link THẬT (mã kết nối tạo sẵn) — bấm là mở thẳng app Telegram ngay trong cú bấm,
+  // không bị trình duyệt chặn cửa sổ bật lên như khi phải gọi máy chủ xong mới mở.
+  $('tbTgNut').innerHTML = '<a class="btn btn-y btn-sm" id="tgKetNoiBtn" href="#" target="_blank" rel="noopener" onclick="return bamKetNoiTg(event)">✈️ Kết nối Telegram</a>' +
+    '<span style="font-size:12px;color:var(--txt-mute);align-self:center">Mở Telegram → bấm <b>Start / Bắt đầu</b></span>';
+  taoLinkKetNoiTg();
+}
+async function taoLinkKetNoiTg(){
+  try{
+    const j = await api({action:'tg_tao_ma'});
+    if(!j.ok) throw new Error(j.error);
+    const a = $('tgKetNoiBtn'); if(a) a.href = j.link;
   }catch(e){
-    toast(e.message==='ID_DA_DUOC_DUNG' ? 'Telegram ID này đã liên kết với tài khoản khác.' : 'Không lưu được, thử lại.','bad');
+    $('tbTgTrangThai').textContent = e.message==='CHUA_CO_BOT' ? 'Hệ thống chưa cài bot Telegram — báo admin nếu cần.' : 'Chưa tạo được mã kết nối, thử mở lại mục này.';
   }
 }
-async function goLienKetTelegram(){
-  $('tgIdInput').value = '';
-  await luuTelegramId();
+function bamKetNoiTg(ev){
+  const a = $('tgKetNoiBtn');
+  if(!a || a.getAttribute('href') === '#'){ ev.preventDefault(); toast('Đang chuẩn bị mã kết nối, bấm lại sau 1 giây.','bad'); return false; }
+  // Mã dùng 1 lần, hạn 15 phút — sau khi bấm thì tự kiểm tra lại mỗi 3 giây (tối đa 3 phút) để hiện "đã kết nối"
+  clearInterval(tgChoKetNoiTimer);
+  let lan = 0;
+  tgChoKetNoiTimer = setInterval(async ()=>{
+    if(++lan > 60 || TAB !== 'caidat'){ clearInterval(tgChoKetNoiTimer); return; }
+    if(document.hidden) return;
+    try{
+      const j = await api({action:'tg_trang_thai'}, {nen:true});
+      if(j.ok && j.ketNoi){ clearInterval(tgChoKetNoiTimer); TG_RIENG = j; veTelegramRieng(); toast('✅ Đã kết nối Telegram!','ok'); }
+    }catch(e){}
+  }, 3000);
+  setTimeout(taoLinkKetNoiTg, 1500);   // mã mới cho lần bấm sau (nếu lần này không bấm Start)
+  return true;
+}
+async function doiTamDungTg(bat){
+  try{
+    const j = await api({action:'tg_tam_dung', bat});
+    if(!j.ok) throw new Error(j.error);
+    TG_RIENG = j; veTelegramRieng();
+    toast(bat ? 'Đã tạm dừng thông báo Telegram.' : 'Đã bật lại thông báo Telegram.','ok');
+  }catch(e){ toast('Không lưu được, thử lại.','bad'); }
+}
+async function ngatTelegramRieng(){
+  if(!confirm('Ngắt kết nối Telegram của tài khoản này? Sẽ không nhận thông báo qua Telegram nữa.')) return;
+  try{
+    const j = await api({action:'tg_ngat'});
+    if(!j.ok) throw new Error(j.error);
+    TG_RIENG = j; veTelegramRieng();
+    toast('Đã ngắt kết nối Telegram.','ok');
+  }catch(e){ toast('Không ngắt được, thử lại.','bad'); }
+}
+
+/* ─── admin: kích hoạt / kiểm tra bot nhắn riêng ─── */
+async function kichHoatBotRieng(){
+  $('tgRiengKetQua').textContent = 'Đang kích hoạt…';
+  try{
+    const j = await api({action:'tg_kich_hoat'});
+    if(!j.ok){
+      const m = {CHUA_CAU_HINH:'Chưa có Bot Token — nhập và bấm Lưu ở trên trước.', WEBHOOK_LOI:'Telegram từ chối: ' + (j.chiTiet||'')};
+      $('tgRiengKetQua').innerHTML = '<span style="color:var(--bad)">❌ ' + esc(m[j.error] || j.error) + '</span>'; return;
+    }
+    $('tgRiengKetQua').innerHTML = '<span style="color:var(--ok)">✅ Đã kích hoạt bot <b>@' + esc(j.bot||'') + '</b>' + (j.lenhOk ? ' — menu lệnh /viec /tamdung /tiep /ngat đã cài.' : ' (chưa cài được menu lệnh, không ảnh hưởng kết nối).') + '</span>';
+  }catch(e){ $('tgRiengKetQua').textContent = 'Lỗi: ' + moTaLoiKetNoi(e); }
+}
+async function kiemTraBotRieng(){
+  $('tgRiengKetQua').textContent = 'Đang kiểm tra…';
+  try{
+    const j = await api({action:'tg_tinh_trang_bot'});
+    if(!j.ok) throw new Error(j.error);
+    let h = j.dungWorker
+      ? '<span style="color:var(--ok)">✅ Bot @' + esc(j.bot||'') + ' đang hoạt động đúng.</span>'
+      : '<span style="color:var(--warn)">⚠️ Bot chưa được kích hoạt (hoặc đang trỏ nơi khác' + (j.webhookUrl ? ': ' + esc(j.webhookUrl) : '') + ') — bấm ⚡ Kích hoạt.</span>';
+    if(j.loiCuoi) h += '<br><span style="color:var(--bad)">Lỗi gần nhất từ Telegram: ' + esc(j.loiCuoi) + '</span>';
+    h += '<br><br><b>' + j.ketNoi.length + ' tài khoản đã kết nối Telegram riêng</b>';
+    if(j.ketNoi.length) h += '<table class="tg-bang">' + j.ketNoi.map(u =>
+      '<tr><td><b>' + esc(u.ten) + '</b><br><span style="color:var(--txt-mute)">' + esc(u.vaiTro) + (u.cn ? ' · ' + esc(u.cn) : '') + '</span></td>' +
+      '<td>' + esc(u.tg) + '</td><td>' + (u.tamDung ? '⏸️ Tạm dừng' : '✅ Đang nhận') + '</td></tr>').join('') + '</table>';
+    $('tgRiengKetQua').innerHTML = h;
+  }catch(e){ $('tgRiengKetQua').textContent = 'Lỗi: ' + moTaLoiKetNoi(e); }
 }
 
 async function adminDoiMatKhau(taikhoan){
