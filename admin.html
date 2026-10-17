@@ -1296,12 +1296,29 @@ function vtDec(b){
 function vtB64(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
 function vtUnB64(b64){ return Uint8Array.from(atob(b64), c=>c.charCodeAt(0)); }
 
+/* Trong app BMBPlayer (Android WebView) không có WebAuthn → dùng cầu nối vân tay gốc của app (BiometricPrompt + Keystore).
+   Mật khẩu đã nhớ khi đó được mã hoá trong Keystore, chỉ mở được sau khi quét vân tay (an toàn hơn lưu cục bộ). */
+function vtApp(){
+  try{ return !!(window.BMBNative && typeof BMBNative.bioAvailable === 'function' && BMBNative.bioAvailable()); }catch(e){ return false; }
+}
+const _vtWait = {};
+window.bmbBioDone = function(id, ok, payload){ const r = _vtWait[id]; if(r){ delete _vtWait[id]; r(ok ? { ok:true, v:payload } : { ok:false, err:payload }); } };
+function vtAppCall(fn, arg){
+  return new Promise(res => {
+    const id = 'b' + Date.now() + Math.random().toString(36).slice(2, 6);
+    _vtWait[id] = res;
+    setTimeout(() => { if(_vtWait[id]){ delete _vtWait[id]; res({ ok:false, err:'timeout' }); } }, 90000);
+    try{ arg === undefined ? BMBNative[fn](id) : BMBNative[fn](id, arg); }catch(e){ delete _vtWait[id]; res({ ok:false, err:'bridge' }); }
+  });
+}
 async function vtHoTro(){
+  if(vtApp()) return true;
   if(!window.PublicKeyCredential) return false;
   try{ return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); }
   catch(e){ return false; }
 }
 function vtDaBatTrenMay(){
+  if(vtApp()){ try{ return !!(localStorage.getItem(CFG.PREFIX+'vtUser') && BMBNative.bioHas()); }catch(e){ return false; } }
   return !!(localStorage.getItem(CFG.PREFIX+'vtCred') && localStorage.getItem(CFG.PREFIX+'vtUser') && localStorage.getItem(CFG.PREFIX+'vtPass'));
 }
 
@@ -1323,6 +1340,16 @@ async function batVanTay(){
     const dungMatKhau = await vtXacMinhMatKhau(SESSION.user, pass);
     if(!dungMatKhau){ toast('Mật khẩu không đúng.','bad'); return; }
 
+    if(vtApp()){
+      const r = await vtAppCall('bioSave', pass);
+      if(!r.ok) throw new Error(r.err || 'NO_CRED');
+      localStorage.setItem(CFG.PREFIX+'vtUser', SESSION.user);
+      localStorage.removeItem(CFG.PREFIX+'vtCred'); localStorage.removeItem(CFG.PREFIX+'vtPass');
+      $('vtMatKhauXacNhan').value = '';
+      toast('Đã bật vân tay trên thiết bị này.','ok');
+      capNhatUIVanTay();
+      return;
+    }
     const cred = await navigator.credentials.create({
       publicKey: {
         challenge: crypto.getRandomValues(new Uint8Array(32)),
@@ -1349,6 +1376,7 @@ async function batVanTay(){
 }
 
 function tatVanTay(){
+  try{ if(vtApp()) BMBNative.bioClear(); }catch(e){}
   localStorage.removeItem(CFG.PREFIX+'vtCred');
   localStorage.removeItem(CFG.PREFIX+'vtUser');
   localStorage.removeItem(CFG.PREFIX+'vtPass');
@@ -1387,9 +1415,18 @@ async function dangNhapBangVanTay(){
   const credB64 = localStorage.getItem(CFG.PREFIX+'vtCred');
   const user = localStorage.getItem(CFG.PREFIX+'vtUser');
   const passEnc = localStorage.getItem(CFG.PREFIX+'vtPass');
-  if(!credB64 || !user || !passEnc) return;
+  const inApp = vtApp();
+  if(!user || (!inApp && (!credB64 || !passEnc))) return;
   $('btnVanTayLogin').disabled = true;
   try{
+    if(inApp){
+      const r = await vtAppCall('bioUnlock');
+      if(!r.ok){ if(r.err === 'invalid' || r.err === 'none') tatVanTay(); throw new Error(r.err || 'BIO'); }
+      $('uUser').value = user;
+      $('uPass').value = r.v;
+      await doLogin();
+      return;
+    }
     await navigator.credentials.get({
       publicKey: {
         challenge: crypto.getRandomValues(new Uint8Array(32)),
