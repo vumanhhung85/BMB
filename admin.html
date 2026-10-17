@@ -369,6 +369,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         <span class="idle" id="idleTxt"></span>
         <button class="btn btn-ghost btn-sm" id="btnChuongLap" style="display:none" onclick="toggleTamTatChuong()">🔔</button>
         <span class="badge" id="hBadge">—</span>
+        <button class="btn btn-y btn-sm" id="btnVeQuay" style="display:none" onclick="location.href='https://bmb.id.vn/quay.html'">← Quầy</button>
         <button class="btn btn-ghost btn-sm" onclick="logout()">Đăng xuất</button>
       </div>
     </div>
@@ -1000,6 +1001,39 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
         </div>
         <label class="switch">
           <input type="checkbox" id="bkToggle" checked onchange="toggleBookingSetting()">
+          <span class="track"></span>
+        </label>
+      </div>
+      </div>
+    </div>
+
+    <div class="form-card ff-collapse">
+      <button class="ff-head" onclick="this.closest('.form-card').classList.toggle('open')">
+        <div>
+          <h3 style="font-size:18px;margin-bottom:6px">📱 App BMBPlayer cho quản lý chi nhánh</h3>
+          <p style="color:var(--txt-mute);font-size:13.5px">Quản lý chi nhánh làm việc trong 1 app BMBPlayer (chế độ Quầy): Bảo trì, Đặt phòng và thông báo.</p>
+        </div>
+        <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
+      </button>
+      <div class="ff-body">
+      <p style="color:var(--txt-mute);font-size:13.5px;margin-bottom:14px">Chỉ áp dụng cho tài khoản <b>Quản lý chi nhánh</b> đang dùng app BMBPlayer 2.1 trở lên trên điện thoại Android. Nhân viên quầy và kỹ thuật viên không bị ảnh hưởng. Tắt là app trở lại như cũ ngay, không cần cài lại.</p>
+      <div class="switch-row">
+        <div>
+          <b>Nút Bảo trì / Đặt phòng trong app</b>
+          <div style="font-size:12.5px;color:var(--txt-mute)">Trong app có thêm nút 🛠️ Bảo trì và 📋 Đặt phòng, mở thẳng trang quản lý này — không phải đăng nhập lại.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="cfgAppQlBaoTri" onchange="chanBamKep(this,toggleAppQl,'app_ql_baotri','cfgAppQlBaoTri')">
+          <span class="track"></span>
+        </label>
+      </div>
+      <div class="switch-row" style="margin-top:10px">
+        <div>
+          <b>Thông báo sự cố / đặt phòng qua app</b>
+          <div style="font-size:12.5px;color:var(--txt-mute)">Đúng những tin quản lý chi nhánh đang nhận qua Telegram riêng (sự cố mới, đã tiếp nhận, kỹ thuật nhận việc, báo xong, đơn giữ phòng mới…) hiện thêm thành thông báo trong app. Trong 🌙 Giờ yên lặng: vẫn hiện nhưng không kêu, riêng sự cố 🔴 Khẩn cấp vẫn kêu. Telegram vẫn gửi song song như cũ.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="cfgAppQlThongBao" onchange="chanBamKep(this,toggleAppQl,'app_ql_thongbao','cfgAppQlThongBao')">
           <span class="track"></span>
         </label>
       </div>
@@ -1767,8 +1801,11 @@ function taoLichDon(){
   }, gianCach(30000));
 }
 
+/** Đang chạy trong app BMBPlayer (APK) chế độ Quầy → có nút quay về màn quầy */
+const TRONG_APP_QUAY = /BMBPlayerApp\/\S+ \(quay\)/.test(navigator.userAgent);
 async function enterApp(){
   $('login').style.display='none'; $('app').style.display='block';
+  $('btnVeQuay').style.display = TRONG_APP_QUAY ? '' : 'none';
   $('hBranch').textContent = SESSION.branchName || 'Toàn hệ thống';
   $('hRole').textContent = SESSION.fullName || SESSION.user;
   $('hBadge').textContent = ROLE_LABEL[SESSION.role] || SESSION.role;
@@ -1914,7 +1951,12 @@ function capNhatNutChuyenView(){
  *  Telegram (mới, 08/09/2026). Đợi loadSuCo() tải xong rồi mới tìm phần tử trên trang, vì loadSuCo()
  *  ở enterApp() được gọi không có await (giữ nguyên hành vi cũ, tránh trì hoãn các dòng init khác). */
 async function moTicketTuLink(){
-  const ma = new URLSearchParams(location.search).get('ticket');
+  const qs = new URLSearchParams(location.search);
+  if(qs.get('tab') === 'dat-phong'){                 // từ app BMBPlayer: nút / thông báo Đặt phòng
+    const tDp = document.querySelector('.tab[data-t="dat-phong"]');
+    if(tDp && tDp.style.display !== 'none') switchTab(tDp);
+  }
+  const ma = qs.get('ticket');
   if(!ma) return;
   await loadSuCo(true);
   const tabBaoTri = document.querySelector('.tab[data-t="baotri"]');
@@ -3941,6 +3983,8 @@ function fillCfgInputs(){
   $('cfgYenLangBat').checked = PUBLIC_SETTINGS.yenLangBat !== false;
   $('cfgYenLangTu').value = PUBLIC_SETTINGS.yenLangTu ?? 23;
   $('cfgYenLangDen').value = PUBLIC_SETTINGS.yenLangDen ?? 7;
+  $('cfgAppQlBaoTri').checked = !!PUBLIC_SETTINGS.appQlBaoTri;
+  $('cfgAppQlThongBao').checked = !!PUBLIC_SETTINGS.appQlThongBao;
   hienMocCron(PUBLIC_SETTINGS.cronChayCuoi);
 }
 
@@ -3999,6 +4043,20 @@ async function luuChuongGiay(){
     dungChuongLap(); capNhatChuongLap();   // áp dụng khoảng nghỉ mới ngay nếu chuông đang kêu
     toast('Đã lưu, áp dụng ngay.','ok');
   }catch(e){ toast('Không lưu được.','bad'); }
+}
+
+/* ─── cài đặt: app BMBPlayer cho quản lý chi nhánh (17/10/2026) ─── */
+async function toggleAppQl(key, checkboxId){
+  const on = $(checkboxId).checked;
+  try{
+    const j = await api({action:'settings_set', key, value: on?'Y':'N'});
+    if(!j.ok) throw new Error(j.error);
+    await loadPublicSettings();
+    toast('Đã '+(on?'BẬT':'TẮT')+' — app của quản lý chi nhánh áp dụng trong vòng 2 phút.','ok');
+  }catch(e){
+    $(checkboxId).checked = !on;
+    toast('Không lưu được.','bad');
+  }
 }
 
 /* ─── cài đặt: điều phối kỹ thuật viên — 3 công tắc độc lập (mới, 17/08/2026) ─── */
@@ -4524,7 +4582,27 @@ async function toggleLoaiSuCoActive(ma, bat){
 
 /* khôi phục phiên khi mở lại trang — dùng localStorage nên còn nguyên kể cả sau khi đóng hẳn trình duyệt/tab,
    khác với sessionStorage (mất ngay khi đóng tab). Phù hợp cho người cần để app mở/giám sát liên tục. */
+/* App BMBPlayer (chế độ Quầy) mở trang này với #ve=<vé dùng 1 lần> → đổi lấy phiên, không phải gõ mật khẩu.
+   Vé hỏng/hết hạn mà máy vẫn còn phiên cũ thì dùng tiếp phiên cũ; không có thì hiện màn đăng nhập như thường. */
+async function doiVeTuApp(ve){
+  try{
+    const j = await api({ action:'sso_doi', ve, thietBi: getDeviceId() });
+    if(j && j.ok && j.session){
+      SESSION = j.session;
+      localStorage.setItem(CFG.PREFIX+'s', JSON.stringify(SESSION));
+      enterApp(); return;
+    }
+  }catch(e){}
+  const s = localStorage.getItem(CFG.PREFIX+'s');
+  if(s){ try{ SESSION = JSON.parse(s); enterApp(); return; }catch(e){} }
+  showLoginMsg('Không tự đăng nhập được từ app (vé đã hết hạn). Đăng nhập bằng tài khoản như thường nhé.');
+}
 (function(){
+  const veM = /[#&]ve=([A-Za-z0-9_-]{20,80})/.exec(location.hash);
+  if(veM){
+    try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}   // bỏ vé khỏi thanh địa chỉ
+    doiVeTuApp(veM[1]); return;
+  }
   const s = localStorage.getItem(CFG.PREFIX+'s');
   if(s){ try{ SESSION = JSON.parse(s); enterApp(); return; }catch(e){} }
   capNhatNutVanTayLogin();
