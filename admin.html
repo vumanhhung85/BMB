@@ -1840,9 +1840,14 @@ function taoLichDon(){
 
 /** Đang chạy trong app BMBPlayer (APK) chế độ Quầy → có nút quay về màn quầy */
 const TRONG_APP_QUAY = /BMBPlayerApp\/\S+ \(quay\)/.test(navigator.userAgent);
+/** Trang này được mở từ màn Quầy (app: vé #ve; web: ?tu=quay) → hiện nút ← Quầy, nhớ trong tab để tải lại trang vẫn còn */
+function moTuQuay(){
+  try{ if(sessionStorage.getItem('bmb_tu_quay') === '1') return true; }catch(e){}
+  return TRONG_APP_QUAY;
+}
 async function enterApp(){
   $('login').style.display='none'; $('app').style.display='block';
-  $('btnVeQuay').style.display = TRONG_APP_QUAY ? '' : 'none';
+  $('btnVeQuay').style.display = moTuQuay() ? '' : 'none';
   $('hBranch').textContent = SESSION.branchName || 'Toàn hệ thống';
   $('hRole').textContent = SESSION.fullName || SESSION.user;
   $('hBadge').textContent = ROLE_LABEL[SESSION.role] || SESSION.role;
@@ -4636,6 +4641,7 @@ async function doiVeTuApp(ve){
 }
 (function(){
   const veM = /[#&]ve=([A-Za-z0-9_-]{20,80})/.exec(location.hash);
+  try{ if(veM || /[?&]tu=quay\b/.test(location.search)) sessionStorage.setItem('bmb_tu_quay', '1'); }catch(e){}
   if(veM){
     try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}   // bỏ vé khỏi thanh địa chỉ
     doiVeTuApp(veM[1]); return;
