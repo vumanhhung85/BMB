@@ -187,6 +187,31 @@ header{position:sticky;top:0;z-index:100;background:rgba(20,6,31,.9);backdrop-fi
 .sc-photos a img,.sc-photos img{width:74px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--line-soft);display:block;cursor:pointer}
 .sc-act{display:flex;gap:8px;flex-wrap:wrap}
 .sc-flag{font-size:12px;color:var(--bad);font-weight:700;margin-bottom:8px}
+/* ── Trao đổi theo sự cố (05/11/2026) ── */
+.td-dem{display:inline-block;min-width:18px;padding:0 6px;margin-left:2px;border-radius:999px;background:var(--yellow);color:#2a2400;font-size:11px;font-weight:800;line-height:18px;text-align:center}
+.ls-item.td .ls-dot{background:var(--ok)}
+.td-bong{margin-top:4px;padding:8px 11px;border-radius:12px;background:rgba(61,220,151,.07);border:1px solid rgba(61,220,151,.25);font-size:13px;white-space:pre-wrap;word-break:break-word}
+.td-bong .sc-photos{margin:8px 0 0}
+.td-khung{margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft)}
+.td-khung textarea{width:100%;padding:11px 13px;border-radius:12px;background:rgba(20,6,31,.72);border:1px solid var(--line-soft);color:inherit;font:inherit;font-size:14px;resize:vertical}
+.td-khung .td-mo{font-size:12px;color:var(--txt-mute);margin:2px 0 8px;line-height:1.5}
+/* ── Kanban sự cố (05/11/2026, chỉ admin) — cột cuộn ngang, mỗi cột 1 nhóm trạng thái ── */
+.kb-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.kb-cot{flex:1 0 236px;scroll-snap-align:start;background:rgba(0,0,0,.18);border:1px solid var(--line-soft);border-radius:14px;padding:10px;display:flex;flex-direction:column;max-height:72vh}
+.kb-cot>header{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13.5px;margin-bottom:4px}
+.kb-goiy{font-size:11.5px;color:var(--txt-mute);margin-bottom:8px}
+.kb-ds{overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:2px}
+.kb-trong{color:var(--txt-mute);font-size:12.5px;text-align:center;padding:14px 0}
+.kb-the{position:relative;background:linear-gradient(160deg,rgba(42,21,71,.9),rgba(30,14,51,.9));border:1px solid var(--line-soft);border-left:4px solid var(--txt-mute);border-radius:12px;padding:10px 11px;font-size:12.5px;cursor:pointer}
+.kb-the[data-p="1"]{border-left-color:var(--bad)} .kb-the[data-p="2"]{border-left-color:var(--warn)}
+.kb-the[data-p="3"]{border-left-color:var(--yellow)} .kb-the[data-p="4"]{border-left-color:var(--ok)}
+.kb-the:hover{border-color:var(--line)}
+.kb-dau{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px}
+.kb-cn{font-weight:700;font-size:13.5px}
+.kb-phu{color:var(--txt-dim);margin-top:2px}
+.kb-tg{color:var(--txt-mute);margin-top:5px;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.kb-act{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.kb-act .btn{padding:5px 10px;font-size:12px}
 .form-card{background:linear-gradient(160deg,rgba(42,21,71,.85),rgba(30,14,51,.85));border:1px solid var(--line);
   border-radius:18px;padding:20px;margin-bottom:18px}
 .photo-pick-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px}
@@ -419,6 +444,7 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
     <div class="toolbar" id="toolbarSuCo" style="display:none">
       <input id="qSuCo" placeholder="Tìm mã, chi nhánh, mô tả…" style="flex:1;min-width:190px" oninput="drawSuCo()">
       <button class="btn btn-y btn-sm" id="btnBtTableView" onclick="toggleBaoTriView('table')" style="display:none">📊 Bảng</button>
+      <button class="btn btn-ghost btn-sm" id="btnBtKanbanView" onclick="toggleBaoTriView('kanban')" style="display:none">🗂️ Kanban</button>
       <button class="btn btn-ghost btn-sm" id="btnBtMapView" onclick="toggleBaoTriView('map')" style="display:none">🗺️ Bản đồ</button>
       <button class="btn btn-ghost btn-sm" id="btnBtListView" onclick="toggleBaoTriView('list')" style="display:none">📋 Danh sách</button>
       <button class="btn btn-y btn-sm" onclick="openTaoSuCo()" id="btnTaoSuCo" style="display:none">+ Báo sự cố</button>
@@ -590,6 +616,28 @@ th{color:var(--txt-mute);font-weight:600;font-size:12.5px;text-transform:upperca
             <tbody id="bangSuCoBody"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- Kanban (05/11/2026, chỉ admin): sự cố ĐANG MỞ chia cột theo trạng thái — nhìn 1 lần là biết
+         phiếu đang kẹt ở khâu nào. Bấm vào thẻ = mở Lịch sử & trao đổi. -->
+    <div id="viewSuCoKanban" style="display:none">
+      <div class="form-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+          <h3 style="font-size:17px">🗂️ Sự cố đang mở theo trạng thái <span class="st-pill" id="demKanban">0</span></h3>
+        </div>
+        <div class="toolbar" style="margin-bottom:12px">
+          <select id="fKbMuc" onchange="drawSuCoKanban()">
+            <option value="">Mọi mức độ</option>
+            <option value="1">🔴 Khẩn cấp</option>
+            <option value="2">🟠 Cao</option>
+            <option value="3">🟡 Trung bình</option>
+            <option value="4">🟢 Thấp</option>
+          </select>
+          <select id="fKbKT" onchange="drawSuCoKanban()" style="display:none"><option value="">Mọi kỹ thuật viên</option></select>
+          <select id="fKbCN" onchange="drawSuCoKanban()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
+        </div>
+        <div class="kb-wrap" id="kanbanCot"></div>
       </div>
     </div>
   </div>
@@ -1445,7 +1493,7 @@ async function dangNhapBangVanTay(){
   }
 }
 let BRANCHES = [], KYTHUAT = [], SUCO = [], TAIKHOAN_LIST = [];
-var SC_ANH = [], SC_ANH_XONG = [];               // ảnh chờ gửi (base64), reset sau mỗi lần dùng — PHẢI dùng var (không phải let/const), vì onPickAnh/drawPhotoBox/removeAnh truy cập qua window[storeVar] để dùng chung 1 bộ hàm cho cả 2 khung ảnh; let/const không gắn vào window nên window[storeVar] sẽ luôn undefined (bug thật đã xảy ra, sửa 17/08/2026)
+var SC_ANH = [], SC_ANH_XONG = [], TD_ANH = [];               // ảnh chờ gửi (base64), reset sau mỗi lần dùng — PHẢI dùng var (không phải let/const), vì onPickAnh/drawPhotoBox/removeAnh truy cập qua window[storeVar] để dùng chung 1 bộ hàm cho cả 2 khung ảnh; let/const không gắn vào window nên window[storeVar] sẽ luôn undefined (bug thật đã xảy ra, sửa 17/08/2026)
 const SO_ANH_TOI_DA = 6;   // nâng từ 3 lên 6 (17/08/2026) — kỹ thuật/quản lý chi nhánh cần chụp nhiều góc hơn với sự cố phức tạp
 let lastSuCoOpenSeen = null;
 
@@ -1687,7 +1735,9 @@ async function api(payload, tuyChon){
       }
       // Chức năng chưa chuyển sang hệ thống mới (giai đoạn chuyển đổi) — báo rõ, không coi là lỗi mạng.
       if(j.error === 'CHUA_HO_TRO'){
-        throw new Error('Chức năng này chưa có trên hệ thống mới — tạm xử lý ngoài hệ thống (gọi/Zalo).');
+        // Từ 05/11/2026: hệ thống đã chạy hẳn trên Cloudflare — gặp mã này gần như chắc chắn là admin.html
+        // đã được thay bản mới nhưng Worker CHƯA deploy bản tương ứng (sai thứ tự triển khai, xem test/README.md).
+        throw new Error('Máy chủ chưa có chức năng này — có thể Worker chưa được cập nhật bản mới. Báo admin giúp nhé.');
       }
       return j;
     }catch(e){
@@ -1986,6 +2036,7 @@ function capNhatNutChuyenView(){
   $('btnBtListView').style.display = xemBanDo ? '' : 'none';
   $('btnBtMapView').style.display = xemBanDo ? '' : 'none';
   $('btnBtTableView').style.display = SESSION.role === 'admin' ? '' : 'none';
+  $('btnBtKanbanView').style.display = SESSION.role === 'admin' ? '' : 'none';
   $('btnTaoSuCo').style.display = (SESSION.role === 'manager' || SESSION.role === 'admin') ? '' : 'none';
 }
 
@@ -2010,6 +2061,7 @@ async function moTicketTuLink(){
       el.scrollIntoView({behavior:'smooth', block:'center'});
       el.classList.add('sc-highlight');
       setTimeout(()=>el.classList.remove('sc-highlight'), 3000);
+      if(qs.get('traodoi') === '1') xemLichSu(ma, true);   // tin Telegram "Trao đổi" → mở thẳng khung nhắn
     } else {
       toast('Không tìm thấy ticket '+ma+' (có thể bạn không có quyền xem, hoặc ticket đã bị xoá).','bad');
     }
@@ -2035,6 +2087,7 @@ function apDungDanhSachChiNhanh(){
     $('fMoiCN').innerHTML = optCN; $('fMoiCN').style.display='';
     $('fXongCN').innerHTML = optCN; $('fXongCN').style.display='';
     $('fBangCN').innerHTML = optCN; $('fBangCN').style.display='';
+    $('fKbCN').innerHTML = optCN; $('fKbCN').style.display='';
   }
   buildScChiNhanhSelect();
 }
@@ -3179,6 +3232,7 @@ function drawSuCo(){
   $('listSuCoDaXong').innerHTML = hienThi.length ? hienThi.map(sucoHTML).join('') :
     '<div class="empty" style="padding:36px 0"><div class="big">🗄️</div><p>Chưa có sự cố nào khớp bộ lọc.</p></div>';
   $('btnXemTiepDaXong').style.display = daXong.length > daXongHien ? '' : 'none';
+  if($('viewSuCoKanban').style.display!=='none') drawSuCoKanban();
 }
 function taoNhieuDaXong(){ daXongHien += 40; drawSuCo(); }
 
@@ -3325,7 +3379,11 @@ function sucoHTML(t){
     acts += '<button class="btn btn-y btn-sm" onclick="openSuaSuCo(\''+t.maSuCo+'\')">✏️ Sửa</button>'+
             '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,xoaSuCo,\''+t.maSuCo+'\')">🗑️ Xoá báo cáo</button>';
   }
-  acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\')">🕘 Lịch sử</button>';
+  // Trao đổi (05/11/2026): ai được nhắn thì thấy nút 💬 (kèm số tin); ticket đã đóng/không được nhắn thì
+  // số tin hiện ngay trên nút Lịch sử để vẫn biết là có trao đổi.
+  const demTD = t.soTraoDoi ? ' <span class="td-dem">'+t.soTraoDoi+'</span>' : '';
+  if(coTheTraoDoi(t)) acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\',true)">💬 Trao đổi'+demTD+'</button>';
+  acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\')">🕘 Lịch sử'+(coTheTraoDoi(t)?'':demTD)+'</button>';
   if(SESSION.sieuAdmin) acts += '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,xoaSuCo,\''+t.maSuCo+'\')">🗑️ Xoá</button>';
 
   const photos = (imgs, label) => imgs.length ? '<div class="sc-photos">'+imgs.map((u,i)=>'<img src="'+esc(driveImgUrl(u))+'" alt="'+label+'" loading="lazy" onclick=\''+esc('openXemAnh('+JSON.stringify(imgs.map(x=>driveImgUrl(x,2000)))+','+i+')')+'\'>').join('')+'</div>' : '';
@@ -3359,24 +3417,73 @@ function sucoHTML(t){
 const HANHDONG_LABEL = {
   TAO:'📝 Tạo ticket', TIEP_NHAN:'✓ Admin tiếp nhận', DIEU_PHOI:'📍 Điều phối kỹ thuật',
   NHAN_VIEC:'👷 Kỹ thuật nhận việc', BAT_DAU_XU_LY:'🔧 Bắt đầu xử lý', BAO_XONG:'✅ Kỹ thuật báo xong',
-  XAC_NHAN_XONG:'✅ Chi nhánh xác nhận xong', CHUA_XONG:'↩️ Chi nhánh báo chưa xong', DONG:'🔒 Đóng ticket'
+  XAC_NHAN_XONG:'✅ Chi nhánh xác nhận xong', CHUA_XONG:'↩️ Chi nhánh báo chưa xong', DONG:'🔒 Đóng ticket',
+  TU_NHAN:'🙋 Kỹ thuật tự nhận việc', SUA:'✏️ Sửa báo cáo', XOA:'🗑️ Xoá', KHOIPHUC:'↩️ Khôi phục', TRAO_DOI:'💬 Trao đổi'
 };
-async function xemLichSu(maSuCo){
-  const t = SUCO.find(x=>x.maSuCo===maSuCo);
-  $('lsTieuDe').textContent = 'Lịch sử xử lý — '+maSuCo;
+/* ─── TRAO ĐỔI THEO SỰ CỐ (05/11/2026) ───
+   Chi nhánh ↔ kỹ thuật ↔ admin nhắn qua lại (chữ + ảnh) ngay trong modal Lịch sử — lưu cùng phiếu, khỏi
+   phải hỏi nhau qua Zalo rồi mất dấu. Ai được nhắn = đúng luật ở Worker (coTheTraoDoi): admin; quản lý
+   của chính chi nhánh; kỹ thuật đang được giao. Ticket đã đóng thì chỉ xem. Ảnh dùng CHUNG bộ hàm chụp
+   ảnh/thư viện với form báo sự cố & báo xong (moCamera / onPickAnh / drawPhotoBox) — 1 nguồn duy nhất. */
+function coTheTraoDoi(t){
+  if(!t || !SESSION || t.trangThai==='dong') return false;
+  if(SESSION.role==='admin') return true;
+  if(SESSION.role==='manager') return t.chinhanhId===SESSION.branchId;
+  if(isKyThuat()) return t.kyThuatDuocGiao===SESSION.user;
+  return false;
+}
+function nguoiNhanTraoDoi(t){
+  if(SESSION.role==='manager') return t.kyThuatDuocGiao ? 'kỹ thuật đang phụ trách ('+esc(t.kyThuatTen||t.kyThuatDuocGiao)+')' : 'admin (chưa có kỹ thuật phụ trách)';
+  if(isKyThuat()) return 'quản lý chi nhánh '+esc(t.chinhanhTen);
+  return 'quản lý chi nhánh'+(t.kyThuatDuocGiao ? ' và kỹ thuật '+esc(t.kyThuatTen||t.kyThuatDuocGiao) : '');
+}
+const LOI_TRAO_DOI = {
+  CAN_NOI_DUNG:'Nhập nội dung hoặc kèm ảnh trước khi gửi.', DA_DONG:'Sự cố đã đóng — không trao đổi thêm. Lỗi lại thì báo sự cố mới.',
+  FORBIDDEN:'Bạn không được trao đổi trên sự cố này.', ANH_QUA_LON:'Có ảnh quá lớn — xoá ảnh đó rồi chụp/chọn lại.',
+  QUA_NHIEU_ANH:'Tối đa '+SO_ANH_TOI_DA+' ảnh mỗi lần gửi.', ANH_LOI:'Ảnh không đúng định dạng — chọn ảnh khác.', NOT_FOUND:'Không tìm thấy sự cố (có thể đã bị xoá).'
+};
+let LS_MA_DANG_MO = null;
+/** Mở modal Lịch sử & trao đổi. moKhung = true → cuộn tới khung nhắn tin và đặt con trỏ sẵn. */
+async function xemLichSu(maSuCo, moKhung){
+  LS_MA_DANG_MO = maSuCo;
+  TD_ANH = [];
+  $('lsTieuDe').textContent = 'Lịch sử & trao đổi — '+maSuCo;
   $('lsBody').innerHTML = '<div class="sk" style="height:70px"></div><div class="sk" style="height:70px"></div>';
   $('modalOverlay').style.display='flex';
   moModalCoBack();
+  await veLichSu(maSuCo, moKhung);
+}
+async function veLichSu(maSuCo, moKhung){
+  const t = SUCO.find(x=>x.maSuCo===maSuCo);
   try{
     const j = await api({action:'suco_lichsu', maSuCo});
     if(!j.ok) throw new Error(j.error);
-    const timeline = j.data.length ? '<div class="ls-timeline">'+j.data.map(l=>
-      '<div class="ls-item"><div class="ls-dot"></div><div>'+
-        '<div style="font-weight:700;font-size:13.5px">'+(HANHDONG_LABEL[l.hanhDong]||l.hanhDong)+'</div>'+
-        '<div style="font-size:12px;color:var(--txt-mute)">'+fmtVN(l.luc)+' · '+esc(l.nguoiThucHien)+'</div>'+
-        (l.ghiChu?'<div style="font-size:12.5px;margin-top:3px">'+esc(l.ghiChu)+'</div>':'')+
-      '</div></div>'
-    ).join('')+'</div>' : '<div class="empty" style="padding:24px 0">Chưa có lịch sử.</div>';
+    if(LS_MA_DANG_MO !== maSuCo) return;   // người dùng đã đóng / mở phiếu khác trong lúc chờ
+    const anhNho = ds => '<div class="sc-photos">'+ds.map((u,i)=>'<img src="'+esc(driveImgUrl(u))+'" loading="lazy" onclick=\''+esc('openXemAnh('+JSON.stringify(ds.map(x=>driveImgUrl(x,2000)))+','+i+')')+'\'>').join('')+'</div>';
+    const timeline = j.data.length ? '<div class="ls-timeline">'+j.data.map(l=>{
+      const laTD = l.hanhDong==='TRAO_DOI';
+      const ten = esc(l.tenNguoi || l.nguoiThucHien) + (l.nguoiThucHien===SESSION.user ? ' (bạn)' : '');
+      return '<div class="ls-item'+(laTD?' td':'')+'"><div class="ls-dot"></div><div>'+
+        '<div style="font-weight:700;font-size:13.5px">'+(HANHDONG_LABEL[l.hanhDong]||esc(l.hanhDong))+'</div>'+
+        '<div style="font-size:12px;color:var(--txt-mute)">'+fmtVN(l.luc)+' · '+ten+'</div>'+
+        (laTD ? '<div class="td-bong">'+(l.ghiChu?esc(l.ghiChu):'<i style="color:var(--txt-mute)">(chỉ gửi ảnh)</i>')+((l.anh&&l.anh.length)?anhNho(l.anh):'')+'</div>'
+              : (l.ghiChu?'<div style="font-size:12.5px;margin-top:3px">'+esc(l.ghiChu)+'</div>':''))+
+      '</div></div>';
+    }).join('')+'</div>' : '<div class="empty" style="padding:24px 0">Chưa có lịch sử.</div>';
+
+    const khungTD = coTheTraoDoi(t) ? '<div class="td-khung" id="tdKhung">'+
+        '<h4 style="font-size:13.5px;margin:0 0 2px">💬 Nhắn về sự cố này</h4>'+
+        '<div class="td-mo">Tin gửi tới '+nguoiNhanTraoDoi(t)+' qua Telegram riêng (nếu đã kết nối) và lưu luôn vào lịch sử. Kèm ảnh nếu cần, tối đa '+SO_ANH_TOI_DA+' ảnh.</div>'+
+        '<textarea id="tdNoiDung" rows="3" maxlength="500" placeholder="Vd: mic tay nào rè, đã thử gì, cần chuẩn bị linh kiện gì…"></textarea>'+
+        '<div class="photo-pick-row">'+
+          '<button type="button" class="btn btn-ghost btn-sm" onclick="moCamera({boxId:\'tdPhotoBox\', storeVar:\'TD_ANH\', inputDuPhong:\'tdAnhCam\'})">📷 Chụp ảnh</button>'+
+          '<button type="button" class="btn btn-ghost btn-sm" onclick="$(\'tdAnhLib\').click()">🖼️ Thư viện</button>'+
+          '<button type="button" class="btn btn-y btn-sm" id="tdGui" style="margin-left:auto" onclick="chanBamKep(this,guiTraoDoi,\''+esc(maSuCo)+'\')">Gửi</button>'+
+        '</div>'+
+        '<input type="file" id="tdAnhCam" accept="image/*" capture="environment" style="display:none" onchange="onPickAnh(this,\'tdPhotoBox\',\'TD_ANH\')">'+
+        '<input type="file" id="tdAnhLib" accept="image/*" multiple style="display:none" onchange="onPickAnh(this,\'tdPhotoBox\',\'TD_ANH\')">'+
+        '<div class="photobox" id="tdPhotoBox"></div>'+
+      '</div>' : '';
 
     const anhBaoLoi = '<h4 style="font-size:13.5px;margin:16px 0 8px">📷 Ảnh báo lỗi</h4>' +
       ((t && t.anhBaoLoi && t.anhBaoLoi.length) ?
@@ -3387,10 +3494,36 @@ async function xemLichSu(maSuCo){
         '<div class="sc-photos">'+t.anhHoanThanh.map((u,i)=>'<img src="'+esc(driveImgUrl(u))+'" loading="lazy" onclick=\''+esc('openXemAnh('+JSON.stringify(t.anhHoanThanh.map(x=>driveImgUrl(x,2000)))+','+i+')')+'\'>').join('')+'</div>' :
         '<div style="font-size:12.5px;color:var(--txt-mute)">Kỹ thuật chưa đính kèm ảnh khi báo xong.</div>');
 
-    $('lsBody').innerHTML = timeline + anhBaoLoi + anhXong;
-  }catch(e){ $('lsBody').innerHTML = '<div class="empty" style="padding:24px 0">Không tải được lịch sử.</div>'; }
+    $('lsBody').innerHTML = timeline + khungTD + anhBaoLoi + anhXong;
+    if(TD_ANH.length) drawPhotoBox('tdPhotoBox','TD_ANH');
+    if(moKhung && $('tdKhung')){
+      $('tdKhung').scrollIntoView({block:'center'});
+      // Không tự bật bàn phím trên điện thoại (che mất lịch sử) — chỉ đặt con trỏ sẵn trên máy tính
+      if(window.matchMedia && window.matchMedia('(pointer:fine)').matches) $('tdNoiDung').focus();
+    }
+  }catch(e){
+    if(LS_MA_DANG_MO === maSuCo) $('lsBody').innerHTML = '<div class="empty" style="padding:24px 0">Không tải được lịch sử.</div>';
+  }
 }
-function closeLichSu(){ $('modalOverlay').style.display='none'; }
+async function guiTraoDoi(maSuCo){
+  const nd = ($('tdNoiDung') ? $('tdNoiDung').value : '').trim();
+  if(!nd && !TD_ANH.length) return toast(LOI_TRAO_DOI.CAN_NOI_DUNG,'bad');
+  try{
+    const j = await api({action:'suco_traodoi', maSuCo, noiDung:nd, anh: TD_ANH.length ? TD_ANH : undefined});
+    if(!j.ok) return toast(LOI_TRAO_DOI[j.error] || ('Không gửi được: '+j.error),'bad');
+    TD_ANH = [];
+    toast('Đã gửi.','ok');
+    const t = SUCO.find(x=>x.maSuCo===maSuCo);
+    if(t){ t.soTraoDoi = (t.soTraoDoi||0) + 1; if(TAB==='baotri') drawSuCo(); }
+    await veLichSu(maSuCo, true);
+  }catch(e){
+    // Action GHI không tự gửi lại (tránh gửi trùng) — báo rõ để người dùng xem lịch sử rồi mới gửi lại.
+    toast(['QUA_HAN','MAT_MANG','MAY_CHU_LOI'].includes(e.message)
+      ? moTaLoiKetNoi(e)+' Tin có thể đã tới hoặc chưa — đóng mở lại Lịch sử để kiểm tra trước khi gửi lại.'
+      : e.message, 'bad');
+  }
+}
+function closeLichSu(){ $('modalOverlay').style.display='none'; LS_MA_DANG_MO = null; TD_ANH = []; }
 /** Nút ✕ / tap ra ngoài của modal Lịch sử — đóng "bằng tay" nên phải trả lại đúng 1 nấc lịch sử đã
  *  mượn lúc mở (xem khối "Xử lý nút back điện thoại" bên dưới), không thì bấm back sau đó bị lệch. */
 function dongLichSuNut(){ closeLichSu(); dongModalCoBack(); }
@@ -3573,17 +3706,72 @@ const MAU_MUC_DO = {1:'#FF5C7A', 2:'#FFB020', 3:'#FFD21A', 4:'#3DDC97'};
 const NGUON_VITRI_LABEL = {gps:'📍 Vị trí GPS thật', dang_xu_ly:'🔧 Đang xử lý tại', vua_xong:'✅ Vừa xử lý xong tại', mac_dinh:'🏠 Chi nhánh xuất phát (chưa có dữ liệu vị trí thật)'};
 
 function toggleBaoTriView(view){
-  const isMap = view==='map', isTable = view==='table';
+  if(view==='kanban' && SESSION.role!=='admin') view = 'list';   // Kanban chỉ dành cho admin
+  const isMap = view==='map', isTable = view==='table', isKanban = view==='kanban';
   $('btnBtListView').className = 'btn btn-sm ' + (view==='list'?'btn-y':'btn-ghost');
   $('btnBtMapView').className = 'btn btn-sm ' + (isMap?'btn-y':'btn-ghost');
   $('btnBtTableView').className = 'btn btn-sm ' + (isTable?'btn-y':'btn-ghost');
-  $('viewSuCoList').style.display = (isMap||isTable) ? 'none' : '';
+  $('btnBtKanbanView').className = 'btn btn-sm ' + (isKanban?'btn-y':'btn-ghost');
+  $('viewSuCoList').style.display = (isMap||isTable||isKanban) ? 'none' : '';
   $('mapBaoTri').style.display = isMap?'block':'none';
   $('mapChuThich').style.display = isMap?'flex':'none';
   $('viewSuCoTable').style.display = isTable?'':'none';
+  $('viewSuCoKanban').style.display = isKanban?'':'none';
   if(isMap) veBanDoBaoTri();
   if(isTable) drawSuCoTable();
+  if(isKanban) drawSuCoKanban();
 }
+
+/* ─── KANBAN (05/11/2026, chỉ admin) ───
+   Gom sự cố ĐANG MỞ thành 6 cột theo khâu đang chờ — thấy ngay phiếu kẹt ở đâu (chưa tiếp nhận, chưa
+   điều phối, kỹ thuật chưa bắt đầu, chờ chi nhánh xác nhận…). Dùng chung ô tìm kiếm trên cùng và đúng
+   cách sắp xếp người dùng đã chọn ở khung Danh sách (mặc định mới nhất trước). Nút trên thẻ = đúng các
+   hành động admin sẵn có (tiepNhan/openDieuPhoi/dongTicket), không thêm logic mới. */
+const COT_KANBAN = [
+  { ma:'moi',      ten:'🆕 Mới báo',                tt:['moi'],                      goiY:'Chờ admin tiếp nhận' },
+  { ma:'tiepnhan', ten:'📥 Đã tiếp nhận',           tt:['da_tiep_nhan'],             goiY:'Chờ điều phối kỹ thuật' },
+  { ma:'giao',     ten:'👷 Đã giao kỹ thuật',       tt:['da_dieu_phoi','da_nhan'],   goiY:'Kỹ thuật chưa bắt đầu xử lý' },
+  { ma:'xuly',     ten:'🔧 Đang xử lý',             tt:['dang_xu_ly'],               goiY:'' },
+  { ma:'xacnhan',  ten:'⏳ Chờ chi nhánh xác nhận', tt:['cho_xac_nhan'],             goiY:'Kỹ thuật đã báo xong' },
+  { ma:'chodong',  ten:'🔒 Chờ đóng',               tt:['cho_dong'],                 goiY:'Chi nhánh đã xác nhận xong' }
+];
+function drawSuCoKanban(){
+  if(!$('viewSuCoKanban')) return;
+  capNhatDsKyThuatLoc('fKbKT');
+  const q = norm(($('qSuCo').value||'').trim());
+  let ds = locSuCo(SUCO.filter(t=>t.trangThai!=='dong'), $('fKbMuc').value, $('fKbKT').value, $('fKbCN').value, q);
+  ds = cheDoSapXepSuCo()==='moinhat'
+    ? ds.sort((a,b)=> String(b.taoLuc).localeCompare(String(a.taoLuc)))
+    : ds.sort((a,b)=> a.mucDo-b.mucDo || String(b.taoLuc).localeCompare(String(a.taoLuc)));
+  $('demKanban').textContent = ds.length;
+  $('kanbanCot').innerHTML = COT_KANBAN.map(c=>{
+    const the = ds.filter(t=>c.tt.includes(t.trangThai));
+    return '<section class="kb-cot" data-cot="'+c.ma+'"><header><b>'+c.ten+'</b><span class="st-pill">'+the.length+'</span></header>'+
+      (c.goiY ? '<div class="kb-goiy">'+c.goiY+'</div>' : '')+
+      '<div class="kb-ds">'+(the.length ? the.map(theKanbanHTML).join('') : '<div class="kb-trong">Không có</div>')+'</div></section>';
+  }).join('');
+}
+function theKanbanHTML(t){
+  const loai = LOAI_LOI[t.loaiLoi] || {ten:'Khác'};
+  const sla = slaTrangThai(t);
+  const slaCls = {ok:4, warn:2, bad:1}[sla&&sla.cls] || 3;
+  const ma = esc(t.maSuCo);
+  let acts = '';
+  if(t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();chanBamKep(this,tiepNhan,\''+ma+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
+  if(['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="event.stopPropagation();openDieuPhoi(\''+ma+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
+  if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();chanBamKep(this,dongTicket,\''+ma+'\')">🔒 Đóng</button>';
+  acts += '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();xemLichSu(\''+ma+'\',true)">💬'+(t.soTraoDoi?' <span class="td-dem">'+t.soTraoDoi+'</span>':'')+'</button>';
+  return '<article class="kb-the" data-p="'+t.mucDo+'" id="kb-'+ma+'" onclick="xemLichSu(\''+ma+'\')" title="Bấm để xem lịch sử & trao đổi">'+
+    '<div class="kb-dau"><span class="sc-code">'+ma+'</span><span class="pri pri-'+t.mucDo+'">'+MUC_DO_LABEL[t.mucDo]+'</span></div>'+
+    '<div class="kb-cn">'+esc(t.chinhanhTen)+(t.phong?' · '+esc(t.phong):'')+'</div>'+
+    '<div class="kb-phu">'+esc(loai.ten)+(t.kyThuatTen?' · 👷 '+esc(t.kyThuatTen):'')+'</div>'+
+    '<div class="kb-tg">'+(fmtKhoangCach(t.taoLuc, isoGioVNHienTai()) ? 'báo cách đây '+fmtKhoangCach(t.taoLuc, isoGioVNHienTai()) : 'vừa báo')+
+      (sla && sla.text ? ' <span class="pri pri-'+slaCls+'">'+esc(sla.text)+'</span>' : '')+
+      (t.soLanQuayLai>0 ? ' <span class="pri pri-1">🚩 quay lại '+t.soLanQuayLai+'</span>' : '')+'</div>'+
+    '<div class="kb-act">'+acts+'</div></article>';
+}
+/** Giờ hiện tại dạng ISO giờ VN không hậu tố Z — cùng định dạng server trả (taoLuc…), để so khoảng cách cho đúng. */
+function isoGioVNHienTai(){ return new Date(Date.now() + 7*3600e3).toISOString().slice(0,19); }
 
 /** Danh sách sự cố đã lọc theo bộ lọc riêng của view Bảng (mới, 08/09/2026) — dùng chung cho cả vẽ
  *  bảng (drawSuCoTable) lẫn xuất CSV (xuatCSVSuCo), giống đúng cách filtered() dùng chung cho
@@ -3612,7 +3800,7 @@ function drawSuCoTable(){
     if(t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,tiepNhan,\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
     if(['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
     if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,dongTicket,\''+t.maSuCo+'\')">🔒 Đóng</button>';
-    acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\')">🕘</button>';
+    acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\','+(t.trangThai!=='dong')+')" title="Lịch sử & trao đổi">🕘'+(t.soTraoDoi?' <span class="td-dem">'+t.soTraoDoi+'</span>':'')+'</button>';
     if(SESSION.sieuAdmin) acts += '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,xoaSuCo,\''+t.maSuCo+'\')">🗑️</button>';
     return '<tr>'+
       '<td>'+(i+1)+'</td>'+

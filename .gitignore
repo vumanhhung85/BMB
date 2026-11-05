@@ -1,0 +1,8 @@
+# Mã nguồn Worker + cấu trúc D1 dùng để chạy thử — KHÔNG đưa lên repo công khai
+test/.nguon/
+worker*.js
+*.worker.js
+schema*.sql
+# Kết quả chạy thử
+test/anh-chup/
+node_modules/

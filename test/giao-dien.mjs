@@ -1,0 +1,198 @@
+/* Chạy admin.html THẬT trong Chromium (Playwright), gọi vào Worker chạy trên máy (D1 giả) — không đụng
+   hệ thống thật. Kiểm: Kanban (admin), khung Trao đổi gửi chữ + ảnh, số tin trên thẻ, giao diện điện
+   thoại của quản lý chi nhánh, không có lỗi JavaScript. Ảnh chụp lưu ở test/anh-chup/ (đã .gitignore).
+   Cần Playwright: cài ở thư mục bất kỳ rồi chỉ tới đó, vd
+     PLAYWRIGHT_DIR=/duong/dan/co/node_modules node test/giao-dien.mjs
+   Chromium dùng bản có sẵn trong máy (PLAYWRIGHT_CHROMIUM, mặc định /opt/pw-browsers/chromium). */
+import { readFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join, dirname, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+import { taoMoiTruong, kb, dung, bang, chayTatCa } from './moi-truong.mjs';
+
+const GOC = join(dirname(fileURLToPath(import.meta.url)), '..');
+const ANH_CHUP = join(GOC, 'test', 'anh-chup');
+mkdirSync(ANH_CHUP, { recursive: true });
+
+let playwright;
+try { playwright = await import('playwright'); }
+catch (e) { playwright = createRequire(join(process.env.PLAYWRIGHT_DIR || process.cwd(), 'x.js'))('playwright'); }
+const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM || '/opt/pw-browsers/chromium';
+
+const API = readFileSync(join(GOC, 'admin.html'), 'utf-8').match(/API:\s*'(https:\/\/[^']+workers\.dev)'/)[1];
+const LOAI_FILE = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.js': 'text/javascript' };
+
+/** Ảnh JPEG thật (vẽ bằng canvas trong trình duyệt) để chọn từ "Thư viện". */
+async function taoAnhThu(trang) {
+  const b64 = await trang.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 640; c.height = 480;
+    const g = c.getContext('2d'); g.fillStyle = '#4B1272'; g.fillRect(0, 0, 640, 480);
+    g.fillStyle = '#FFD21A'; g.font = 'bold 60px sans-serif'; g.fillText('Dây mic', 150, 260);
+    return c.toDataURL('image/jpeg', 0.8).split(',')[1];
+  });
+  return { name: 'day-mic.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(b64, 'base64') };
+}
+
+async function moTrinhDuyet(m, kichThuoc) {
+  const trinh = await playwright.chromium.launch({ executablePath: CHROMIUM, headless: true });
+  const ctx = await trinh.newContext({ viewport: kichThuoc || { width: 1360, height: 900 }, deviceScaleFactor: 1, locale: 'vi-VN', timezoneId: 'Asia/Ho_Chi_Minh' });
+  const loiJS = [];
+  await ctx.route('**/*', async route => {
+    const req = route.request(), url = new URL(req.url());
+    if (url.origin === 'https://bmb.test') {
+      const f = join(GOC, decodeURIComponent(url.pathname));
+      if (!existsSync(f)) return route.fulfill({ status: 404, body: '' });
+      return route.fulfill({ status: 200, contentType: LOAI_FILE[extname(f)] || 'application/octet-stream', body: readFileSync(f) });
+    }
+    if (req.url().startsWith(API)) {        // → Worker chạy trên máy
+      const res = await m.worker.fetch(new Request(req.url(), {
+        method: req.method(), headers: req.headers(), body: ['GET', 'HEAD'].includes(req.method()) ? undefined : req.postData()
+      }), m.env, { waitUntil: () => {} });
+      return route.fulfill({ status: res.status, headers: Object.fromEntries(res.headers), body: Buffer.from(await res.arrayBuffer()) });
+    }
+    return route.abort();                    // font/CDN bên ngoài: không cần cho kiểm thử
+  });
+  const trang = await ctx.newPage();
+  trang.on('pageerror', e => loiJS.push(String(e.message || e)));
+  return { trinh, trang, loiJS };
+}
+
+async function dangNhapUI(trang, user) {
+  await trang.goto('https://bmb.test/admin.html');
+  await trang.fill('#uUser', user);
+  await trang.fill('#uPass', '1234');
+  await trang.click('#loginBtn');
+  await trang.waitForSelector('#app .tab[data-t="baotri"]', { state: 'visible', timeout: 15000 });
+  await trang.waitForFunction(() => window.SUCO !== undefined || true);
+  await trang.waitForTimeout(800);
+}
+
+/** Dữ liệu: 4 sự cố ở 4 khâu khác nhau, 1 sự cố đã có 1 tin trao đổi. */
+async function duLieu() {
+  const m = await taoMoiTruong();
+  const tk = {};
+  for (const u of ['admin', 'ql01', 'kt1']) tk[u] = await m.dangNhap(u);
+  const tao = async (moTa, phong) => (await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa, phong }, tk.ql01)).maSuCo;
+  const moi = await tao('Loa phòng 2 mất tiếng', 'P2');
+  const tn = await tao('Tivi phòng 3 sọc màn hình', 'P3');
+  await m.goi('suco_tiepnhan', { maSuCo: tn }, tk.admin);
+  const xl = await tao('Mic tay phải phòng 5 rè', 'P5');
+  await m.goi('suco_tiepnhan', { maSuCo: xl }, tk.admin);
+  await m.goi('suco_dieuphoi', { maSuCo: xl, kyThuat: 'kt1' }, tk.admin);
+  await m.goi('suco_nhanviec', { maSuCo: xl }, tk.kt1);
+  await m.goi('suco_batdau', { maSuCo: xl }, tk.kt1);
+  await m.goi('suco_traodoi', { maSuCo: xl, noiDung: 'Anh tới khoảng 15 phút nữa nhé' }, tk.kt1);
+  const cx = await tao('Máy lạnh phòng 7 chảy nước', 'P7');
+  await m.goi('suco_tiepnhan', { maSuCo: cx }, tk.admin);
+  await m.goi('suco_dieuphoi', { maSuCo: cx, kyThuat: 'kt1' }, tk.admin);
+  await m.goi('suco_nhanviec', { maSuCo: cx }, tk.kt1);
+  await m.goi('suco_baoxong', { maSuCo: cx, ghiChu: 'Thông ống thoát nước' }, tk.kt1);
+  return { m, ma: { moi, tn, xl, cx } };
+}
+
+kb('Admin: Kanban chia đúng 6 cột, đếm đúng, thẻ có nút hành động', async () => {
+  const { m, ma } = await duLieu();
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m);
+  try {
+    await dangNhapUI(trang, 'admin');
+    await trang.click('#btnBtKanbanView');
+    await trang.waitForSelector('#viewSuCoKanban .kb-cot');
+    const cot = await trang.$$eval('.kb-cot', ds => ds.map(c => ({ ma: c.dataset.cot, n: c.querySelectorAll('.kb-the').length })));
+    bang(cot.length, 6, 'số cột');
+    const n = Object.fromEntries(cot.map(c => [c.ma, c.n]));
+    bang(n.moi, 1, 'Mới báo'); bang(n.tiepnhan, 1, 'Đã tiếp nhận'); bang(n.xuly, 1, 'Đang xử lý'); bang(n.xacnhan, 1, 'Chờ xác nhận');
+    dung(await trang.$('#kb-' + ma.moi + ' button:has-text("Tiếp nhận")'), 'thẻ Mới có nút Tiếp nhận');
+    dung(await trang.$('#kb-' + ma.tn + ' button:has-text("Điều phối")'), 'thẻ Đã tiếp nhận có nút Điều phối');
+    bang((await trang.textContent('#kb-' + ma.xl + ' .td-dem')).trim(), '1', 'thẻ hiện 1 tin trao đổi');
+    // lọc bằng ô tìm kiếm chung
+    await trang.fill('#qSuCo', 'may lanh');
+    await trang.waitForTimeout(200);
+    bang(await trang.$$eval('.kb-the', d => d.length), 1, 'tìm "may lanh" (không dấu) còn 1 thẻ');
+    await trang.fill('#qSuCo', '');
+    await trang.waitForTimeout(200);
+    // bấm Tiếp nhận ngay trên thẻ → thẻ chuyển cột
+    trang.once('dialog', d => d.accept('2'));     // hộp hỏi xác nhận mức độ (prompt sẵn có của app)
+    await trang.click('#kb-' + ma.moi + ' button:has-text("Tiếp nhận")');
+    await trang.waitForFunction(id => document.querySelector('.kb-cot[data-cot="tiepnhan"] #kb-' + id), ma.moi, { timeout: 8000 });
+    await trang.screenshot({ path: join(ANH_CHUP, '1-admin-kanban.png'), fullPage: false });
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Admin: mở 💬 trên thẻ Kanban, gửi chữ + ảnh từ thư viện → lịch sử có bong bóng + ảnh, D1 có dòng', async () => {
+  const { m, ma } = await duLieu();
+  m.noiTG('kt1', 900);
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m);
+  try {
+    await dangNhapUI(trang, 'admin');
+    await trang.click('#btnBtKanbanView');
+    await trang.click('#kb-' + ma.xl + ' button:has-text("💬")');
+    await trang.waitForSelector('#tdKhung textarea');
+    dung((await trang.textContent('#tdKhung .td-mo')).includes('Kỹ thuật Một'), 'ghi rõ người nhận');
+    await trang.fill('#tdNoiDung', 'Nhớ mang dây mic dự phòng\nvà pin AA');
+    await trang.setInputFiles('#tdAnhLib', await taoAnhThu(trang));
+    await trang.waitForSelector('#tdPhotoBox .th img');
+    m.xoaTin();
+    await trang.click('#tdGui');
+    await trang.waitForFunction(() => document.querySelectorAll('#lsBody .ls-item.td').length === 2, null, { timeout: 8000 });
+    const bong = await trang.$$eval('#lsBody .ls-item.td .td-bong', d => d.map(x => x.textContent));
+    dung(bong[1].includes('Nhớ mang dây mic dự phòng'), 'bong bóng tin mới');
+    bang(await trang.$$eval('#lsBody .ls-item.td:last-child .td-bong img', d => d.length), 1, '1 ảnh trong bong bóng');
+    bang(await trang.$eval('#tdNoiDung', e => e.value), '', 'ô nhập đã xoá sau khi gửi');
+    bang(await trang.$$eval('#tdPhotoBox .th', d => d.length), 0, 'ảnh chờ đã xoá');
+    const dong = m.sql("SELECT ghi_chu, anh FROM lich_su_xu_ly WHERE ma_su_co=? AND hanh_dong='TRAO_DOI' ORDER BY id DESC", ma.xl)[0];
+    bang(dong.ghi_chu, 'Nhớ mang dây mic dự phòng\nvà pin AA', 'D1 lưu nguyên văn');
+    bang(JSON.parse(dong.anh).length, 1, 'D1 lưu 1 ảnh');
+    const kh = JSON.parse(dong.anh)[0];
+    dung(m.ANH._kho.get(kh).body.length < 400 * 1024, 'ảnh đã nén nhỏ (' + m.ANH._kho.get(kh).body.length + ' byte)');
+    bang(m.tin(900).length, 1, 'kỹ thuật nhận Telegram');
+    // bấm ảnh → mở khung xem ảnh trong app (không mở tab mới)
+    await trang.click('#lsBody .ls-item.td:last-child .td-bong img');
+    await trang.waitForSelector('#anhXemModal.show');
+    await trang.keyboard.press('Escape');
+    await trang.screenshot({ path: join(ANH_CHUP, '2-admin-trao-doi.png') });
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Quản lý chi nhánh (điện thoại 390px): nút 💬 có số tin, khung nhắn ghi đúng người nhận, không có Kanban', async () => {
+  const { m, ma } = await duLieu();
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 390, height: 844 });
+  try {
+    await dangNhapUI(trang, 'ql01');
+    bang(await trang.$eval('#btnBtKanbanView', b => getComputedStyle(b).display), 'none', 'quản lý không thấy nút Kanban');
+    const nut = await trang.waitForSelector('#sc-' + ma.xl + ' button:has-text("Trao đổi")');
+    bang((await nut.textContent()).replace(/\s+/g, ' ').trim(), '💬 Trao đổi 1', 'nút có số tin');
+    await nut.click();
+    await trang.waitForSelector('#tdKhung');
+    dung((await trang.textContent('#tdKhung .td-mo')).includes('kỹ thuật đang phụ trách'), 'người nhận là kỹ thuật');
+    const rong = await trang.evaluate(() => document.documentElement.scrollWidth);
+    dung(rong <= 390, 'không tràn ngang trên điện thoại (' + rong + 'px)');
+    await trang.fill('#tdNoiDung', 'Khách đổi sang phòng 6 rồi, anh cứ sửa');
+    await trang.click('#tdGui');
+    await trang.waitForFunction(() => document.querySelectorAll('#lsBody .ls-item.td').length === 2, null, { timeout: 8000 });
+    await trang.screenshot({ path: join(ANH_CHUP, '3-quanly-dien-thoai.png') });
+    // ticket đã đóng/chưa giao: sự cố "Mới" chưa có kỹ thuật → người nhận là admin
+    await trang.click('#modalOverlay button:has-text("✕")');
+    await trang.click('#sc-' + ma.moi + ' button:has-text("Trao đổi")');
+    await trang.waitForSelector('#tdKhung');
+    dung((await trang.textContent('#tdKhung .td-mo')).includes('admin'), 'chưa giao → người nhận là admin');
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Kỹ thuật: chỉ thấy 💬 trên việc được giao; bấm nút trên tin Telegram (?ticket=…&traodoi=1) mở thẳng khung nhắn', async () => {
+  const { m, ma } = await duLieu();
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 412, height: 900 });
+  try {
+    await dangNhapUI(trang, 'kt1');
+    await trang.waitForSelector('#sc-' + ma.xl + ' button:has-text("Trao đổi")');
+    await trang.goto('https://bmb.test/admin.html?ticket=' + ma.xl + '&traodoi=1');
+    await trang.waitForSelector('#tdKhung', { timeout: 15000 });
+    dung((await trang.textContent('#tdKhung .td-mo')).includes('Tây Hòa'), 'người nhận: quản lý chi nhánh Tây Hòa');
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+await chayTatCa();
+console.log('Ảnh chụp: ' + ANH_CHUP);
