@@ -127,6 +127,63 @@ kb('Admin: Kanban chia đúng 6 cột, đếm đúng, thẻ có nút hành độ
   } finally { await trinh.close(); }
 });
 
+kb('Admin: Kanban ghim chi nhánh — huy hiệu 🔗 +N, tô sáng mọi cột (không ẩn), tự bỏ ghim khi hết phiếu', async () => {
+  const m = await taoMoiTruong();
+  const tk = {};
+  for (const u of ['admin', 'ql01', 'ql02']) tk[u] = await m.dangNhap(u);
+  const tao = async (u, moTa, phong) => (await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa, phong }, tk[u])).maSuCo;
+  const a1 = await tao('ql01', 'Loa phòng 2 mất tiếng', 'P2');
+  const a2 = await tao('ql01', 'Tivi phòng 3 sọc', 'P3');
+  await m.goi('suco_tiepnhan', { maSuCo: a2 }, tk.admin);
+  const b1 = await tao('ql02', 'Mic phòng 1 rè', 'P1');
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m);
+  try {
+    await dangNhapUI(trang, 'admin');
+    await moSuCo(trang);
+    await trang.click('#btnBtKanbanView');
+    await trang.waitForSelector('#viewSuCoKanban .kb-cot');
+    bang((await trang.textContent('#kb-' + a1 + ' .kb-lk')).trim(), '🔗 +1', 'phiếu A1 có huy hiệu +1');
+    bang((await trang.textContent('#kb-' + a2 + ' .kb-lk')).trim(), '🔗 +1', 'phiếu A2 có huy hiệu +1');
+    bang(await trang.$('#kb-' + b1 + ' .kb-lk'), null, 'chi nhánh chỉ có 1 phiếu thì không có huy hiệu');
+    dung((await trang.getAttribute('#kb-' + a1 + ' .kb-lk', 'title')).includes('Mới báo ×1'), 'rê chuột hiện phân bố theo cột');
+    // bấm huy hiệu: ghim, KHÔNG mở Lịch sử
+    await trang.click('#kb-' + a1 + ' .kb-lk');
+    bang(await trang.$$eval('.kb-the.cung', d => d.length), 2, '2 phiếu cùng chi nhánh được tô sáng');
+    bang(await trang.$$eval('.kb-the', d => d.length), 3, 'không phiếu nào bị ẩn');
+    dung(await trang.$eval('#kanbanCot', e => e.classList.contains('ghim')), 'khung Kanban vào chế độ ghim');
+    await trang.waitForTimeout(350);   // chờ hết hiệu ứng chuyển mờ
+    dung(await trang.$eval('#kb-' + b1, e => Number(getComputedStyle(e).opacity) < 0.6), 'phiếu chi nhánh khác bị mờ đi');
+    bang(await trang.$eval('#modalOverlay', e => getComputedStyle(e).display), 'none', 'bấm huy hiệu không mở Lịch sử');
+    const bar = await trang.textContent('#kbGhimBar');
+    dung(bar.includes('2 phiếu') && bar.includes('Mới báo ×1') && bar.includes('Đã tiếp nhận ×1'), 'thanh ghim tóm tắt: ' + bar);
+    await trang.click('#kbGhimBar .kb-gc >> nth=1');           // nhảy tới phiếu ở cột Đã tiếp nhận (không lỗi)
+    // vẽ lại (như lần tự cập nhật mỗi phút) vẫn giữ ghim
+    await trang.evaluate(() => drawSuCoKanban()); await trang.waitForTimeout(150);
+    bang(await trang.$$eval('.kb-the.cung', d => d.length), 2, 'ghim còn nguyên sau khi vẽ lại');
+    // bấm tên chi nhánh trên thẻ cũng bỏ ghim (bấm lần nữa)
+    await trang.click('#kb-' + a2 + ' .kb-cn-b');
+    bang(await trang.$$eval('.kb-the.cung', d => d.length), 0, 'bấm lại tên chi nhánh = bỏ ghim');
+    dung(!(await trang.$eval('#kanbanCot', e => e.classList.contains('ghim'))), 'khung hết chế độ ghim');
+    // ghim lại, rồi nút "Bỏ ghim"
+    await trang.click('#kb-' + a2 + ' .kb-lk');
+    await trang.click('#kbGhimBar .kb-bo');
+    bang(await trang.$$eval('.kb-the.cung', d => d.length), 0, 'nút Bỏ ghim hoạt động');
+    // ghim rồi tìm chữ không khớp phiếu nào của chi nhánh → tự bỏ ghim
+    await trang.click('#kb-' + a1 + ' .kb-lk');
+    await trang.fill('#qSuCo', b1); await trang.waitForTimeout(250);
+    dung(!(await trang.$eval('#kanbanCot', e => e.classList.contains('ghim'))), 'chi nhánh không còn phiếu hiện → tự bỏ ghim');
+    await trang.fill('#qSuCo', ''); await trang.waitForTimeout(200);
+    // bấm vào thân thẻ vẫn mở Lịch sử như cũ
+    await trang.click('#kb-' + a1 + ' .kb-phu');
+    await trang.waitForFunction(() => getComputedStyle(document.getElementById('modalOverlay')).display !== 'none', null, { timeout: 5000 });
+    await trang.click('#modalOverlay button:has-text("✕")');
+    // ảnh chụp để xem bằng mắt
+    await trang.click('#kb-' + a1 + ' .kb-lk');
+    await trang.screenshot({ path: join(ANH_CHUP, '1b-admin-kanban-ghim.png'), fullPage: false });
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
 kb('Admin: mở 💬 trên thẻ Kanban, gửi chữ + ảnh từ thư viện → lịch sử có bong bóng + ảnh, D1 có dòng', async () => {
   const { m, ma } = await duLieu();
   m.noiTG('kt1', 900);

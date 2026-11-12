@@ -445,6 +445,23 @@ body.kb-mode .wrap.panel{max-width:min(2600px,100%)}
 .kb-tg{color:var(--txt-mute);margin-top:5px;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
 .kb-act{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .kb-act .btn{padding:5px 10px;min-height:32px;font-size:12px}
+/* Ghim chi nhánh (12/11/2026): tô sáng mọi phiếu cùng chi nhánh ở TẤT CẢ các cột, phiếu khác chỉ mờ đi (không ẩn → không sót) */
+.kb-cn-b{border-bottom:1px dashed var(--txt-mute);cursor:pointer}
+.kb-cn-b:hover{color:var(--pri);border-bottom-color:var(--pri)}
+.kb-lk{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:1px 8px;border-radius:99px;border:1px solid var(--line);background:var(--surface2);color:var(--pri);font:700 11.5px/1.5 inherit;cursor:pointer;vertical-align:1px}
+.kb-lk:hover{border-color:var(--pri)}
+.kb-ghim{display:none;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:-2px 0 10px;padding:7px 10px;border:1px solid var(--pri);border-radius:12px;background:var(--surface);font-size:12.5px}
+.kb-ghim b{font-size:13.5px}
+.kb-ghim .kb-gc{padding:2px 9px;border-radius:99px;border:1px solid var(--line);background:var(--surface2);color:var(--txt);font:600 12px/1.5 inherit;cursor:pointer}
+.kb-ghim .kb-gc:hover{border-color:var(--pri);color:var(--pri)}
+.kb-ghim .kb-bo{margin-left:auto;padding:2px 10px;border-radius:99px;border:1px solid var(--line);background:none;color:var(--txt-mute);font:600 12px/1.5 inherit;cursor:pointer}
+#viewSuCoKanban.co-ghim .kb-ghim{display:flex}
+#viewSuCoKanban.co-ghim .kb-wrap{height:max(400px,calc(100vh - 168px));height:max(400px,calc(100dvh - 168px))}
+.kb-wrap.ghim .kb-the{opacity:.4;transition:opacity .15s}
+.kb-wrap.ghim .kb-the.cung{opacity:1;outline:2px solid var(--pri);outline-offset:1px;box-shadow:0 0 0 4px color-mix(in srgb,var(--pri) 18%,transparent)}
+@media(max-width:767px){
+  #viewSuCoKanban.co-ghim .kb-wrap{height:max(380px,calc(100vh - 218px - env(safe-area-inset-bottom,0px)));height:max(380px,calc(100dvh - 218px - env(safe-area-inset-bottom,0px)))}
+}
 .form-card{background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-sm);
   border-radius:18px;padding:20px;margin-bottom:18px}
 .form-card .form-card{box-shadow:none;background:var(--surface2)}
@@ -1004,6 +1021,7 @@ tbody tr:hover td{background:var(--hover)}
           <select id="fKbCN" onchange="drawSuCoKanban()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
         </div>
         </div>
+        <div class="kb-ghim" id="kbGhimBar" role="status"></div>
         <div class="kb-wrap" id="kanbanCot"></div>
       </div>
     </div>
@@ -4447,6 +4465,32 @@ const COT_KANBAN_KT = [
   { ma:'xuly',     ten:'🔧 Đang xử lý',              tt:['dang_xu_ly'],               goiY:'' },
   { ma:'xacnhan',  ten:'⏳ Chờ chi nhánh xác nhận',  tt:['cho_xac_nhan','cho_dong'],  goiY:'Bạn đã báo xong' }
 ];
+/* Ghim chi nhánh trên Kanban (12/11/2026) — nhớ trong phiên, vẽ lại (tự cập nhật mỗi phút) vẫn giữ. */
+let KB_GHIM = null;
+function ghimChiNhanhKanban(id){
+  KB_GHIM = (KB_GHIM===id) ? null : id;
+  apDungGhimKanban();
+}
+function apDungGhimKanban(){
+  const v = $('viewSuCoKanban'), w = $('kanbanCot'), bar = $('kbGhimBar');
+  if(!v || !w || !bar) return;
+  const the = KB_GHIM ? [...w.querySelectorAll('.kb-the')].filter(e=>e.dataset.cn===KB_GHIM) : [];
+  if(KB_GHIM && !the.length) KB_GHIM = null;   // chi nhánh không còn phiếu nào đang hiện → tự bỏ ghim
+  w.classList.toggle('ghim', !!KB_GHIM);
+  v.classList.toggle('co-ghim', !!KB_GHIM);
+  w.querySelectorAll('.kb-the').forEach(e=>e.classList.toggle('cung', !!KB_GHIM && e.dataset.cn===KB_GHIM));
+  if(!KB_GHIM){ bar.innerHTML = ''; return; }
+  const phanBo = [...w.querySelectorAll('.kb-cot')].map(c=>({
+    ma:c.dataset.cot, ten:c.querySelector('header b').textContent.replace(/^\S+\s/,''),
+    n:c.querySelectorAll('.kb-the.cung').length })).filter(x=>x.n);
+  bar.innerHTML = '<span>📌</span><b>'+esc(the[0].dataset.ten)+'</b><span>'+the.length+' phiếu đang mở:</span>'+
+    phanBo.map(x=>'<button type="button" class="kb-gc" onclick="nhayToiPhieuGhim(\''+x.ma+'\')" title="Cuộn tới phiếu đầu tiên trong cột này">'+esc(x.ten)+' ×'+x.n+'</button>').join('')+
+    '<button type="button" class="kb-bo" onclick="ghimChiNhanhKanban(KB_GHIM)">✕ Bỏ ghim</button>';
+}
+function nhayToiPhieuGhim(cot){
+  const e = document.querySelector('#kanbanCot .kb-cot[data-cot="'+cot+'"] .kb-the.cung');
+  if(e) e.scrollIntoView({block:'nearest', inline:'nearest', behavior:'smooth'});
+}
 function drawSuCoKanban(){
   if(!$('viewSuCoKanban')) return;
   capNhatDsKyThuatLoc('fKbKT');
@@ -4456,14 +4500,23 @@ function drawSuCoKanban(){
     ? ds.sort((a,b)=> String(b.taoLuc).localeCompare(String(a.taoLuc)))
     : ds.sort((a,b)=> a.mucDo-b.mucDo || String(b.taoLuc).localeCompare(String(a.taoLuc)));
   $('demKanban').textContent = ds.length;
-  $('kanbanCot').innerHTML = (isKyThuat() ? COT_KANBAN_KT : COT_KANBAN).map(c=>{
+  const COT = isKyThuat() ? COT_KANBAN_KT : COT_KANBAN;
+  // Mỗi chi nhánh có bao nhiêu phiếu đang hiện, nằm ở cột nào → huy hiệu "🔗 +N" trên thẻ
+  const demCN = {};
+  ds.forEach(t=>{
+    const c = COT.find(x=>x.tt.includes(t.trangThai)); if(!c) return;
+    const d = demCN[t.chinhanhId] || (demCN[t.chinhanhId] = {n:0, cot:{}});
+    d.n++; d.cot[c.ten.replace(/^\S+\s/,'')] = (d.cot[c.ten.replace(/^\S+\s/,'')]||0)+1;
+  });
+  $('kanbanCot').innerHTML = COT.map(c=>{
     const the = ds.filter(t=>c.tt.includes(t.trangThai));
     return '<section class="kb-cot" data-cot="'+c.ma+'"><header><b>'+c.ten+'</b><span class="st-pill">'+the.length+'</span></header>'+
       (c.goiY ? '<div class="kb-goiy">'+c.goiY+'</div>' : '')+
-      '<div class="kb-ds">'+(the.length ? the.map(theKanbanHTML).join('') : '<div class="kb-trong">Không có</div>')+'</div></section>';
+      '<div class="kb-ds">'+(the.length ? the.map(t=>theKanbanHTML(t, demCN[t.chinhanhId])).join('') : '<div class="kb-trong">Không có</div>')+'</div></section>';
   }).join('');
+  apDungGhimKanban();
 }
-function theKanbanHTML(t){
+function theKanbanHTML(t, dem){
   const loai = LOAI_LOI[t.loaiLoi] || {ten:'Khác'};
   const sla = slaTrangThai(t);
   const slaCls = {ok:4, warn:2, bad:1}[sla&&sla.cls] || 3;
@@ -4473,9 +4526,12 @@ function theKanbanHTML(t){
   if(!isKyThuat() && ['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="event.stopPropagation();openDieuPhoi(\''+ma+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
   if(!isKyThuat() && t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();chanBamKep(this,dongTicket,\''+ma+'\')">🔒 Đóng</button>';
   acts += '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();xemLichSu(\''+ma+'\',true)">💬'+(t.soTraoDoi?' <span class="td-dem">'+t.soTraoDoi+'</span>':'')+'</button>';
-  return '<article class="kb-the" data-p="'+t.mucDo+'" id="kb-'+ma+'" onclick="xemLichSu(\''+ma+'\')" title="Bấm để xem lịch sử & trao đổi">'+
+  return '<article class="kb-the" data-p="'+t.mucDo+'" data-cn="'+esc(t.chinhanhId)+'" data-ten="'+esc(t.chinhanhTen)+'" id="kb-'+ma+'" onclick="xemLichSu(\''+ma+'\')" title="Bấm để xem lịch sử & trao đổi">'+
     '<div class="kb-dau"><span class="sc-code">'+ma+'</span><span class="pri pri-'+t.mucDo+'">'+MUC_DO_LABEL[t.mucDo]+'</span></div>'+
-    '<div class="kb-cn">'+esc(t.chinhanhTen)+(t.phong?' · '+esc(t.phong):'')+'</div>'+
+    '<div class="kb-cn">'+(dem && dem.n>1
+        ? '<span class="kb-cn-b" onclick="event.stopPropagation();ghimChiNhanhKanban(\''+esc(t.chinhanhId)+'\')" title="Bấm để ghim: tô sáng mọi phiếu của chi nhánh này ở các cột">'+esc(t.chinhanhTen)+'</span>'
+        : esc(t.chinhanhTen))+(t.phong?' · '+esc(t.phong):'')+
+      (dem && dem.n>1 ? '<button type="button" class="kb-lk" onclick="event.stopPropagation();ghimChiNhanhKanban(\''+esc(t.chinhanhId)+'\')" title="'+esc('Chi nhánh này có '+dem.n+' phiếu đang mở: '+Object.entries(dem.cot).map(([k,v])=>k+' ×'+v).join(' · ')+'. Bấm để ghim và tô sáng.')+'">🔗 +'+(dem.n-1)+'</button>' : '')+'</div>'+
     '<div class="kb-phu">'+esc(loai.ten)+(t.kyThuatTen?' · 👷 '+esc(t.kyThuatTen):'')+'</div>'+
     '<div class="kb-tg">'+(fmtKhoangCach(t.taoLuc, isoGioVNHienTai()) ? 'báo cách đây '+fmtKhoangCach(t.taoLuc, isoGioVNHienTai()) : 'vừa báo')+
       (sla && sla.text ? ' <span class="pri pri-'+slaCls+'">'+esc(sla.text)+'</span>' : '')+
