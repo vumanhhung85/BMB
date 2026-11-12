@@ -306,7 +306,7 @@ kb('Kiểu xem Sự cố: admin mặc định Kanban, kỹ thuật mặc định
     await moSuCo(trang);
     dung(await trang.isVisible('#viewSuCoKanban'), 'admin mở Sự cố → Kanban');
     dung(await trang.isVisible('#btnBtTableView') && await trang.isVisible('#btnBtListView'), 'admin có đủ nút kiểu xem');
-    await trang.evaluate(() => logout());
+    await trang.evaluate(() => localStorage.removeItem(CFG.PREFIX + 's'));   // đăng xuất kiểu nhẹ, tránh va với location.reload() của logout()
     // ── kỹ thuật
     await dangNhapUI(trang, 'kt1');
     dung(await trang.isVisible('#viewSuCoTable'), 'kỹ thuật mở → Bảng');
