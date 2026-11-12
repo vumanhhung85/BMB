@@ -62,9 +62,16 @@ async function dangNhapUI(trang, user) {
   await trang.fill('#uUser', user);
   await trang.fill('#uPass', '1234');
   await trang.click('#loginBtn');
-  await trang.waitForSelector('#app .tab[data-t="baotri"]', { state: 'visible', timeout: 15000 });
-  await trang.waitForFunction(() => window.SUCO !== undefined || true);
+  await trang.waitForSelector('#app .main', { state: 'visible', timeout: 15000 });
+  await trang.waitForFunction(() => !document.querySelector('#statsSuCo').innerHTML.includes('—') || true);
   await trang.waitForTimeout(800);
+}
+/** Admin vào trang Sự cố: máy tính bấm thanh bên, điện thoại bấm tab dưới. */
+async function moSuCo(trang) {
+  const ben = await trang.$('#sideNav .nav-i[data-go="baotri"]');
+  if (ben && await ben.isVisible()) await ben.click();
+  else await trang.click('.tab[data-t="baotri"]');
+  await trang.waitForSelector('#toolbarSuCo', { state: 'visible' });
 }
 
 /** Dữ liệu: 4 sự cố ở 4 khâu khác nhau, 1 sự cố đã có 1 tin trao đổi. */
@@ -95,6 +102,7 @@ kb('Admin: Kanban chia đúng 6 cột, đếm đúng, thẻ có nút hành độ
   const { trinh, trang, loiJS } = await moTrinhDuyet(m);
   try {
     await dangNhapUI(trang, 'admin');
+    await moSuCo(trang);
     await trang.click('#btnBtKanbanView');
     await trang.waitForSelector('#viewSuCoKanban .kb-cot');
     const cot = await trang.$$eval('.kb-cot', ds => ds.map(c => ({ ma: c.dataset.cot, n: c.querySelectorAll('.kb-the').length })));
@@ -125,6 +133,7 @@ kb('Admin: mở 💬 trên thẻ Kanban, gửi chữ + ảnh từ thư viện �
   const { trinh, trang, loiJS } = await moTrinhDuyet(m);
   try {
     await dangNhapUI(trang, 'admin');
+    await moSuCo(trang);
     await trang.click('#btnBtKanbanView');
     await trang.click('#kb-' + ma.xl + ' button:has-text("💬")');
     await trang.waitForSelector('#tdKhung textarea');
@@ -190,6 +199,98 @@ kb('Kỹ thuật: chỉ thấy 💬 trên việc được giao; bấm nút trên
     await trang.goto('https://bmb.test/admin.html?ticket=' + ma.xl + '&traodoi=1');
     await trang.waitForSelector('#tdKhung', { timeout: 15000 });
     dung((await trang.textContent('#tdKhung .td-mo')).includes('Tây Hòa'), 'người nhận: quản lý chi nhánh Tây Hòa');
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Giao diện: chọn Bạc Hà + Tối trong Tài khoản → tải lại vẫn giữ, màn đăng nhập cũng theo; nút đổi nhanh xoay vòng', async () => {
+  const { m } = await duLieu();
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 390, height: 844 });
+  try {
+    await dangNhapUI(trang, 'kt1');
+    bang(await trang.evaluate(() => document.documentElement.dataset.themeMode), 'auto', 'mặc định theo máy');
+    bang(await trang.evaluate(() => document.documentElement.hasAttribute('data-palette')), false, 'mặc định Boom Tím Vàng');
+    await trang.click('.tab[data-t="caidat"]');
+    await trang.click('#gdBoMau .pal-opt:has-text("Bạc Hà")');
+    await trang.click('#gdCheDoNut button[data-m="dark"]');
+    bang(await trang.evaluate(() => [document.documentElement.dataset.palette, document.documentElement.dataset.theme].join('/')), 'bacha/dark', 'áp dụng ngay');
+    bang(await trang.$eval('#metaTheme', e => e.content), '#0B3B37', 'màu thanh trạng thái điện thoại');
+    await trang.evaluate(() => logout());
+    await trang.waitForSelector('#login', { state: 'visible' });
+    bang(await trang.evaluate(() => [document.documentElement.dataset.palette, document.documentElement.dataset.theme].join('/')), 'bacha/dark', 'màn đăng nhập giữ lựa chọn');
+    const nen = await trang.$eval('.loginbox', e => getComputedStyle(e).backgroundColor);
+    bang(nen, 'rgb(18, 48, 44)', 'hộp đăng nhập màu Bạc Hà tối');
+    await trang.click('#btnThemeLogin');              // Tối → Theo máy
+    bang(await trang.evaluate(() => document.documentElement.dataset.themeMode), 'auto', 'xoay vòng sang Theo máy');
+    await trang.click('#btnThemeLogin');              // Theo máy → Sáng
+    bang(await trang.evaluate(() => document.documentElement.dataset.theme), 'light', 'xoay vòng sang Sáng');
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Admin Tổng quan: mở đầu ở Tổng quan, số đúng, "Cần làm ngay" có Tiếp nhận / Điều phối; thanh bên mở đúng mục Cài đặt', async () => {
+  const { m, ma } = await duLieu();
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m);
+  try {
+    await dangNhapUI(trang, 'admin');
+    await trang.waitForSelector('#tongquan', { state: 'visible' });
+    const so = await trang.$$eval('#tqKpi .stat', d => d.map(x => x.querySelector('.k').textContent + '=' + x.querySelector('.v').textContent));
+    dung(so.includes('Chờ tiếp nhận=1') && so.includes('Chờ điều phối=1') && so.includes('Kỹ thuật đang xử lý=1') && so.includes('Chờ xác nhận / đóng=1'), 'KPI: ' + so.join(', '));
+    bang(await trang.$$eval('#tqCanLam .q-row', d => d.length), 2, '2 việc chờ admin');
+    dung(await trang.$('#tqCanLam .q-row:has-text("Chờ tiếp nhận") button:has-text("Tiếp nhận")'), 'dòng tiếp nhận');
+    dung((await trang.textContent('#tqKyThuat')).includes(ma.xl), 'kỹ thuật đang xử lý đúng phiếu');
+    await trang.screenshot({ path: join(ANH_CHUP, '4-admin-tong-quan.png') });
+    await trang.click('#tqCanLam .q-row:has-text("Chờ điều phối") button');
+    await trang.waitForSelector('#formDieuPhoi', { state: 'visible' });
+    dung((await trang.textContent('#dpTicketInfo')).includes(ma.tn), 'form điều phối đúng phiếu');
+    // thanh bên → Danh mục / Chi nhánh: chỉ hiện thẻ Quản lý chi nhánh
+    await trang.click('#sideNav .nav-i[data-go="cd:chinhanh"]');
+    const the = await trang.$$eval('#caidat [data-nhom]', d => d.filter(x => x.offsetParent !== null).map(x => x.querySelector('h3').textContent.trim()));
+    bang(the.join('|'), 'Quản lý chi nhánh', 'chỉ thẻ Chi nhánh');
+    bang((await trang.textContent('#hPage')).trim(), 'Chi nhánh', 'tiêu đề trang');
+    await trang.click('#sideNav .nav-i[data-go="cd:canhan"]');
+    const the2 = await trang.$$eval('#caidat [data-nhom]', d => d.filter(x => x.offsetParent !== null).length);
+    bang(the2, 3, 'Tài khoản của tôi: Giao diện + Thông báo + Đổi mật khẩu');
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Kỹ thuật (điện thoại): Việc của tôi chia nhóm, việc đang xử lý có nút to "Báo xong", thanh dưới 2–3 tab', async () => {
+  const { m, ma } = await duLieu();
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 390, height: 844 });
+  try {
+    await dangNhapUI(trang, 'kt1');
+    const nhom = await trang.$$eval('#listSuCoChuaXuLy .nhom-h', d => d.map(x => x.firstChild.textContent.trim()));
+    bang(nhom[0], 'Đang làm', 'nhóm đầu là Đang làm (' + nhom.join(', ') + ')');
+    dung(await trang.$('#sc-' + ma.xl + ' .sc-chinh button.btn-lg:has-text("Báo xong")'), 'nút to Báo xong');
+    bang(await trang.$$eval('#sc-' + ma.xl + ' .sc-buoc .steps i.on', d => d.length), 2, 'thanh tiến độ ở bước 2');
+    const tab = await trang.$$eval('.tabs .tab', d => d.filter(x => getComputedStyle(x).display !== 'none').map(x => x.textContent.trim()));
+    dung(tab[0].startsWith('Việc của tôi') && tab[tab.length - 1] === 'Tài khoản', 'tab dưới: ' + tab.join(' · '));
+    const vt = await trang.$eval('.tabs', e => { const r = e.getBoundingClientRect(); return [getComputedStyle(e).position, Math.round(r.bottom)]; });
+    bang(vt.join(','), 'fixed,844', 'thanh tab nằm sát đáy');
+    const rong = await trang.evaluate(() => document.documentElement.scrollWidth);
+    dung(rong <= 390, 'không tràn ngang (' + rong + 'px)');
+    await trang.screenshot({ path: join(ANH_CHUP, '5-kythuat-viec-cua-toi.png') });
+    await trang.click('#sc-' + ma.xl + ' .sc-chinh button');
+    await trang.waitForSelector('#formBaoXong', { state: 'visible' });
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Quản lý (điện thoại): nút to Báo sự cố mới, nhóm "Cần anh/chị xác nhận" đứng đầu, bấm Đã xong → phiếu sang Chờ đóng', async () => {
+  const { m, ma } = await duLieu();
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 390, height: 844 });
+  try {
+    await dangNhapUI(trang, 'ql01');
+    dung(await trang.isVisible('#ctaBaoSuCo'), 'có nút to Báo sự cố mới');
+    const nhom = await trang.$$eval('#listSuCoChuaXuLy .nhom-h', d => d.map(x => x.firstChild.textContent.trim()));
+    bang(nhom[0], 'Cần anh/chị xác nhận', 'nhóm đầu (' + nhom.join(', ') + ')');
+    await trang.screenshot({ path: join(ANH_CHUP, '6-quanly-su-co.png') });
+    await trang.click('#sc-' + ma.cx + ' .sc-chinh button:has-text("Đã xong")');
+    await trang.waitForFunction(() => [...document.querySelectorAll('#listSuCoChuaXuLy .nhom-h')].some(x => x.textContent.includes('Chờ đóng')), null, { timeout: 8000 });
+    bang(m.sql('SELECT trang_thai FROM su_co WHERE ma_su_co=?', ma.cx)[0].trang_thai, 'cho_dong', 'D1: chờ đóng');
+    await trang.click('#ctaBaoSuCo');
+    await trang.waitForSelector('#formTaoSuCo', { state: 'visible' });
     bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
   } finally { await trinh.close(); }
 });

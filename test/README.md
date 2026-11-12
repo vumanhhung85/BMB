@@ -22,6 +22,7 @@ node test/giao-dien.mjs                   # chạy admin.html thật trong Chrom
 ```
 
 - `kich-ban.mjs` phải xanh hết rồi mới giao file. Thoát mã 1 nếu có kịch bản hỏng.
+- `giao-dien.mjs` kiểm cả bố cục theo vai trò (Tổng quan admin, Việc của tôi kỹ thuật, Cần xác nhận quản lý) và bộ giao diện 5 màu × sáng/tối (lưu trên máy, áp cả màn đăng nhập).
 - `kiem-action.mjs` bắt đúng lỗi "nút bấm im lặng": admin.html gọi một action mà Worker chưa có thì máy chủ trả `CHUA_HO_TRO`. Chỗ thiếu đã biết nhưng chưa sửa nằm trong danh sách `DA_BIET` (vẫn in cảnh báo).
 - Dữ liệu mẫu (2 chi nhánh Tây Hòa và Nguyễn Văn Tăng, 5 tài khoản `admin`, `ql01`, `ql02`, `kt1`, `ktm1`, mật khẩu `1234`) chỉ để test, không phải dữ liệu thật.
 

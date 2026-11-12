@@ -6,3 +6,4 @@ schema*.sql
 # Kết quả chạy thử
 test/anh-chup/
 node_modules/
+test/.chup-ma-tran.mjs
