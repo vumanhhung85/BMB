@@ -322,21 +322,21 @@ body.vt-admin #hBranch{display:none}
 button.stat{text-align:left;cursor:pointer;font:inherit;color:inherit;transition:transform .12s,border-color .15s}
 button.stat:hover{border-color:var(--pri);transform:translateY(-1px)}
 .stat .go{position:absolute;right:12px;top:12px;color:var(--txt-mute);opacity:.6}
-@media(max-width:600px){.stats{gap:8px;margin-bottom:14px}.stat{padding:10px 12px;border-radius:14px}.stat .k{font-size:11.5px;line-height:1.3;padding-right:12px}.stat .v{font-size:23px}.stat .go{right:8px;top:8px}}
+@media(max-width:600px){#tqKpi .stat:last-child:nth-child(odd){grid-column:1/-1}
+.stats{gap:8px;margin-bottom:14px}.stat{padding:10px 12px;border-radius:14px}.stat .k{font-size:11.5px;line-height:1.3;padding-right:12px}.stat .v{font-size:23px}.stat .go{right:8px;top:8px}}
 
 .toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
 .toolbar input,.toolbar select{padding:9px 13px;min-height:40px;border-radius:12px;background:var(--input-bg);
   border:1.5px solid var(--line);font-size:14px}
 .toolbar input:focus,.toolbar select:focus{border-color:var(--pri);outline:none;box-shadow:0 0 0 3px var(--sel)}
-/* điện thoại: thanh công cụ chính thành 1 hàng vuốt ngang thay vì xếp 3–4 dòng */
+/* điện thoại: ô tìm kiếm chiếm trọn 1 hàng, các nút (Bảng/Kanban/Bản đồ/Danh sách…) xuống hàng dưới, không bị che */
 @media(max-width:600px){
-  #toolbarSuCo,#toolbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-inline:max(16px,env(safe-area-inset-left,0px));padding-bottom:2px}
-  #toolbarSuCo::-webkit-scrollbar,#toolbar::-webkit-scrollbar{display:none}
-  #toolbarSuCo>*,#toolbar>*{flex:none}
-  #toolbarSuCo input,#toolbar input{min-width:210px!important;flex:1 0 210px!important}
+  #toolbarSuCo,#toolbar{gap:8px}
+  #toolbarSuCo input,#toolbar input{min-width:0!important;flex:1 0 100%!important}
+  #toolbarSuCo>.btn,#toolbar>.btn{flex:1 1 auto}
 }
 
-.list{display:grid;gap:11px}
+.list{display:grid;gap:11px;grid-template-columns:minmax(0,1fr)}
 .bk{background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-sm);
   border-radius:16px;padding:15px 17px 15px 19px;position:relative;overflow:hidden;transition:border-color .15s}
 .bk:hover{border-color:color-mix(in srgb,var(--pri) 35%,var(--line))}
@@ -471,11 +471,11 @@ button.stat:hover{border-color:var(--pri);transform:translateY(-1px)}
 .photobox .th button{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;border:0;
   background:rgba(0,0,0,.65);color:#fff;font-size:12px;cursor:pointer;line-height:1}
 .switch-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0}
-.row2{display:grid;gap:14px;grid-template-columns:1fr}
-@media(min-width:560px){.row2{grid-template-columns:1fr 1fr}}
-.row3{display:grid;gap:14px;grid-template-columns:1fr}
-@media(min-width:560px){.row3{grid-template-columns:1fr 1fr}}
-@media(min-width:820px){.row3{grid-template-columns:1fr 1fr 1fr}}
+.row2{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:560px){.row2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.row3{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:560px){.row3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:820px){.row3{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .switch{position:relative;width:52px;height:30px;flex-shrink:0}
 .switch input{opacity:0;width:0;height:0}
 .switch .track{position:absolute;inset:0;background:var(--line);border-radius:999px;cursor:pointer;transition:.2s}
@@ -578,7 +578,7 @@ button.stat:hover{border-color:var(--pri);transform:translateY(-1px)}
 /* điện thoại: Bảng chỉ giữ cột chính (Trạng thái · Chi nhánh · Lỗi · Hành động; mức độ xem ở Danh sách/Kanban) cho khỏi cuộn ngang nhiều */
 @media(max-width:600px){
   #viewSuCoTable :is(th,td):is(:nth-child(1),:nth-child(2),:nth-child(3),:nth-child(7),:nth-child(8)){display:none}
-  #viewSuCoTable td .st-pill{white-space:normal;display:inline-block}
+  #viewSuCoTable td .st-pill{white-space:normal;display:inline-block;padding:4px 8px;font-size:11px;line-height:1.25;border-radius:12px;text-align:center}
   #viewSuCoTable .tblwrap{padding:2px 6px}
   #viewSuCoTable :is(th,td){padding:9px 6px;font-size:12.5px}
   #viewSuCoTable th{font-size:10.5px;letter-spacing:.02em}
@@ -595,30 +595,30 @@ tbody tr:hover td{background:var(--hover)}
 .tq-hi{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .tq-hi h2{font-size:24px}
 .tq-hi p{color:var(--txt-mute);font-size:13.5px}
-.tq-grid{display:grid;gap:16px;grid-template-columns:1fr}
-@media(min-width:960px){.tq-grid{grid-template-columns:1.5fr 1fr}}
+.tq-grid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}   /* minmax(0,…) để chữ dài không nới rộng cả trang */
+@media(min-width:960px){.tq-grid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}}
 .tq-col{display:flex;flex-direction:column;gap:16px;min-width:0}
 .box{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:10px;min-width:0}
 .box-h{display:flex;align-items:center;gap:8px}
 .box-h h3{font-size:16px}
 .box-h .more{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--pri);background:none;border:0;cursor:pointer;padding:6px 4px}
-.q-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--line-soft);border-left:4px solid var(--txt-mute);cursor:pointer}
+.q-row{display:flex;align-items:center;gap:12px;min-width:0;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--line-soft);border-left:4px solid var(--txt-mute);cursor:pointer}
 .q-row[data-p="1"]{border-left-color:var(--bad)} .q-row[data-p="2"]{border-left-color:var(--warn)}
 .q-row[data-p="3"]{border-left-color:var(--mid)} .q-row[data-p="4"]{border-left-color:var(--ok)}
 .q-row .t{min-width:0;flex:1}
-.q-row .t b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.q-row .t>span{font-size:12px;color:var(--txt-mute);display:block}
+.q-row .t b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;font-size:13.5px;line-height:1.35;overflow:hidden;overflow-wrap:anywhere}   /* tên dài: tối đa 2 dòng rồi cắt … */
+.q-row .t>span{font-size:12px;color:var(--txt-mute);display:block;overflow-wrap:anywhere}
 .q-row .why{font-size:11.5px;font-weight:700}
 .q-row .why.bad{color:var(--bad)} .q-row .why.warn{color:var(--warn)} .q-row .why.info{color:var(--info)} .q-row .why.ok{color:var(--ok)}
 .q-row .btn{flex:none}
-@media(max-width:520px){.q-row{flex-wrap:wrap}.q-row .btn{width:100%}}
+@media(max-width:520px){.q-row{flex-wrap:wrap;gap:8px;padding:10px 12px 10px 10px}.q-row .t{flex:1 1 100%}.q-row .btn{width:100%;min-height:38px}}
 .kt-row{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line-soft)}
 .kt-row:last-child{border-bottom:0}
 .kt-row .t{flex:1;min-width:0}.kt-row b{font-size:13.5px;display:block}.kt-row span{font-size:12px;color:var(--txt-mute)}
 .kt-row .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}
 .kt-row .dot.busy{background:var(--warn)}
 .bar-row{display:flex;align-items:center;gap:10px;font-size:13px}
-.bar-row .nm{width:42%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row .nm{width:42%;flex:none;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-row .bar{flex:1;height:8px;border-radius:8px;background:var(--surface2);overflow:hidden}
 .bar-row .bar i{display:block;height:100%;border-radius:8px;background:var(--pri)}
 .bar-row b{width:26px;text-align:right;font-variant-numeric:tabular-nums}
@@ -1925,7 +1925,7 @@ function fmtKhoangCach(fromIso, toIso){
   const h = Math.floor(mins/60), m = mins%60;
   if(h<24) return h+'g'+(m?' '+m+'p':'');
   const dd = Math.floor(h/24);
-  return dd+' ngày '+(h%24)+'g';
+  return dd+' ngày'+(h%24 ? ' '+(h%24)+'g' : '');
 }
 /** Trạng thái SLA hiện tại của 1 ticket bảo trì — trả {text, cls} để hiện badge màu, hoặc null nếu
  *  chưa cấu hình ngưỡng cho mức độ đó. cls: 'ok' (còn nhiều thời gian) | 'warn' (sắp hết/trễ nhẹ) |
@@ -2173,7 +2173,7 @@ function drawTongQuan(){
     return {t, tre, why, cls, nut};
   }).filter(Boolean).sort((a,b)=> (b.tre-a.tre) || (a.t.mucDo-b.t.mucDo) || String(a.t.taoLuc).localeCompare(String(b.t.taoLuc)));
   $('tqDemCanLam').textContent = viec.length;
-  const HIEN = 8;
+  const HIEN = window.matchMedia('(max-width:767px)').matches ? 5 : 8;   // điện thoại: ít dòng hơn cho đỡ dài
   $('tqCanLam').innerHTML = viec.length ? viec.slice(0,HIEN).map(v=>{
     const t = v.t, loai = (LOAI_LOI[t.loaiLoi]||{ten:'Khác'}).ten;
     return '<div class="q-row" data-p="'+t.mucDo+'" onclick="xemLichSu(\''+esc(t.maSuCo)+'\')" title="Bấm để xem lịch sử & trao đổi">'+
@@ -4020,7 +4020,7 @@ function chiDuong(maSuCo){
 }
 
 function sucoHTML(t){
-  const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac;
+  const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac || {ten:"Khác"};
   const created = fmtVN(t.taoLuc);
   const sla = slaTrangThai(t);
   const slaCls = {ok:4, warn:2, bad:1}[sla&&sla.cls] || 3;
@@ -4049,7 +4049,7 @@ function sucoHTML(t){
   }
   if(SESSION.role==='manager'){
     if(t.trangThai==='cho_xac_nhan')
-      chinh = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+      chinh = '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">'+
         '<button class="btn btn-ok btn-lg" onclick="chanBamKep(this,xacNhan,\''+t.maSuCo+'\',true)">✅ Đã xong</button>'+
         '<button class="btn btn-bad btn-lg" onclick="chanBamKep(this,xacNhan,\''+t.maSuCo+'\',false)">❌ Chưa xong</button></div>';
     if(t.trangThai!=='dong') buoc = {ten:['Đã báo','Tiếp nhận','Đang sửa','Xác nhận'],
@@ -4668,7 +4668,7 @@ async function veBanDoBaoTri(){
   SUCO.filter(t=>t.trangThai!=='dong').forEach(t=>{
     const br = BRANCHES.find(b=>b.id===t.chinhanhId);
     if(!br || !br.lat) return;
-    const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac;
+    const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac || {ten:"Khác"};
     const m = L.circleMarker([br.lat,br.lng], {radius:11, weight:2, color:'#fff', fillColor:MAU_MUC_DO[t.mucDo]||'#8B7BA5', fillOpacity:.92}).addTo(lopTicketBT);
     // Ticket chưa ai phụ trách + kỹ thuật viên đang xem + tính năng tự nhận đang bật → thêm nút tự
     // nhận thẳng trong popup, không cần quay lại khung Danh sách mới bấm được.
@@ -4880,7 +4880,7 @@ async function xemLuuLuongTruyCap(){
     // 2 bảng cuối khác nhau tuỳ nguồn: đăng nhập → chi nhánh + tài khoản; trang chủ → chi nhánh khách
     // bấm vào từ link riêng + nguồn giới thiệu, kèm 2 thẻ tỉ lệ mobile/desktop.
     const khungCuoi = laTrangChu
-      ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'+
+      ? '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px">'+
           '<div><h3 style="font-size:16px;margin-bottom:10px">Chi nhánh khách bấm từ link riêng</h3>'+bang(d.theoChiNhanh,'Chi nhánh')+'</div>'+
           '<div><h3 style="font-size:16px;margin-bottom:10px">Nguồn giới thiệu</h3>'+bang(d.theoNguon,'Nguồn',NHAN_NGUON_TRUYCAP)+'</div>'+
         '</div>'+
@@ -4888,7 +4888,7 @@ async function xemLuuLuongTruyCap(){
           '<div class="stat g"><div class="k">📱 Điện thoại</div><div class="v">'+d.soMobile+'</div></div>'+
           '<div class="stat"><div class="k">💻 Máy tính</div><div class="v">'+d.soDesktop+'</div></div>'+
         '</div>'
-      : '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'+
+      : '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">'+
           '<div><h3 style="font-size:16px;margin-bottom:10px">Theo chi nhánh</h3>'+bang(d.theoChiNhanh,'Chi nhánh')+'</div>'+
           '<div><h3 style="font-size:16px;margin-bottom:10px">Theo tài khoản</h3>'+bang(d.theoTaiKhoan,'Tài khoản')+'</div>'+
         '</div>';

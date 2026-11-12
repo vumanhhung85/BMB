@@ -7,3 +7,4 @@ schema*.sql
 test/anh-chup/
 node_modules/
 test/.chup-ma-tran.mjs
+test/.do-tran-ngang.mjs

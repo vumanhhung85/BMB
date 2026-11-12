@@ -342,5 +342,32 @@ kb('Kiểu xem Sự cố: admin mặc định Kanban, kỹ thuật mặc định
   } finally { await trinh.close(); }
 });
 
+kb('Điện thoại 360px, tên chi nhánh/phòng/loại dài như thật: không màn nào của 3 vai trò bị tràn ngang', async () => {
+  const m = await taoMoiTruong();
+  const tk = {}; for (const u of ['admin', 'ql01', 'kt1']) tk[u] = await m.dangNhap(u);
+  m.sql("update chi_nhanh set ten='Boom Music Box – Chi nhánh Nguyễn Thị Minh Khai (Quận 1)', ten_ngan='Tây Hòa Phước Long B'");
+  m.sql("update loai_su_co set ten='Âm thanh / micro / loa / dàn máy karaoke' where ma='am_thanh'");
+  for (let i = 0; i < 9; i++) {
+    const r = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'Loa subwoofer phòng VIP bị rè, mất tiếng bass khi mở nhạc lớn, khách phản ánh nhiều lần #' + i, phong: 'Phòng VIP số ' + (100 + i) + ' (tầng 3, khu B)' }, tk.ql01);
+    if (i % 3 === 0) await m.goi('suco_tiepnhan', { maSuCo: r.maSuCo }, tk.admin);
+    if (i % 3 === 1) { await m.goi('suco_tiepnhan', { maSuCo: r.maSuCo }, tk.admin); await m.goi('suco_dieuphoi', { maSuCo: r.maSuCo, kyThuat: 'kt1' }, tk.admin); }
+  }
+  m.sql('update su_co set tao_luc = tao_luc - 3*86400000, cap_nhat_luc = cap_nhat_luc - 3*86400000');
+  const MAN = [["diToi('tongquan')", 'admin'], ["diToi('baotri','list')"], ["diToi('baotri','table')"], ["diToi('baotri','kanban')"], ["diToi('dat-phong')"], ["diToi('caidat')"]];
+  for (const u of ['admin', 'ql01', 'kt1']) {
+    const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 360, height: 780 });
+    try {
+      await dangNhapUI(trang, u);
+      for (const [js, chiVai] of MAN) {
+        if (chiVai && chiVai !== u) continue;
+        await trang.evaluate(js); await trang.waitForTimeout(300);
+        const kq = await trang.evaluate(() => ({ W: document.documentElement.clientWidth, sw: document.documentElement.scrollWidth }));
+        dung(kq.sw <= kq.W + 1, `${u} ${js}: trang rộng ${kq.sw}px trên màn ${kq.W}px`);
+      }
+      bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+    } finally { await trinh.close(); }
+  }
+});
+
 await chayTatCa();
 console.log('Ảnh chụp: ' + ANH_CHUP);
