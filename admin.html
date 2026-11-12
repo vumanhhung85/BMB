@@ -418,11 +418,22 @@ button.stat:hover{border-color:var(--pri);transform:translateY(-1px)}
 .td-khung textarea:focus{border-color:var(--pri);outline:none}
 .td-khung .td-mo{font-size:12px;color:var(--txt-mute);margin:2px 0 8px;line-height:1.5}
 /* Kanban (admin) */
-.kb-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
-.kb-cot{flex:1 0 236px;scroll-snap-align:start;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;max-height:72vh}
+.kb-wrap{display:flex;align-items:stretch;gap:12px;overflow-x:auto;padding-bottom:10px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
+  height:max(440px,calc(100vh - 120px));height:max(440px,calc(100dvh - 120px))}   /* cao gần hết màn hình: không còn khoảng trống dưới bảng */
+.kb-cot{flex:1 1 290px;min-width:260px;scroll-snap-align:start;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;min-height:0}
+.kb-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:12px}
+.kb-top h3{font-size:17px}
+.kb-top .toolbar{margin:0;flex:1 1 auto;min-width:0}
+/* Chế độ Kanban: dùng hết bề ngang, bỏ khung thẻ lồng nhau (cột đã có khung riêng) */
+body.kb-mode .wrap.panel{max-width:min(2600px,100%)}
+#viewSuCoKanban>.form-card{background:none;border:0;box-shadow:none;border-radius:0;padding:0;margin:0}
+@media(max-width:767px){
+  .kb-wrap{margin-inline:-16px;padding-inline:16px;scroll-padding-inline:16px;height:max(420px,calc(100vh - 170px - env(safe-area-inset-bottom,0px)));height:max(420px,calc(100dvh - 170px - env(safe-area-inset-bottom,0px)))}
+  .kb-cot{flex:0 0 min(86vw,340px)}
+}
 .kb-cot>header{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13.5px;margin-bottom:4px}
 .kb-goiy{font-size:11.5px;color:var(--txt-mute);margin-bottom:8px}
-.kb-ds{overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:2px}
+.kb-ds{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:9px;padding-right:2px}
 .kb-trong{color:var(--txt-mute);font-size:12.5px;text-align:center;padding:14px 0}
 .kb-the{position:relative;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--txt-mute);border-radius:12px;padding:10px 11px;font-size:12.5px;cursor:pointer;box-shadow:var(--shadow-sm)}
 .kb-the[data-p="1"]{border-left-color:var(--bad)} .kb-the[data-p="2"]{border-left-color:var(--warn)}
@@ -979,10 +990,9 @@ tbody tr:hover td{background:var(--hover)}
          phiếu đang kẹt ở khâu nào. Bấm vào thẻ = mở Lịch sử & trao đổi. -->
     <div id="viewSuCoKanban" style="display:none">
       <div class="form-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-          <h3 style="font-size:17px">🗂️ Sự cố đang mở theo trạng thái <span class="st-pill" id="demKanban">0</span></h3>
-        </div>
-        <div class="toolbar" style="margin-bottom:12px">
+        <div class="kb-top">
+          <h3>🗂️ Sự cố đang mở theo trạng thái <span class="st-pill" id="demKanban">0</span></h3>
+        <div class="toolbar">
           <select id="fKbMuc" onchange="drawSuCoKanban()">
             <option value="">Mọi mức độ</option>
             <option value="1">🔴 Khẩn cấp</option>
@@ -992,6 +1002,7 @@ tbody tr:hover td{background:var(--hover)}
           </select>
           <select id="fKbKT" onchange="drawSuCoKanban()" style="display:none"><option value="">Mọi kỹ thuật viên</option></select>
           <select id="fKbCN" onchange="drawSuCoKanban()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
+        </div>
         </div>
         <div class="kb-wrap" id="kanbanCot"></div>
       </div>
@@ -3237,6 +3248,7 @@ function switchTab(el, khongTai){   // khongTai = true: chỉ đổi giao diện
     });
   } else delete $('caidat').dataset.loc;
   capNhatDieuHuong();
+  if(!isBaoTri) document.body.classList.remove('kb-mode');
 
   // Vào tab Bảo trì: admin mặc định mở ra là view Bảng (theo yêu cầu, mới 08/09/2026) — luôn đặt lại
   // đúng view mặc định mỗi lần bấm vào tab (giống cách trước đây luôn quay về Danh sách), các vai trò
@@ -4404,6 +4416,7 @@ function toggleBaoTriView(view){
   $('mapChuThich').style.display = isMap?'flex':'none';
   $('viewSuCoTable').style.display = isTable?'':'none';
   $('viewSuCoKanban').style.display = isKanban?'':'none';
+  document.body.classList.toggle('kb-mode', isKanban && TAB==='baotri');   // Kanban: bề ngang tối đa
   if(isMap) veBanDoBaoTri();
   if(isTable) drawSuCoTable();
   if(isKanban) drawSuCoKanban();
