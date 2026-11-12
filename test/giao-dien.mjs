@@ -195,6 +195,7 @@ kb('Kỹ thuật: chỉ thấy 💬 trên việc được giao; bấm nút trên
   const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 412, height: 900 });
   try {
     await dangNhapUI(trang, 'kt1');
+    await trang.click('#btnBtListView');
     await trang.waitForSelector('#sc-' + ma.xl + ' button:has-text("Trao đổi")');
     await trang.goto('https://bmb.test/admin.html?ticket=' + ma.xl + '&traodoi=1');
     await trang.waitForSelector('#tdKhung', { timeout: 15000 });
@@ -260,6 +261,7 @@ kb('Kỹ thuật (điện thoại): Việc của tôi chia nhóm, việc đang x
   const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 390, height: 844 });
   try {
     await dangNhapUI(trang, 'kt1');
+    await trang.click('#btnBtListView');     // mặc định của kỹ thuật là Bảng → chuyển sang Danh sách
     const nhom = await trang.$$eval('#listSuCoChuaXuLy .nhom-h', d => d.map(x => x.firstChild.textContent.trim()));
     bang(nhom[0], 'Đang làm', 'nhóm đầu là Đang làm (' + nhom.join(', ') + ')');
     dung(await trang.$('#sc-' + ma.xl + ' .sc-chinh button.btn-lg:has-text("Báo xong")'), 'nút to Báo xong');
@@ -291,6 +293,51 @@ kb('Quản lý (điện thoại): nút to Báo sự cố mới, nhóm "Cần anh
     bang(m.sql('SELECT trang_thai FROM su_co WHERE ma_su_co=?', ma.cx)[0].trang_thai, 'cho_dong', 'D1: chờ đóng');
     await trang.click('#ctaBaoSuCo');
     await trang.waitForSelector('#formTaoSuCo', { state: 'visible' });
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Kiểu xem Sự cố: admin mặc định Kanban, kỹ thuật mặc định Bảng; kỹ thuật có đủ 4 kiểu và làm việc được ngay trên Bảng/Kanban; đổi mặc định trong Giao diện thì tải lại vẫn giữ', async () => {
+  const { m, ma } = await duLieu();
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m);
+  try {
+    // ── admin
+    await dangNhapUI(trang, 'admin');
+    await moSuCo(trang);
+    dung(await trang.isVisible('#viewSuCoKanban'), 'admin mở Sự cố → Kanban');
+    dung(await trang.isVisible('#btnBtTableView') && await trang.isVisible('#btnBtListView'), 'admin có đủ nút kiểu xem');
+    await trang.evaluate(() => logout());
+    // ── kỹ thuật
+    await dangNhapUI(trang, 'kt1');
+    dung(await trang.isVisible('#viewSuCoTable'), 'kỹ thuật mở → Bảng');
+    for (const id of ['#btnBtTableView', '#btnBtKanbanView', '#btnBtMapView', '#btnBtListView'])
+      dung(await trang.isVisible(id), 'kỹ thuật thấy nút ' + id);
+    dung(!(await trang.isVisible('button:has-text("Đã xoá")')), 'kỹ thuật không thấy "Đã xoá"');
+    // Bảng: nút Báo xong trên phiếu đang xử lý
+    const dong = trang.locator('#bangSuCoBody tr', { hasText: 'Mic tay phải' });
+    dung(await dong.locator('button:has-text("Báo xong")').count() === 1, 'Bảng có nút Báo xong');
+    dung(await trang.locator('#bangSuCoBody button:has-text("Tiếp nhận")').count() === 0, 'Bảng không có nút của admin');
+    await trang.screenshot({ path: join(ANH_CHUP, '7-kythuat-bang.png') });
+    // Kanban: 4 cột, nút Báo xong trong thẻ
+    await trang.click('#btnBtKanbanView');
+    await trang.waitForSelector('#kanbanCot .kb-cot');
+    bang(await trang.$$eval('.kb-cot', d => d.length), 4, 'Kanban của kỹ thuật có 4 cột');
+    dung(await trang.$('.kb-cot[data-cot="xuly"] .kb-the button:has-text("Báo xong")'), 'thẻ Đang xử lý có nút Báo xong');
+    await trang.screenshot({ path: join(ANH_CHUP, '8-kythuat-kanban.png') });
+    // Bản đồ mở được (không lỗi JS)
+    await trang.click('#btnBtMapView');
+    await trang.waitForSelector('#mapBaoTri', { state: 'visible' });
+    // bấm Báo xong ngay trên Bảng
+    await trang.click('#btnBtTableView');
+    await trang.locator('#bangSuCoBody tr', { hasText: 'Mic tay phải' }).locator('button:has-text("Báo xong")').click();
+    await trang.waitForSelector('#formBaoXong', { state: 'visible' });
+    // đổi mặc định sang Danh sách trong Cài đặt → tải lại vẫn giữ
+    await trang.click('.tab[data-t="caidat"]');
+    await trang.click('#gdXemSuCoNut button:has-text("Danh sách")');
+    await trang.reload();
+    await trang.waitForSelector('#app .main', { state: 'visible', timeout: 15000 });
+    await trang.waitForSelector('#viewSuCoList', { state: 'visible' });
+    bang(await trang.isVisible('#viewSuCoTable'), false, 'tải lại: không còn Bảng');
     bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
   } finally { await trinh.close(); }
 });

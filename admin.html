@@ -575,6 +575,15 @@ button.stat:hover{border-color:var(--pri);transform:translateY(-1px)}
 .ls-item:last-child{padding-bottom:0}
 .ls-dot{position:absolute;left:-22px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--pri);border:2px solid var(--surface)}
 
+/* điện thoại: Bảng chỉ giữ cột chính (Trạng thái · Chi nhánh · Lỗi · Hành động; mức độ xem ở Danh sách/Kanban) cho khỏi cuộn ngang nhiều */
+@media(max-width:600px){
+  #viewSuCoTable :is(th,td):is(:nth-child(1),:nth-child(2),:nth-child(3),:nth-child(7),:nth-child(8)){display:none}
+  #viewSuCoTable td .st-pill{white-space:normal;display:inline-block}
+  #viewSuCoTable .tblwrap{padding:2px 6px}
+  #viewSuCoTable :is(th,td){padding:9px 6px;font-size:12.5px}
+  #viewSuCoTable th{font-size:10.5px;letter-spacing:.02em}
+  #viewSuCoTable td .btn-sm{padding:6px 9px;min-height:34px;font-size:12px}
+}
 table{width:100%;border-collapse:collapse;font-size:13.5px}
 th,td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line)}
 th{color:var(--txt-mute);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
@@ -930,7 +939,7 @@ tbody tr:hover td{background:var(--hover)}
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
           <h3 style="font-size:17px">📊 Bảng theo dõi sự cố <span class="st-pill" id="demBangSuCo">0</span></h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn btn-ghost btn-sm" onclick="xemSuCoDaXoa()">🗑️ Đã xoá</button>
+            <button class="btn btn-ghost btn-sm caidat-admin-only" onclick="xemSuCoDaXoa()">🗑️ Đã xoá</button>
             <button class="btn btn-y btn-sm" onclick="xuatExcelSuCo()">📊 Xuất Excel</button>
             <button class="btn btn-ghost btn-sm" onclick="xuatCSVSuCo()">⬇️ Xuất CSV</button>
           </div>
@@ -1490,6 +1499,11 @@ tbody tr:hover td{background:var(--hover)}
         <button type="button" data-m="auto" onclick="doiCheDo('auto')"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Theo máy</button>
       </div>
       <div class="pal-grid" id="gdBoMau" role="group" aria-label="Bộ màu"></div>
+      <div id="gdXemSuCoWrap" style="display:none;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">
+        <b style="font-size:14px">Kiểu xem trang Sự cố khi mở</b>
+        <p style="color:var(--txt-mute);font-size:13px;margin:2px 0 10px">Đổi kiểu xem lúc nào cũng được bằng các nút trên trang Sự cố; đây chỉ là kiểu hiện sẵn mỗi lần mở.</p>
+        <div class="seg" id="gdXemSuCoNut" role="group" aria-label="Kiểu xem Sự cố mặc định"></div>
+      </div>
     </div>
 
     <!-- 🔔 THÔNG BÁO (27/09/2026) — thay khối "Liên kết Telegram cá nhân" nhập ID tay cũ. Mỗi tài khoản
@@ -2092,6 +2106,37 @@ function dongBoDemThanhBen(){
   if($('sideNPending')) $('sideNPending').textContent = n2 ? n2.textContent : '';
 }
 
+
+/* ══════════════ KIỂU XEM SỰ CỐ MẶC ĐỊNH (12/11/2026) ══════════════
+   4 kiểu xem trong trang Sự cố: Bảng · Kanban · Bản đồ · Danh sách. Mặc định theo vai trò — admin: Kanban,
+   kỹ thuật: Bảng, quản lý chi nhánh: Danh sách (chỉ có 1 kiểu). Mỗi người đổi được ở Tài khoản → 🎨 Giao diện,
+   lưu riêng từng máy (localStorage). */
+const KIEU_XEM = {table:'📊 Bảng', kanban:'🗂️ Kanban', map:'🗺️ Bản đồ', list:'📋 Danh sách'};
+function kieuXemDuocPhep(){
+  if(!SESSION) return ['list'];
+  if(SESSION.role==='admin' || isKyThuat()) return ['table','kanban','map','list'];
+  return ['list'];   // quản lý chi nhánh: chỉ Danh sách (nhóm theo việc cần làm)
+}
+function kieuXemMacDinhVaiTro(){ return SESSION && SESSION.role==='admin' ? 'kanban' : (SESSION && isKyThuat() ? 'table' : 'list'); }
+function kieuXemMacDinh(){
+  let v = null;
+  try{ v = localStorage.getItem(CFG.PREFIX+'xem_suco'); }catch(e){}
+  return (v && kieuXemDuocPhep().includes(v)) ? v : kieuXemMacDinhVaiTro();
+}
+function doiKieuXemMacDinh(v){
+  if(!kieuXemDuocPhep().includes(v)) return;
+  try{ localStorage.setItem(CFG.PREFIX+'xem_suco', v); }catch(e){}
+  veOChonXemSuCo();
+  toast('Lần sau mở trang Sự cố sẽ vào kiểu '+KIEU_XEM[v].replace(/^\S+\s/,'')+'.','ok');
+}
+function veOChonXemSuCo(){
+  const w = $('gdXemSuCoWrap'); if(!w) return;
+  const ds = kieuXemDuocPhep();
+  w.style.display = ds.length>1 ? '' : 'none';
+  const cur = kieuXemMacDinh();
+  $('gdXemSuCoNut').innerHTML = ds.map(v=>'<button type="button" aria-pressed="'+(v===cur)+'" onclick="doiKieuXemMacDinh(\''+v+'\')">'+KIEU_XEM[v]+'</button>').join('');
+}
+
 /* ══════════════ TỔNG QUAN (admin) ══════════════ */
 const TT_DANG_LAM = ['da_dieu_phoi','da_nhan','dang_xu_ly'];
 function drawTongQuan(){
@@ -2604,16 +2649,16 @@ async function khoiDongDuLieu(){
 function capNhatNutChuyenView(){
   // Cùng lỗi/cách sửa như trong enterApp() ở trên: gán rõ cả 2 chiều '' / 'none', không chỉ khi đúng
   // điều kiện, để không còn kẹt lại nút của vai trò phiên trước (mới, 19/09/2026).
-  const xemBanDo = SESSION.role === 'admin' || (isKyThuat() && PUBLIC_SETTINGS.kythuatXemBanDo);
-  $('btnBtListView').style.display = xemBanDo ? '' : 'none';
-  $('btnBtMapView').style.display = xemBanDo ? '' : 'none';
-  $('btnBtTableView').style.display = SESSION.role === 'admin' ? '' : 'none';
-  $('btnBtKanbanView').style.display = SESSION.role === 'admin' ? '' : 'none';
+  // 12/11/2026: kỹ thuật viên cũng xem được Bảng / Kanban / Bản đồ / Danh sách như admin (trước đây chỉ
+  // Danh sách, Bản đồ phụ thuộc cờ riêng). Dữ liệu vẫn do máy chủ lọc đúng việc của từng người.
+  const ds = kieuXemDuocPhep();
+  [['btnBtTableView','table'],['btnBtKanbanView','kanban'],['btnBtMapView','map'],['btnBtListView','list']]
+    .forEach(([id,v]) => $(id).style.display = (ds.length>1 && ds.includes(v)) ? '' : 'none');
   // Quản lý chi nhánh dùng nút to ở đầu trang (ctaBaoSuCo) thay cho nút nhỏ này (12/11/2026).
   $('btnTaoSuCo').style.display = SESSION.role === 'admin' ? '' : 'none';
   // Quản lý chi nhánh: nút to "Báo sự cố mới" đầu trang (12/11/2026) — nút nhỏ trên thanh công cụ vẫn giữ.
   $('ctaBaoSuCo').style.display = SESSION.role === 'manager' ? '' : 'none';
-  $('tabBanDo').style.display = (isKyThuat() && PUBLIC_SETTINGS.kythuatXemBanDo) ? '' : 'none';
+  $('tabBanDo').style.display = isKyThuat() ? '' : 'none';
 }
 
 /** Mở thẳng đúng 1 ticket bảo trì nếu URL có ?ticket=<mã> — dùng cho nút "Xem thêm" trên tin nhắn
@@ -3197,7 +3242,7 @@ function switchTab(el, khongTai){   // khongTai = true: chỉ đổi giao diện
   // đúng view mặc định mỗi lần bấm vào tab (giống cách trước đây luôn quay về Danh sách), các vai trò
   // khác không có nút chuyển view nên vẫn luôn ở Danh sách như cũ, dòng này với họ chỉ là vô hại.
   if(isBaoTri){
-    toggleBaoTriView(SESSION.role==='admin' ? 'table' : 'list');
+    toggleBaoTriView(kieuXemMacDinh());
     drawSuCo();
     // Quản lý/admin vừa chuyển vào đúng section này — làm mới ngay cho khỏi đợi tới 45 giây tiếp
     // theo. Kỹ thuật viên bỏ qua vì họ đã luôn ở nhịp nhanh nhất (30s) mọi lúc, thêm vào đây chỉ tạo
@@ -3207,6 +3252,7 @@ function switchTab(el, khongTai){   // khongTai = true: chỉ đổi giao diện
   else if(isCaiDat){
     $('tkmTaiKhoanHienTai').textContent = '@'+SESSION.user;
     capNhatUIVanTay();
+    veOChonXemSuCo();
     capNhatUIDoiMK();
     capNhatUITelegramId();
     if(SESSION.role==='admin'){ fillCfgInputs(); loadChiNhanhList(); loadTaiKhoanList(); loadLoaiSuCo().then(drawLoaiSuCoList); }
@@ -3743,6 +3789,7 @@ function xuLySuCoSauKhiTai(){
   if(TAB==='baotri'){
     drawSuCo();
     if($('viewSuCoTable').style.display!=='none') drawSuCoTable();
+    if($('mapBaoTri').style.display!=='none') veBanDoBaoTri();
   }
 }
 
@@ -4346,7 +4393,7 @@ const MAU_MUC_DO = {1:'#FF5C7A', 2:'#FFB020', 3:'#FFD21A', 4:'#3DDC97'};
 const NGUON_VITRI_LABEL = {gps:'📍 Vị trí GPS thật', dang_xu_ly:'🔧 Đang xử lý tại', vua_xong:'✅ Vừa xử lý xong tại', mac_dinh:'🏠 Chi nhánh xuất phát (chưa có dữ liệu vị trí thật)'};
 
 function toggleBaoTriView(view){
-  if(view==='kanban' && SESSION.role!=='admin') view = 'list';   // Kanban chỉ dành cho admin
+  if(!kieuXemDuocPhep().includes(view)) view = 'list';   // quản lý chi nhánh chỉ có Danh sách
   const isMap = view==='map', isTable = view==='table', isKanban = view==='kanban';
   $('btnBtListView').className = 'btn btn-sm ' + (view==='list'?'btn-y':'btn-ghost');
   $('btnBtMapView').className = 'btn btn-sm ' + (isMap?'btn-y':'btn-ghost');
@@ -4360,6 +4407,11 @@ function toggleBaoTriView(view){
   if(isMap) veBanDoBaoTri();
   if(isTable) drawSuCoTable();
   if(isKanban) drawSuCoKanban();
+  // Kỹ thuật: tab "Bản đồ" ở thanh dưới sáng khi đang xem bản đồ, ngược lại sáng "Việc của tôi"
+  if(TAB==='baotri' && isKyThuat() && $('tabBanDo').style.display!=='none'){
+    $('tabBanDo').setAttribute('aria-selected', isMap ? 'true' : 'false');
+    document.querySelector('.tab[data-t="baotri"]').setAttribute('aria-selected', isMap ? 'false' : 'true');
+  }
 }
 
 /* ─── KANBAN (05/11/2026, chỉ admin) ───
@@ -4375,6 +4427,13 @@ const COT_KANBAN = [
   { ma:'xacnhan',  ten:'⏳ Chờ chi nhánh xác nhận', tt:['cho_xac_nhan'],             goiY:'Kỹ thuật đã báo xong' },
   { ma:'chodong',  ten:'🔒 Chờ đóng',               tt:['cho_dong'],                 goiY:'Chi nhánh đã xác nhận xong' }
 ];
+/* Kỹ thuật viên chỉ có 4 cột — phiếu của họ không bao giờ ở "Mới báo" (12/11/2026) */
+const COT_KANBAN_KT = [
+  { ma:'tiepnhan', ten:'🙋 Có thể tự nhận',          tt:['da_tiep_nhan'],             goiY:'Chưa giao cho ai' },
+  { ma:'giao',     ten:'👷 Mới giao cho bạn',        tt:['da_dieu_phoi','da_nhan'],   goiY:'Nhận việc rồi bắt đầu xử lý' },
+  { ma:'xuly',     ten:'🔧 Đang xử lý',              tt:['dang_xu_ly'],               goiY:'' },
+  { ma:'xacnhan',  ten:'⏳ Chờ chi nhánh xác nhận',  tt:['cho_xac_nhan','cho_dong'],  goiY:'Bạn đã báo xong' }
+];
 function drawSuCoKanban(){
   if(!$('viewSuCoKanban')) return;
   capNhatDsKyThuatLoc('fKbKT');
@@ -4384,7 +4443,7 @@ function drawSuCoKanban(){
     ? ds.sort((a,b)=> String(b.taoLuc).localeCompare(String(a.taoLuc)))
     : ds.sort((a,b)=> a.mucDo-b.mucDo || String(b.taoLuc).localeCompare(String(a.taoLuc)));
   $('demKanban').textContent = ds.length;
-  $('kanbanCot').innerHTML = COT_KANBAN.map(c=>{
+  $('kanbanCot').innerHTML = (isKyThuat() ? COT_KANBAN_KT : COT_KANBAN).map(c=>{
     const the = ds.filter(t=>c.tt.includes(t.trangThai));
     return '<section class="kb-cot" data-cot="'+c.ma+'"><header><b>'+c.ten+'</b><span class="st-pill">'+the.length+'</span></header>'+
       (c.goiY ? '<div class="kb-goiy">'+c.goiY+'</div>' : '')+
@@ -4396,10 +4455,10 @@ function theKanbanHTML(t){
   const sla = slaTrangThai(t);
   const slaCls = {ok:4, warn:2, bad:1}[sla&&sla.cls] || 3;
   const ma = esc(t.maSuCo);
-  let acts = '';
-  if(t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();chanBamKep(this,tiepNhan,\''+ma+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
-  if(['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="event.stopPropagation();openDieuPhoi(\''+ma+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
-  if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();chanBamKep(this,dongTicket,\''+ma+'\')">🔒 Đóng</button>';
+  let acts = isKyThuat() ? nutKyThuat(t, true) : '';
+  if(!isKyThuat() && t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();chanBamKep(this,tiepNhan,\''+ma+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
+  if(!isKyThuat() && ['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="event.stopPropagation();openDieuPhoi(\''+ma+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
+  if(!isKyThuat() && t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();chanBamKep(this,dongTicket,\''+ma+'\')">🔒 Đóng</button>';
   acts += '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();xemLichSu(\''+ma+'\',true)">💬'+(t.soTraoDoi?' <span class="td-dem">'+t.soTraoDoi+'</span>':'')+'</button>';
   return '<article class="kb-the" data-p="'+t.mucDo+'" id="kb-'+ma+'" onclick="xemLichSu(\''+ma+'\')" title="Bấm để xem lịch sử & trao đổi">'+
     '<div class="kb-dau"><span class="sc-code">'+ma+'</span><span class="pri pri-'+t.mucDo+'">'+MUC_DO_LABEL[t.mucDo]+'</span></div>'+
@@ -4410,6 +4469,21 @@ function theKanbanHTML(t){
       (t.soLanQuayLai>0 ? ' <span class="pri pri-1">🚩 quay lại '+t.soLanQuayLai+'</span>' : '')+'</div>'+
     '<div class="kb-act">'+acts+'</div></article>';
 }
+
+/** Nút hành động chính của KỸ THUẬT VIÊN theo trạng thái phiếu, dùng cho view Bảng và Kanban (12/11/2026) —
+ *  cùng hàm/action như khung Danh sách. dung = true: chặn sự kiện nổi bọt (thẻ Kanban bấm cả thẻ mở lịch sử). */
+function nutKyThuat(t, dung){
+  const sp = dung ? 'event.stopPropagation();' : '';
+  const ma = esc(t.maSuCo);
+  let h = '';
+  if(t.trangThai==='da_tiep_nhan' && !t.kyThuatDuocGiao && PUBLIC_SETTINGS.kythuatTuNhanViec) h += '<button class="btn btn-ok btn-sm" onclick="'+sp+'chanBamKep(this,tuNhanViec,\''+ma+'\')">🙋 Tự nhận</button>';
+  if(t.trangThai==='da_dieu_phoi') h += '<button class="btn btn-y btn-sm" onclick="'+sp+'chanBamKep(this,nhanViec,\''+ma+'\')">👷 Nhận việc</button>';
+  if(t.trangThai==='da_nhan') h += '<button class="btn btn-y btn-sm" onclick="'+sp+'chanBamKep(this,batDauXuLy,\''+ma+'\')">🔧 Bắt đầu</button>';
+  if(t.trangThai==='dang_xu_ly') h += '<button class="btn btn-ok btn-sm" onclick="'+sp+'openBaoXong(\''+ma+'\')">✓ Báo xong</button>';
+  if(['da_nhan','dang_xu_ly'].includes(t.trangThai)) h += '<button class="btn btn-ghost btn-sm" onclick="'+sp+'chiDuong(\''+ma+'\')" title="Chỉ đường">🧭</button>';
+  return h;
+}
+
 /** Giờ hiện tại dạng ISO giờ VN không hậu tố Z — cùng định dạng server trả (taoLuc…), để so khoảng cách cho đúng. */
 function isoGioVNHienTai(){ return new Date(Date.now() + 7*3600e3).toISOString().slice(0,19); }
 
@@ -4436,10 +4510,10 @@ function drawSuCoTable(){
     const loai = LOAI_LOI[t.loaiLoi] || {ten:'Khác'};
     // Cùng đúng 3 hành động của admin bên khung Danh sách (sucoHTML) — tái dùng y hệt hàm cũ
     // (tiepNhan/openDieuPhoi/dongTicket), không viết logic mới, không thêm action nào ở Code.gs.
-    let acts = '';
-    if(t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,tiepNhan,\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
-    if(['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
-    if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,dongTicket,\''+t.maSuCo+'\')">🔒 Đóng</button>';
+    let acts = isKyThuat() ? nutKyThuat(t, false) : '';
+    if(!isKyThuat() && t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,tiepNhan,\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
+    if(!isKyThuat() && ['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
+    if(!isKyThuat() && t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,dongTicket,\''+t.maSuCo+'\')">🔒 Đóng</button>';
     acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\','+(t.trangThai!=='dong')+')" title="Lịch sử & trao đổi">🕘'+(t.soTraoDoi?' <span class="td-dem">'+t.soTraoDoi+'</span>':'')+'</button>';
     if(SESSION.sieuAdmin) acts += '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,xoaSuCo,\''+t.maSuCo+'\')">🗑️</button>';
     return '<tr>'+
@@ -4575,6 +4649,9 @@ async function xuatExcelSuCo(){
 }
 
 async function veBanDoBaoTri(){
+  // Thư viện bản đồ (Leaflet) tải từ mạng ngoài — mất mạng/bị chặn thì báo nhẹ, không làm hỏng cả trang
+  // (quan trọng từ 12/11/2026: Bản đồ có thể là kiểu xem mặc định của người dùng).
+  if(typeof L === 'undefined'){ $('mapChuThich').style.display='flex'; toast('Chưa tải được bản đồ (kiểm tra mạng rồi thử lại).','bad'); return; }
   if(!banDoBT){
     banDoBT = L.map('mapBaoTri', {zoomControl:true}).setView([10.7626,106.6602], 11);
     // OpenStreetMap trực tiếp (tile.openstreetmap.org) đã CHẶN truy cập từ web này (10/09/2026) —
