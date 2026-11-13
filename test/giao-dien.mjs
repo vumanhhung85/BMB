@@ -499,5 +499,23 @@ kb('Thẻ Cấu hình Telegram (điện thoại 360px): đường link getUpdate
   } finally { await trinh.close(); }
 });
 
+kb('Admin tự kết nối Telegram riêng (Tài khoản của tôi): có nút Kết nối + mô tả tin admin nhận; kết nối rồi thì hiện trạng thái; không tràn ngang 360px', async () => {
+  const m = await taoMoiTruong();
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 360, height: 800 });
+  try {
+    await dangNhapUI(trang, 'admin');
+    await trang.evaluate(() => diToi('cd:canhan'));
+    await trang.waitForSelector('#tbKhoiTelegram', { state: 'visible' });
+    await trang.waitForSelector('#tgKetNoiBtn', { timeout: 8000 });
+    dung(/Sẽ nhận riêng: sự cố mới/.test(await trang.textContent('#tbTgMoTa')), 'mô tả tin admin nhận');
+    dung(await trang.isVisible('#tbKhoiAdminNhom'), 'ghi chú: nhóm chung vẫn nhận');
+    bang(await trang.evaluate(() => document.documentElement.scrollWidth), 360, 'không tràn ngang');
+    await m.noiTG('admin', 5001);
+    await trang.evaluate(() => capNhatUITelegramId());
+    await trang.waitForFunction(() => /Đã kết nối/.test(document.querySelector('#tbTgTrangThai').textContent));
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
 await chayTatCa();
 console.log('Ảnh chụp: ' + ANH_CHUP);

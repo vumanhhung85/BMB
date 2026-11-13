@@ -1537,7 +1537,7 @@ tbody tr:hover td{background:var(--hover)}
         <div id="tgKetQua" style="font-size:12.5px;color:var(--txt-mute);margin-top:10px"></div>
         <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft)">
           <b>🤖 Bot nhắn riêng từng tài khoản</b>
-          <div style="font-size:12.5px;color:var(--txt-mute);margin:4px 0 10px;line-height:1.5">Dùng chung bot ở trên. Kỹ thuật và quản lý chi nhánh tự bấm <b>Kết nối Telegram</b> trong mục 🔔 Thông báo của họ → chỉ nhận đúng tin của mình (sự cố được giao, sự cố/đơn giữ phòng của chi nhánh), không ồn như nhóm. Nhóm chung vẫn giữ nguyên cho lãnh đạo.<br>Bấm <b>Kích hoạt</b> 1 lần sau khi lưu token (và mỗi khi đổi token). Sau khi kích hoạt, muốn lấy Chat ID nhóm mới: thêm bot vào nhóm rồi gõ <code>/chatid</code> trong nhóm.</div>
+          <div style="font-size:12.5px;color:var(--txt-mute);margin:4px 0 10px;line-height:1.5">Dùng chung bot ở trên. Kỹ thuật, quản lý chi nhánh và <b>cả admin</b> tự bấm <b>Kết nối Telegram</b> trong mục 🔔 Thông báo của mình → kỹ thuật/quản lý chỉ nhận đúng tin của mình (sự cố được giao, sự cố/đơn giữ phòng của chi nhánh); admin nhận thêm bản sao riêng các tin cần admin xử lý. Nhóm chung vẫn giữ nguyên cho lãnh đạo.<br>Bấm <b>Kích hoạt</b> 1 lần sau khi lưu token (và mỗi khi đổi token). Sau khi kích hoạt, muốn lấy Chat ID nhóm mới: thêm bot vào nhóm rồi gõ <code>/chatid</code> trong nhóm.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-y btn-sm" onclick="chanBamKep(this,kichHoatBotRieng)">⚡ Kích hoạt bot nhắn riêng</button>
             <button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,kiemTraBotRieng)">🔍 Kiểm tra & xem ai đã kết nối</button>
@@ -1600,8 +1600,8 @@ tbody tr:hover td{background:var(--hover)}
           <div class="tb-mo" id="tbTgLenh" style="display:none;margin-top:10px">Trong Telegram gõ <b>/viec</b> xem việc đang cần xử lý · <b>/tamdung</b> tạm dừng · <b>/tiep</b> nhận lại · <b>/ngat</b> ngắt kết nối.</div>
         </div>
         <div class="tb-khoi" id="tbKhoiAdminNhom" style="display:none">
-          <b>Telegram</b>
-          <div class="tb-mo">Tài khoản quản trị nhận thông báo qua <b>nhóm chung</b> (cấu hình ở mục 📨 Cấu hình Telegram phía trên). Kỹ thuật và quản lý chi nhánh tự kết nối Telegram riêng trong tài khoản của họ.</div>
+          <b>Nhóm chung</b>
+          <div class="tb-mo">Nhóm Telegram chung (cấu hình ở mục 📨 Cấu hình Telegram) vẫn nhận mọi thông báo như cũ. Kết nối Telegram riêng ở trên chỉ thêm cho anh/chị <b>một bản sao riêng</b> các tin cần admin xử lý — không thay thế nhóm. <b>Mỗi Telegram chỉ gắn với một tài khoản</b>: nếu dùng chung một Telegram cho nhiều tài khoản admin, tài khoản kết nối sau cùng sẽ nhận.</div>
         </div>
       </div>
     </div>
@@ -5364,16 +5364,16 @@ let tgChoKetNoiTimer = null;  // đang chờ người dùng bấm Start trong Te
 const TG_NHAN_GI = {
   manager: 'Sẽ nhận: sự cố của chi nhánh (tiếp nhận, phân công kỹ thuật, kỹ thuật báo xong cần xác nhận) và đơn giữ phòng mới.',
   kythuat: 'Sẽ nhận: sự cố được giao cho anh/chị, sự cố chờ nhận, phản hồi của chi nhánh sau khi báo xong.',
-  kythuat_mang: 'Sẽ nhận: sự cố được giao cho anh/chị, sự cố chờ nhận, phản hồi của chi nhánh sau khi báo xong.'
+  kythuat_mang: 'Sẽ nhận: sự cố được giao cho anh/chị, sự cố chờ nhận, phản hồi của chi nhánh sau khi báo xong.',
+  admin: 'Sẽ nhận riêng: sự cố mới, chi nhánh xác nhận xong (chờ đóng) hoặc báo chưa xong, trao đổi khi chưa có kỹ thuật phụ trách, quá hạn tiếp nhận, ticket tồn đọng, đơn giữ phòng mới. Gõ /viec để xem tổng quan nhanh.'
 };
 
 /** Vẽ lại mục 🔔 Thông báo — gọi mỗi lần mở tab Cài đặt (giữ tên hàm cũ để không phải sửa chỗ gọi). */
 async function capNhatUITelegramId(){
   $('tbHeThong').checked = thongBaoHeThongBat();
   const laAdmin = SESSION.role === 'admin';
-  $('tbKhoiTelegram').style.display = laAdmin ? 'none' : '';
+  $('tbKhoiTelegram').style.display = '';
   $('tbKhoiAdminNhom').style.display = laAdmin ? '' : 'none';
-  if(laAdmin) return;
   $('tbTgMoTa').textContent = 'Kết nối để nhận thông báo riêng của tài khoản này ngay cả khi không mở ứng dụng. ' + (TG_NHAN_GI[SESSION.role] || '');
   $('tbTgTrangThai').textContent = 'Đang kiểm tra…';
   try{

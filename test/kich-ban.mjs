@@ -332,6 +332,100 @@ kb('Trạng thái/tin thử kênh cứu hộ: chỉ admin; chưa khai thì báo 
   bang((await m0.goi('khoiphuc_tg_thu', {}, m0.tk.admin)).error, 'CHUA_CAU_HINH');
 });
 
+/* ───────── admin tự kết nối Telegram riêng: bản sao các tin cần admin xử lý (13/11/2026) ───────── */
+const NHOM = '-100nhom';
+async function chuanBiAdminTG(tuyChon) {
+  const m = await chuanBi(tuyChon);
+  // admin thứ hai (sadmin) để kiểm "không tự báo cho mình" và "chưa kết nối thì không nhận"
+  dung((await m.goi('taikhoan_them', { taikhoan: 'sadmin', hoten: 'Siêu admin', vaitro: 'admin', sieuAdmin: true, matkhau: 'Tam12345' }, m.tk.admin)).ok);
+  m.tk.sadmin = await m.dangNhap('sadmin', 'Tam12345');
+  await m.noiTG('admin', 5001);
+  m.xoaTin();
+  return m;
+}
+kb('Admin kết nối Telegram riêng: nhận bản sao sự cố mới + chi nhánh xác nhận/báo chưa xong; nhóm chung vẫn nhận; admin chưa kết nối / đang tạm dừng thì không', async () => {
+  const m = await chuanBiAdminTG();
+  const t = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'Loa rè', phong: 'P1' }, m.tk.ql01);
+  dung(t.ok);
+  dung(m.tin(NHOM).some(x => /SỰ CỐ MỚI/.test(x.text)), 'nhóm chung vẫn nhận');
+  const rieng = m.tin(5001).find(x => /Sự cố mới/.test(x.text));
+  dung(rieng, 'admin nhận bản sao riêng');
+  dung(/ticket=/.test(JSON.stringify(rieng.reply_markup)), 'có nút mở đúng ticket trong app');
+  bang(m.tin(5002).length, 0);
+  // chưa ai kết nối thêm → quản lý/kỹ thuật không bị lẫn
+  m.xoaTin();
+  await m.goi('suco_tiepnhan', { maSuCo: t.maSuCo, mucDo: 3 }, m.tk.admin);
+  await m.goi('suco_dieuphoi', { maSuCo: t.maSuCo, kyThuat: 'kt1' }, m.tk.admin);
+  await m.goi('suco_nhanviec', { maSuCo: t.maSuCo }, m.tk.kt1); await m.goi('suco_batdau', { maSuCo: t.maSuCo }, m.tk.kt1);
+  await m.goi('suco_baoxong', { maSuCo: t.maSuCo, ghiChu: 'xong' }, m.tk.kt1);
+  bang(m.tin(5001).length, 0, 'tin tiến độ thường (điều phối, báo xong…) KHÔNG nhân bản cho admin');
+  dung((await m.goi('suco_xacnhan', { maSuCo: t.maSuCo, xong: false, moTaBoSung: 'Vẫn rè' }, m.tk.ql01)).ok);
+  dung(m.tin(5001).some(x => /CHƯA XONG/.test(x.text) && /Vẫn rè/.test(x.text)), 'chưa xong → admin nhận');
+  await m.goi('suco_baoxong', { maSuCo: t.maSuCo }, m.tk.kt1);
+  m.xoaTin();
+  dung((await m.goi('suco_xacnhan', { maSuCo: t.maSuCo, xong: true }, m.tk.ql01)).ok);
+  dung(m.tin(5001).some(x => /đã xác nhận xong/i.test(x.text) && /đóng/.test(x.text)), 'xác nhận xong → admin nhận (chờ đóng)');
+  dung(m.tin(NHOM).some(x => /ĐÃ XÁC NHẬN XONG/.test(x.text)), 'nhóm vẫn nhận');
+  // tạm dừng → không nhận
+  m.sql('UPDATE tai_khoan SET tg_tam_dung=1 WHERE username=?', 'admin'); m.xoaTin();
+  await m.goi('suco_tao', { loaiLoi: 'mang', moTa: 'Wifi yếu', phong: 'P2' }, m.tk.ql01);
+  bang(m.tin(5001).length, 0, 'đang tạm dừng thì im');
+  dung(m.tin(NHOM).length >= 1, 'nhóm vẫn nhận');
+});
+kb('Admin tự tạo sự cố → không nhận bản sao của chính mình; admin khác đã kết nối vẫn nhận', async () => {
+  const m = await chuanBiAdminTG();
+  await m.noiTG('sadmin', 5002);
+  m.xoaTin();
+  dung((await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'Mic hỏng', phong: 'P3', chinhanhId: 'CN01' }, m.tk.admin)).ok);
+  bang(m.tin(5001).length, 0, 'admin tạo thì không tự nhận');
+  dung(m.tin(5002).some(x => /Sự cố mới/.test(x.text)), 'sadmin nhận');
+});
+kb('Trao đổi khi CHƯA có kỹ thuật: admin nhận riêng; đã có kỹ thuật phụ trách thì admin không bị làm phiền', async () => {
+  const m = await chuanBiAdminTG();
+  const t = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'Loa rè', phong: 'P1' }, m.tk.ql01);
+  m.xoaTin();
+  dung((await m.goi('suco_traodoi', { maSuCo: t.maSuCo, noiDung: 'Gấp giúp chi nhánh' }, m.tk.ql01)).ok);
+  dung(m.tin(5001).some(x => /Trao đổi/.test(x.text) && /Gấp giúp/.test(x.text)), 'admin nhận trao đổi (chưa có kỹ thuật)');
+  dung(/traodoi=1/.test(JSON.stringify(m.tin(5001)[0].reply_markup)), 'nút mở thẳng khung trao đổi');
+  await m.goi('suco_tiepnhan', { maSuCo: t.maSuCo, mucDo: 3 }, m.tk.admin);
+  await m.goi('suco_dieuphoi', { maSuCo: t.maSuCo, kyThuat: 'kt1' }, m.tk.admin);
+  m.xoaTin();
+  await m.goi('suco_traodoi', { maSuCo: t.maSuCo, noiDung: 'Đã có kỹ thuật rồi' }, m.tk.ql01);
+  bang(m.tin(5001).length, 0, 'đã giao kỹ thuật → không báo admin');
+});
+kb('Đơn giữ phòng mới (khách đặt) + quá hạn tiếp nhận (SLA): admin kết nối riêng nhận 1 bản sao; nhóm vẫn nhận', async () => {
+  const m = await chuanBiAdminTG({ caiDat: { sla_m3_tiepnhan_phut: 1 } });
+  const ngay = new Date(Date.now() + 2 * 864e5 + 7 * 3600e3).toISOString().slice(0, 10);
+  const r = await m.goi('book', { branchId: 'CN01', date: ngay, startTime: '19:00', endTime: '21:00', duration: 2, name: 'Khách Lan', phone: '0901234567', guests: 6 });
+  dung(r.ok, 'đặt phòng: ' + r.error);
+  dung(m.tin(5001).some(x => /Đơn giữ phòng mới/.test(x.text) && /Khách Lan/.test(x.text)), 'admin nhận đơn mới');
+  dung(m.tin(NHOM).some(x => /ĐƠN GIỮ PHÒNG MỚI/.test(x.text)), 'nhóm vẫn nhận');
+  const t = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'Loa rè', phong: 'P1' }, m.tk.ql01);
+  m.sql('UPDATE su_co SET tao_luc=?, muc_do=3 WHERE ma_su_co=?', Date.now() - 30 * 60e3, t.maSuCo);
+  m.xoaTin();
+  const q = await m.goi('sla_kiemtra', {}, m.tk.admin);
+  dung(q.ok !== false, 'quét SLA: ' + JSON.stringify(q));
+  dung(m.tin(NHOM).some(x => /QUÁ HẠN TIẾP NHẬN/.test(x.text)), 'nhóm nhận cảnh báo quá hạn');
+  dung(m.tin(5001).some(x => /Quá hạn tiếp nhận/.test(x.text) && x.text.includes(t.maSuCo)), 'admin nhận bản sao riêng cảnh báo quá hạn');
+});
+kb('Bot: admin kết nối qua /start → lời chào đúng vai trò; /viec cho admin tóm tắt theo trạng thái + đơn chờ duyệt', async () => {
+  const m = await chuanBi();
+  const tao = await m.goi('tg_tao_ma', {}, m.tk.admin);
+  dung(tao.ok, 'admin tạo được mã kết nối: ' + tao.error);
+  const ma = tao.link.split('start=')[1];
+  m.xoaTin();
+  await m.webhook({ update_id: 1, message: { message_id: 1, chat: { id: 6001, type: 'private' }, from: { id: 6001, username: 'chuhe' }, text: '/start ' + ma } });
+  dung(m.tin(6001).some(x => /Đã kết nối với tài khoản/.test(x.text) && /một bản sao/.test(x.text) && /Nhóm chung vẫn nhận/.test(x.text)), 'lời chào nói rõ admin nhận gì');
+  bang(m.sql("SELECT tg_chat_id c FROM tai_khoan WHERE username='admin'")[0].c, '6001');
+  const t1 = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'A', phong: 'P1' }, m.tk.ql01);
+  await m.goi('suco_tiepnhan', { maSuCo: t1.maSuCo, mucDo: 3 }, m.tk.admin);
+  await m.goi('suco_tao', { loaiLoi: 'mang', moTa: 'B', phong: 'P2' }, m.tk.ql02);
+  m.xoaTin();
+  await m.webhook({ update_id: 2, message: { message_id: 2, chat: { id: 6001, type: 'private' }, from: { id: 6001 }, text: '/viec' } });
+  const v = (m.tin(6001)[0] || {}).text || '';
+  dung(/2 sự cố chưa đóng/.test(v) && /Mới báo[^\n]*<b>1<\/b>/.test(v) && /Đã tiếp nhận[^\n]*<b>1<\/b>/.test(v), '/viec admin: ' + v);
+});
+
 /* ───────── kiểm tên action ───────── */
 kb('Mọi action admin.html / index.html gọi đều có trong Worker', async () => {
   const { thieu } = kiemTraAction();
