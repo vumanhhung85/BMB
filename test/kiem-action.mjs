@@ -13,9 +13,8 @@ const GOC = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /* Chỗ thiếu ĐÃ BIẾT, đang chờ anh Hưng quyết cách làm — vẫn in cảnh báo mỗi lần chạy, nhưng không làm
    hỏng lượt kiểm. Sửa xong thì xoá khỏi danh sách này.
-   - quenmk (05/11/2026): nút "Quên mật khẩu" ở màn đăng nhập admin.html gọi action này nhưng Worker
-     chưa có → không gửi gì, trong khi màn hình vẫn báo "mật khẩu sẽ được gửi tới email". */
-const DA_BIET = { 'admin.html → POST quenmk': 'Quên mật khẩu chưa có ở Worker' };
+   (13/11/2026: đã làm quenmk_gui / quenmk_doi — danh sách trống.) */
+const DA_BIET = {};
 
 /** Lấy các khoá cấp 1 của object literal `const <ten> = { ... }` — bỏ qua chuỗi, comment, khoá lồng bên trong. */
 function khoaCap1(nguon, ten) {

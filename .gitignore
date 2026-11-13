@@ -9,3 +9,5 @@ node_modules/
 test/.chup-ma-tran.mjs
 test/.do-tran-ngang.mjs
 test/.chup-kanban.mjs
+test/.chup-qmk.mjs
+test/.thu-cuuho.mjs

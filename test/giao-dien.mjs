@@ -426,5 +426,56 @@ kb('Điện thoại 360px, tên chi nhánh/phòng/loại dài như thật: khôn
   }
 });
 
+kb('Quên mật khẩu Admin (màn đăng nhập): gửi mã → nhập mã + mật khẩu mới → đăng nhập được; báo lỗi rõ khi sai mã / chưa khai kênh; thẻ cứu hộ trong Cài đặt', async () => {
+  const m = await taoMoiTruong({ caiDat: { khoiphuc_tg_chat_id: '777001' } });
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 390, height: 844 });
+  try {
+    await trang.goto('https://bmb.test/admin.html');
+    await trang.fill('#uUser', 'admin');
+    await trang.click('text=Quên mật khẩu?');
+    dung(await trang.isVisible('#qmPanel'), 'mở khung quên mật khẩu');
+    bang(await trang.inputValue('#qmUser'), 'admin', 'điền sẵn tài khoản đã gõ');
+    dung(!(await trang.isVisible('#qmBuoc2')), 'chưa gửi mã thì chưa hiện ô mã');
+    m.xoaTin();
+    await trang.click('#qmGuiBtn');
+    await trang.waitForSelector('#qmBuoc2', { state: 'visible' });
+    const ma = ((m.tin('777001').pop() || {}).text || '').match(/<code>(\d{8})<\/code>/)[1];
+    await trang.fill('#qmMa', '00000000'); await trang.fill('#qmMk', 'MoiMoi123'); await trang.fill('#qmMk2', 'MoiMoi123');
+    await trang.click('#qmDoiBtn');
+    await trang.waitForFunction(() => /Mã sai/.test(document.querySelector('#qmMsgTxt').textContent));
+    await trang.fill('#qmMa', ma); await trang.fill('#qmMk2', 'khac');
+    await trang.click('#qmDoiBtn');
+    await trang.waitForFunction(() => /chưa giống/.test(document.querySelector('#qmMsgTxt').textContent));
+    await trang.fill('#qmMk2', 'MoiMoi123');
+    await trang.click('#qmDoiBtn');
+    await trang.waitForFunction(() => /Đã đặt lại/.test(document.querySelector('#loginMsgTxt').textContent));
+    dung(!(await trang.isVisible('#qmPanel')), 'đóng khung sau khi xong');
+    await trang.fill('#uPass', 'MoiMoi123'); await trang.click('#loginBtn');
+    await trang.waitForSelector('#app .main', { state: 'visible', timeout: 15000 });
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+  // chưa khai kênh → thông báo rõ
+  const m0 = await taoMoiTruong();
+  const b = await moTrinhDuyet(m0, { width: 390, height: 844 });
+  try {
+    await b.trang.goto('https://bmb.test/admin.html');
+    await b.trang.click('text=Quên mật khẩu?');
+    await b.trang.fill('#qmUser', 'admin'); await b.trang.click('#qmGuiBtn');
+    await b.trang.waitForFunction(() => /chưa khai kênh/.test(document.querySelector('#qmMsgTxt').textContent));
+    await b.trang.close();
+  } finally { await b.trinh.close(); }
+  // thẻ trạng thái cho admin
+  for (const [caiDat, mong] of [[{ khoiphuc_tg_chat_id: '777001' }, /Đã khai kênh cứu hộ \(chat …001\)/], [{}, /Chưa khai/]]) {
+    const mm = await taoMoiTruong({ caiDat });
+    const c = await moTrinhDuyet(mm);
+    try {
+      await dangNhapUI(c.trang, 'admin');
+      await c.trang.evaluate(() => taiKhoiPhucTrangThai());
+      await c.trang.waitForFunction(() => !/Đang kiểm tra/.test(document.querySelector('#khoiPhucTrangThai').textContent));
+      dung(mong.test(await c.trang.textContent('#khoiPhucTrangThai')), 'trạng thái: ' + await c.trang.textContent('#khoiPhucTrangThai'));
+    } finally { await c.trinh.close(); }
+  }
+});
+
 await chayTatCa();
 console.log('Ảnh chụp: ' + ANH_CHUP);

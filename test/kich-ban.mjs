@@ -222,6 +222,116 @@ kb('DB cũ chưa có cột trao đổi: lịch sử vẫn đọc được, lần
   dung(m.sql("SELECT 1 FROM nhat_ky WHERE loai='MIGRATE' AND noi_dung LIKE '%trao đổi%'").length === 1, 'ghi nhật ký MIGRATE');
 });
 
+/* ───────── khôi phục mật khẩu admin qua Telegram chủ hệ thống (13/11/2026) ───────── */
+const CHU = '777001';
+const maTrongTin = tin => (String((tin[tin.length - 1] || {}).text || '').match(/<code>(\d{8})<\/code>/) || [])[1];
+const doiGio = (m, soPhutLui) => m.sql(`UPDATE nhat_ky SET luc = luc - ? WHERE loai='QUENMK_GUI'`, soPhutLui * 60e3);
+
+kb('Quên mật khẩu admin: mã về Telegram chủ → đặt lại → vào bằng mật khẩu mới, cũ mất, phiên cũ bị đá, hết khoá', async () => {
+  const m = await chuanBi({ caiDat: { khoiphuc_tg_chat_id: CHU } });
+  for (let i = 0; i < 5; i++) await m.goi('login', { user: 'admin', hash: 'sai', thietBi: 'x' });
+  bang((await m.goi('login', { user: 'admin', hash: 'sai', thietBi: 'x' })).error, 'LOCKED', 'đang bị khoá');
+  m.xoaTin();
+  bang((await m.goi('quenmk_gui', { user: 'admin' })).ok, true);
+  const ma = maTrongTin(m.tin(CHU));
+  dung(ma && ma.length === 8, 'mã 8 số tới đúng chat chủ hệ thống');
+  bang(m.tin(CHU).length, 1, 'chỉ 1 tin');
+  bang(m.tin('-100nhom').length, 0, 'KHÔNG lộ mã vào nhóm chung');
+  bang((await m.goi('quenmk_doi', { user: 'admin', ma: '00000000', matkhauMoi: 'MoiMoi123' })).error, 'MA_SAI');
+  bang((await m.goi('quenmk_doi', { user: 'admin', ma, matkhauMoi: 'ab' })).error, 'BAD_PASS', 'mật khẩu quá ngắn');
+  const r = await m.goi('quenmk_doi', { user: 'admin', ma, matkhauMoi: 'MoiMoi123' });
+  dung(r.ok, 'đặt lại: ' + r.error);
+  bang((await m.goi('quenmk_doi', { user: 'admin', ma, matkhauMoi: 'KhacKhac1' })).error, 'MA_SAI', 'mã dùng 1 lần');
+  bang((await m.goi('login', { user: 'admin', hash: (await import('node:crypto')).createHash('sha256').update('admin::1234::boom').digest('hex'), thietBi: 'y' })).ok, false, 'mật khẩu cũ hết tác dụng');
+  const h = (await import('node:crypto')).createHash('sha256').update('admin::MoiMoi123::boom').digest('hex');
+  dung((await m.goi('login', { user: 'admin', hash: h, thietBi: 'z' })).ok, 'mật khẩu mới vào được (kể cả khi trước đó bị khoá)');
+  bang((await m.goi('khoi_dong', {}, m.tk.admin)).error, 'BAD_TOKEN', 'phiên cũ bị đá');
+  dung(m.tin(CHU).some(t => /vừa được đặt lại/.test(t.text)), 'chủ hệ thống được báo đã đặt lại');
+  bang(m.sql('SELECT COUNT(*) n FROM khoi_phuc_mk')[0].n, 0, 'mã đã xoá');
+});
+kb('Quên mật khẩu: tài khoản không phải admin / không tồn tại → trả lời y hệt, KHÔNG gửi mã, KHÔNG đổi gì', async () => {
+  const m = await chuanBi({ caiDat: { khoiphuc_tg_chat_id: CHU } });
+  m.xoaTin();
+  const a = await m.goi('quenmk_gui', { user: 'ql01' }), b = await m.goi('quenmk_gui', { user: 'khongcothat' }), c = await m.goi('quenmk_gui', { user: 'admin' });
+  bang(JSON.stringify(a), JSON.stringify(b), 'quản lý & tài khoản ma trả lời giống nhau');
+  bang(JSON.stringify(a), JSON.stringify(c), 'admin thật cũng trả lời giống (không dò được)');
+  bang(m.tin(CHU).length, 1, 'chỉ admin thật mới có tin');
+  bang(m.sql('SELECT COUNT(*) n FROM khoi_phuc_mk WHERE username IN (?,?)', 'ql01', 'khongcothat')[0].n, 0);
+  bang((await m.goi('quenmk_doi', { user: 'ql01', ma: '12345678', matkhauMoi: 'XxXxXx1' })).error, 'MA_SAI');
+});
+kb('Quên mật khẩu: chưa khai chủ hệ thống → CHUA_CAU_HINH; gửi dồn → THU_LAI_SAU; mã hết hạn / sai 5 lần → huỷ', async () => {
+  const m0 = await chuanBi();
+  bang((await m0.goi('quenmk_gui', { user: 'admin' })).error, 'CHUA_CAU_HINH');
+  const m = await chuanBi({ caiDat: { khoiphuc_tg_chat_id: CHU } });
+  dung((await m.goi('quenmk_gui', { user: 'admin' })).ok);
+  bang((await m.goi('quenmk_gui', { user: 'admin' })).error, 'THU_LAI_SAU', 'trong 60 giây');
+  const ma1 = maTrongTin(m.tin(CHU));
+  doiGio(m, 2);
+  dung((await m.goi('quenmk_gui', { user: 'admin' })).ok, 'qua 60 giây gửi lại được');
+  const ma2 = maTrongTin(m.tin(CHU));
+  bang((await m.goi('quenmk_doi', { user: 'admin', ma: ma1 === ma2 ? '11111111' : ma1, matkhauMoi: 'MoiMoi123' })).error, 'MA_SAI', 'mã cũ vô hiệu khi có mã mới');
+  m.sql('UPDATE khoi_phuc_mk SET het_han=? WHERE username=?', Date.now() - 1, 'admin');
+  bang((await m.goi('quenmk_doi', { user: 'admin', ma: ma2, matkhauMoi: 'MoiMoi123' })).error, 'MA_SAI', 'mã hết hạn');
+  doiGio(m, 2); dung((await m.goi('quenmk_gui', { user: 'admin' })).ok);
+  const ma3 = maTrongTin(m.tin(CHU));
+  for (let i = 0; i < 5; i++) await m.goi('quenmk_doi', { user: 'admin', ma: ma3 === '99999999' ? '11111111' : '99999999', matkhauMoi: 'MoiMoi123' });
+  bang((await m.goi('quenmk_doi', { user: 'admin', ma: ma3, matkhauMoi: 'MoiMoi123' })).error, 'MA_SAI', 'sai 5 lần → mã đúng cũng bị huỷ');
+});
+kb('Giới hạn gửi: tối đa 5 mã/giờ cho mỗi tài khoản', async () => {
+  const m = await chuanBi({ caiDat: { khoiphuc_tg_chat_id: CHU } });
+  let ok = 0, chan = 0;
+  for (let i = 0; i < 8; i++) { const r = await m.goi('quenmk_gui', { user: 'admin' }); r.ok ? ok++ : chan++; doiGio(m, 2); }
+  bang(ok, 5, 'đúng 5 mã được gửi'); bang(chan, 3);
+});
+kb('App/phiên admin KHÔNG sửa được kênh cứu hộ (khoiphuc_*); khoá thường vẫn sửa được', async () => {
+  const m = await chuanBi({ caiDat: { khoiphuc_tg_chat_id: CHU } });
+  bang((await m.goi('settings_set', { key: 'khoiphuc_tg_chat_id', value: '999' }, m.tk.admin)).error, 'KHOA_BI_CHAN');
+  bang((await m.goi('settings_set', { key: 'KHOIPHUC_moi', value: '1' }, m.tk.admin)).error, 'KHOA_BI_CHAN', 'không phân biệt hoa thường');
+  bang(m.sql(`SELECT gia_tri v FROM cai_dat WHERE khoa='khoiphuc_tg_chat_id'`)[0].v, CHU, 'giá trị giữ nguyên');
+  dung((await m.goi('settings_set', { key: 'tondong_gio', value: '9' }, m.tk.admin)).ok, 'khoá thường vẫn sửa');
+  dung(m.sql(`SELECT 1 FROM nhat_ky WHERE loai='SETTING_BI_CHAN'`).length >= 1, 'có ghi nhật ký cố sửa');
+});
+kb('sadmin (siêu admin thứ hai): tạo → chủ hệ thống được báo; hai bên đổi được mật khẩu của nhau; mỗi lần đều báo', async () => {
+  const m = await chuanBi({ caiDat: { khoiphuc_tg_chat_id: CHU } });
+  m.xoaTin();
+  const t = await m.goi('taikhoan_them', { taikhoan: 'sadmin', hoten: 'Siêu admin', vaitro: 'admin', sieuAdmin: true, matkhau: 'Tam12345' }, m.tk.admin);
+  dung(t.ok, 'tạo sadmin: ' + t.error);
+  dung(m.tin(CHU).some(x => /ADMIN<\/b> mới.*sadmin/s.test(x.text) && /siêu admin/.test(x.text)), 'báo chủ hệ thống khi có admin mới');
+  bang(m.sql(`SELECT sieu_admin s FROM tai_khoan WHERE username='sadmin'`)[0].s, 1);
+  const tokS = await m.dangNhap('sadmin', 'Tam12345');
+  m.xoaTin();
+  dung((await m.goi('taikhoan_doimk', { taikhoan: 'admin', matkhauMoi: 'DoiBoi_S1' }, tokS)).ok, 'sadmin đổi mật khẩu admin');
+  dung(m.tin(CHU).some(x => /ĐẶT LẠI MẬT KHẨU.*admin/s.test(x.text)), 'báo khi admin bị đổi mật khẩu');
+  const tokA = await m.dangNhap('admin', 'DoiBoi_S1');
+  m.xoaTin();
+  dung((await m.goi('taikhoan_doimk', { taikhoan: 'sadmin', matkhauMoi: 'DoiBoi_A1' }, tokA)).ok, 'admin đổi mật khẩu sadmin');
+  bang(m.tin(CHU).length, 1);
+  m.xoaTin();
+  dung((await m.goi('taikhoan_doimk', { taikhoan: 'ql01', matkhauMoi: 'QlMoi1234' }, tokA)).ok);
+  bang(m.tin(CHU).length, 0, 'đổi mật khẩu quản lý thường: KHÔNG báo (tránh ồn)');
+  const sua = await m.goi('taikhoan_sua', { taikhoan: 'ql02', hoten: 'Quản lý', vaitro: 'admin', sieuAdmin: false }, tokA);
+  dung(sua.ok, 'nâng ql02 lên admin: ' + sua.error);
+  dung(m.tin(CHU).some(x => /quyền admin/i.test(x.text)), 'báo khi nâng quyền admin');
+});
+kb('/chatid riêng: bot trả đúng số chat để khai kênh cứu hộ (kể cả khi chưa kết nối tài khoản nào)', async () => {
+  const m = await chuanBi();
+  m.xoaTin();
+  await m.webhook({ update_id: 1, message: { message_id: 1, chat: { id: 424242, type: 'private' }, from: { id: 424242 }, text: '/chatid' } });
+  dung(m.tin(424242).some(t => /<code>424242<\/code>/.test(t.text)), 'trả Chat ID');
+});
+kb('Trạng thái/tin thử kênh cứu hộ: chỉ admin; chưa khai thì báo rõ', async () => {
+  const m = await chuanBi({ caiDat: { khoiphuc_tg_chat_id: CHU } });
+  bang((await m.goi('khoiphuc_tg_trangthai', {}, m.tk.ql01)).error, 'FORBIDDEN');
+  const t = await m.goi('khoiphuc_tg_trangthai', {}, m.tk.admin);
+  dung(t.ok && t.daCauHinh && t.duoi === '…001', 'chỉ lộ đuôi số');
+  m.xoaTin();
+  dung((await m.goi('khoiphuc_tg_thu', {}, m.tk.admin)).ok);
+  dung(m.tin(CHU).some(x => /Tin thử/.test(x.text)));
+  const m0 = await chuanBi();
+  bang((await m0.goi('khoiphuc_tg_trangthai', {}, m0.tk.admin)).daCauHinh, false);
+  bang((await m0.goi('khoiphuc_tg_thu', {}, m0.tk.admin)).error, 'CHUA_CAU_HINH');
+});
+
 /* ───────── kiểm tên action ───────── */
 kb('Mọi action admin.html / index.html gọi đều có trong Worker', async () => {
   const { thieu } = kiemTraAction();

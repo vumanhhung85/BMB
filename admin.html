@@ -688,8 +688,36 @@ tbody tr:hover td{background:var(--hover)}
       </div>
     </div>
     <button class="btn btn-y" style="width:100%" id="loginBtn" onclick="doLogin()">Đăng nhập</button>
-    <div style="text-align:center;margin-top:12px"><a href="#" onclick="promptQuenMatKhau();return false" style="color:var(--txt-mute);font-size:13px">Quên mật khẩu?</a></div>
-    <div style="text-align:center;margin-top:6px"><span style="color:var(--txt-mute);font-size:12.5px">Hoặc liên hệ Admin để cấp lại mật khẩu</span></div>
+    <div style="text-align:center;margin-top:12px"><a href="#" onclick="moQuenMk();return false" style="color:var(--txt-mute);font-size:13px">Quên mật khẩu?</a></div>
+    <div style="text-align:center;margin-top:6px"><span style="color:var(--txt-mute);font-size:12.5px">Tài khoản quản lý / kỹ thuật: liên hệ Admin để cấp lại mật khẩu</span></div>
+
+    <!-- Quên mật khẩu ADMIN (13/11/2026): mã 8 số gửi về Telegram của chủ hệ thống, không gửi qua email/nhóm chung -->
+    <div id="qmPanel" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line-soft)">
+      <b style="font-size:14.5px">🔐 Lấy lại mật khẩu Admin</b>
+      <div style="color:var(--txt-mute);font-size:12.5px;line-height:1.5;margin:6px 0 12px">Dành cho tài khoản <b>Admin</b>. Mã xác nhận 8 số sẽ gửi về <b>Telegram của chủ hệ thống</b> (không gửi vào nhóm chung).</div>
+      <div class="msg" id="qmMsg"><span id="qmMsgTxt"></span></div>
+      <div class="field">
+        <label for="qmUser">Tài khoản Admin</label>
+        <input id="qmUser" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="vd: admin">
+      </div>
+      <button class="btn btn-y" style="width:100%" id="qmGuiBtn" onclick="qmGui()">Gửi mã về Telegram</button>
+      <div id="qmBuoc2" style="display:none;margin-top:14px">
+        <div class="field">
+          <label for="qmMa">Mã 8 số (hiệu lực 10 phút)</label>
+          <input id="qmMa" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="12345678">
+        </div>
+        <div class="field">
+          <label for="qmMk">Mật khẩu mới (ít nhất 6 ký tự)</label>
+          <div class="pw-wrap"><input id="qmMk" type="password" autocomplete="new-password">
+            <button type="button" class="pw-eye" onclick="toggleMatKhauHien(this,'qmMk')" aria-label="Hiện/ẩn mật khẩu">🙈</button></div>
+        </div>
+        <div class="field">
+          <label for="qmMk2">Nhập lại mật khẩu mới</label>
+          <input id="qmMk2" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')qmDoi()">
+        </div>
+        <button class="btn btn-y" style="width:100%" id="qmDoiBtn" onclick="qmDoi()">Đặt lại mật khẩu</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1513,6 +1541,13 @@ tbody tr:hover td{background:var(--hover)}
             <button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,kiemTraBotRieng)">🔍 Kiểm tra & xem ai đã kết nối</button>
           </div>
           <div id="tgRiengKetQua" style="font-size:12.5px;color:var(--txt-mute);margin-top:10px"></div>
+        </div>
+        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft)">
+          <b>🛟 Kênh cứu hộ mật khẩu Admin (chủ hệ thống)</b>
+          <div style="font-size:12.5px;color:var(--txt-mute);margin:4px 0 10px;line-height:1.5">Khi Admin quên mật khẩu, mã xác nhận chỉ gửi về <b>một cuộc trò chuyện Telegram của chủ hệ thống</b>. Cũng nhận cảnh báo khi có Admin mới, đổi quyền Admin hoặc Admin này đặt lại mật khẩu Admin khác. Số chat này <b>chỉ chủ hệ thống khai được trong cơ sở dữ liệu</b> — app không sửa được, nên kẻ vào được tài khoản Admin cũng không đổi được.</div>
+          <div id="khoiPhucTrangThai" style="font-size:13.5px;margin-bottom:10px">Đang kiểm tra…</div>
+          <button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,khoiPhucGuiThu)" id="btnKhoiPhucThu" style="display:none">📨 Gửi tin thử cho chủ hệ thống</button>
+          <div id="khoiPhucHuongDan" style="display:none;font-size:12.5px;color:var(--txt-mute);line-height:1.55;margin-top:6px">Chưa khai. Chủ hệ thống: mở bot Telegram → gõ <b>/start</b> rồi <b>/chatid</b> (nhắn riêng) để lấy số, sau đó khai vào cơ sở dữ liệu theo tài liệu cứu hộ.</div>
         </div>
       </div>
     </div>
@@ -2431,15 +2466,52 @@ function anTrangThaiTai(){
 /* ─── ĐĂNG NHẬP ─── */
 function showLoginMsg(t){ $('loginMsgTxt').textContent = t; $('loginMsg').classList.add('show'); }
 
-async function promptQuenMatKhau(){
-  const u = prompt('Nhập tài khoản cần lấy lại mật khẩu:');
-  if(!u || !u.trim()) return;
+/* ─── QUÊN MẬT KHẨU ADMIN (13/11/2026) ─── */
+function qmThongBao(t, loai){
+  const b = $('qmMsg'); $('qmMsgTxt').textContent = t;
+  b.classList.remove('bad','ok','warn'); b.classList.add(loai || 'warn','show');
+}
+function moQuenMk(){
+  const p = $('qmPanel'); const mo = p.style.display === 'none';
+  p.style.display = mo ? '' : 'none';
+  if(mo){ $('qmUser').value = ($('uUser').value || '').trim().toLowerCase(); $('qmMsg').classList.remove('show'); setTimeout(()=>$(($('qmUser').value) ? 'qmGuiBtn' : 'qmUser').focus(), 50); }
+}
+const QM_LOI = {
+  CHUA_CAU_HINH: 'Hệ thống chưa khai kênh Telegram cứu hộ — dùng cách cứu hộ bằng tay (tài liệu của chủ hệ thống).',
+  THU_LAI_SAU: 'Bấm quá dồn — đợi khoảng 1 phút rồi thử lại (mỗi tài khoản tối đa 5 mã/giờ).',
+  GUI_LOI: 'Chưa gửi được tin Telegram tới chủ hệ thống. Thử lại sau, hoặc dùng cách cứu hộ bằng tay.',
+  MA_SAI: 'Mã sai hoặc đã hết hạn. Nếu nhập sai nhiều lần, mã bị huỷ — hãy gửi mã mới.',
+  BAD_PASS: 'Mật khẩu mới phải từ 6 ký tự trở lên.'
+};
+async function qmGui(){
+  const u = $('qmUser').value.trim().toLowerCase();
+  if(!u) return qmThongBao('Nhập tên tài khoản Admin.', 'bad');
+  const nut = $('qmGuiBtn'); nut.disabled = true;
   try{
-    await fetch(CFG.API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'quenmk', user:u.trim().toLowerCase()})});
-  }catch(e){}
-  showLoginMsg('Nếu tài khoản tồn tại và có email đăng ký, mật khẩu sẽ được gửi tới email đó trong giây lát. Kiểm tra cả mục Spam.');
-  $('loginMsg').classList.remove('bad'); $('loginMsg').classList.add('warn');
+    const j = await api({action:'quenmk_gui', user:u});
+    if(!j.ok) return qmThongBao(QM_LOI[j.error] || 'Chưa gửi được mã, thử lại sau.', 'bad');
+    qmThongBao('Nếu đây là tài khoản Admin, mã 8 số đã được gửi về Telegram của chủ hệ thống. Nhập mã bên dưới.', 'ok');
+    $('qmBuoc2').style.display = ''; $('qmMa').focus();
+    nut.textContent = 'Gửi lại mã'; nut.disabled = true; setTimeout(()=>{ nut.disabled = false; }, 60000);
+  }catch(e){ qmThongBao('Không kết nối được máy chủ — kiểm tra mạng rồi thử lại.', 'bad'); nut.disabled = false; }
+  finally{ if(nut.textContent !== 'Gửi lại mã') nut.disabled = false; }
+}
+async function qmDoi(){
+  const u = $('qmUser').value.trim().toLowerCase(), ma = $('qmMa').value.replace(/\D/g,''), mk = $('qmMk').value, mk2 = $('qmMk2').value;
+  if(ma.length !== 8) return qmThongBao('Nhập đủ mã 8 số trong tin Telegram.', 'bad');
+  if(mk.length < 6) return qmThongBao(QM_LOI.BAD_PASS, 'bad');
+  if(mk !== mk2) return qmThongBao('Hai lần nhập mật khẩu mới chưa giống nhau.', 'bad');
+  const nut = $('qmDoiBtn'); nut.disabled = true;
+  try{
+    const j = await api({action:'quenmk_doi', user:u, ma, matkhauMoi:mk});
+    if(!j.ok) return qmThongBao(QM_LOI[j.error] || 'Chưa đặt lại được, thử lại.', 'bad');
+    $('qmPanel').style.display = 'none'; $('qmBuoc2').style.display = 'none';
+    $('qmMa').value = $('qmMk').value = $('qmMk2').value = '';
+    $('uUser').value = u; $('uPass').value = ''; $('uPass').focus();
+    showLoginMsg('Đã đặt lại mật khẩu. Đăng nhập bằng mật khẩu mới nhé.');
+    $('loginMsg').classList.remove('bad'); $('loginMsg').classList.add('ok');
+  }catch(e){ qmThongBao('Không kết nối được máy chủ — kiểm tra mạng rồi thử lại.', 'bad'); }
+  finally{ nut.disabled = false; }
 }
 
 async function loadPublicSettings(){
@@ -5122,6 +5194,23 @@ async function loadTelegramInfo(){
     const j = await api({action:'telegram_thongtin'});
     if(j.ok){ $('tgToken').value = j.token || ''; $('tgChat').value = j.chat || ''; }
   }catch(e){}
+  taiKhoiPhucTrangThai();
+}
+async function taiKhoiPhucTrangThai(){
+  const o = $('khoiPhucTrangThai'); if(!o) return;
+  try{
+    const j = await api({action:'khoiphuc_tg_trangthai'});
+    if(!j.ok) throw new Error(j.error);
+    o.innerHTML = j.daCauHinh ? '✅ Đã khai kênh cứu hộ (chat <b>'+j.duoi+'</b>).' : '⚠️ <b>Chưa khai</b> — Admin quên mật khẩu sẽ chỉ còn cách cứu hộ bằng tay.';
+    $('btnKhoiPhucThu').style.display = j.daCauHinh ? '' : 'none';
+    $('khoiPhucHuongDan').style.display = j.daCauHinh ? 'none' : '';
+  }catch(e){ o.textContent = 'Chưa kiểm tra được (' + moTaLoiKetNoi(e) + ').'; }
+}
+async function khoiPhucGuiThu(){
+  try{
+    const j = await api({action:'khoiphuc_tg_thu'});
+    toast(j.ok ? 'Đã gửi tin thử — kiểm tra Telegram của chủ hệ thống.' : 'Chưa gửi được tin thử (kiểm tra chủ hệ thống đã /start bot chưa).', j.ok ? 'ok' : 'bad');
+  }catch(e){ toast('Chưa kết nối được máy chủ.','bad'); }
 }
 async function luuTelegramCfg(){
   const token = $('tgToken').value.trim(), chat = $('tgChat').value.trim();
