@@ -197,6 +197,8 @@ svg.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .field input,.field select,.field textarea,textarea.inp{width:100%;padding:12px 14px;border-radius:12px;
   background:var(--input-bg);border:1.5px solid var(--line);font-size:15px;transition:border-color .15s,box-shadow .15s}
 .field input:focus,.field select:focus,.field textarea:focus,textarea.inp:focus{border-color:var(--pri);outline:none;box-shadow:0 0 0 3px var(--sel)}
+/* Chuỗi dài không có khoảng trắng (đường link, token) phải tự xuống dòng, không tràn khỏi thẻ — 13/11/2026 */
+code,.ff-body li,.ff-body p,.tb-mo{overflow-wrap:anywhere}
 .msg{padding:11px 14px;border-radius:12px;font-size:13.5px;margin-bottom:14px;display:none;gap:8px;border:1px solid transparent}
 .msg.show{display:flex}
 .msg.bad{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 35%,transparent);color:var(--bad)}

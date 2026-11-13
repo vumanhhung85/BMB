@@ -477,5 +477,27 @@ kb('Quên mật khẩu Admin (màn đăng nhập): gửi mã → nhập mã + m�
   }
 });
 
+kb('Thẻ Cấu hình Telegram (điện thoại 360px): đường link getUpdates dài tự xuống dòng, không tràn ngang', async () => {
+  const m = await taoMoiTruong();
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 360, height: 800 });
+  try {
+    await dangNhapUI(trang, 'admin');
+    await trang.evaluate(() => diToi('cd:ketnoi'));
+    await trang.waitForTimeout(300);
+    await trang.evaluate(() => { const c = [...document.querySelectorAll('.form-card')].find(f => f.textContent.includes('Cấu hình Telegram (chung')); c.classList.add('open'); c.scrollIntoView(); });
+    await trang.waitForTimeout(400);
+    const r = await trang.evaluate(() => {
+      const code = [...document.querySelectorAll('.ff-body code')].find(c => c.textContent.includes('getUpdates'));
+      const card = code.closest('.form-card').getBoundingClientRect(), cr = code.getBoundingClientRect();
+      if (!cr.width) return { an: true };
+      return { phai: Math.round(cr.right), theRight: Math.round(card.right), docW: document.documentElement.scrollWidth, vw: innerWidth };
+    });
+    dung(!r.an, 'thẻ Telegram phải đang hiển thị khi đo');
+    dung(r.phai <= r.theRight + 1, 'link không vượt mép thẻ: ' + JSON.stringify(r));
+    bang(r.docW, r.vw, 'trang không tràn ngang');
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
 await chayTatCa();
 console.log('Ảnh chụp: ' + ANH_CHUP);
