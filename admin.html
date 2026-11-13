@@ -690,8 +690,8 @@ tbody tr:hover td{background:var(--hover)}
       </div>
     </div>
     <button class="btn btn-y" style="width:100%" id="loginBtn" onclick="doLogin()">Đăng nhập</button>
-    <div style="text-align:center;margin-top:12px"><a href="#" onclick="moQuenMk();return false" style="color:var(--txt-mute);font-size:13px">Quên mật khẩu?</a></div>
-    <div style="text-align:center;margin-top:6px"><span style="color:var(--txt-mute);font-size:12.5px">Tài khoản quản lý / kỹ thuật: liên hệ Admin để cấp lại mật khẩu</span></div>
+    <div style="text-align:center;margin-top:12px" id="qmLinkBox" hidden><a href="#" onclick="moQuenMk();return false" style="color:var(--txt-mute);font-size:13px">Quên mật khẩu Admin?</a></div>
+    <div style="text-align:center;margin-top:12px"><span style="color:var(--txt-mute);font-size:12.5px">Quên mật khẩu? Liên hệ Admin để cấp lại mật khẩu</span></div>
 
     <!-- Quên mật khẩu ADMIN (13/11/2026): mã 8 số gửi về Telegram của chủ hệ thống, không gửi qua email/nhóm chung -->
     <div id="qmPanel" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line-soft)">
@@ -1544,7 +1544,7 @@ tbody tr:hover td{background:var(--hover)}
           </div>
           <div id="tgRiengKetQua" style="font-size:12.5px;color:var(--txt-mute);margin-top:10px"></div>
         </div>
-        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft)">
+        <div id="khoiPhucCard" hidden style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft)">
           <b>🛟 Kênh cứu hộ mật khẩu Admin (chủ hệ thống)</b>
           <div style="font-size:12.5px;color:var(--txt-mute);margin:4px 0 10px;line-height:1.5">Khi Admin quên mật khẩu, mã xác nhận chỉ gửi về <b>một cuộc trò chuyện Telegram của chủ hệ thống</b>. Cũng nhận cảnh báo khi có Admin mới, đổi quyền Admin hoặc Admin này đặt lại mật khẩu Admin khác. Số chat này <b>chỉ chủ hệ thống khai được trong cơ sở dữ liệu</b> — app không sửa được, nên kẻ vào được tài khoản Admin cũng không đổi được.</div>
           <div id="khoiPhucTrangThai" style="font-size:13.5px;margin-bottom:10px">Đang kiểm tra…</div>
@@ -2468,12 +2468,23 @@ function anTrangThaiTai(){
 /* ─── ĐĂNG NHẬP ─── */
 function showLoginMsg(t){ $('loginMsgTxt').textContent = t; $('loginMsg').classList.add('show'); }
 
-/* ─── QUÊN MẬT KHẨU ADMIN (13/11/2026) ─── */
+/* ─── QUÊN MẬT KHẨU ADMIN QUA TELEGRAM (13/11/2026) — TẠM ẨN theo yêu cầu (chưa triển khai) ───
+   Mã vẫn còn nguyên để sau này bật lại: đổi KHOIPHUC_HIEN thành true (kèm khai khoiphuc_tg_chat_id trong D1,
+   xem tài liệu cứu hộ). Khi tắt: không hiện link "Quên mật khẩu Admin?" ở màn đăng nhập, không hiện thẻ 🛟 trong
+   Cài đặt; phía Worker cũng im vì chưa khai kênh (quenmk_gui trả CHUA_CAU_HINH). */
+let KHOIPHUC_HIEN = false;
+function apDungKhoiPhuc(){
+  const a = $('qmLinkBox'), b = $('khoiPhucCard');
+  if(a) a.hidden = !KHOIPHUC_HIEN;
+  if(b) b.hidden = !KHOIPHUC_HIEN;
+  if(!KHOIPHUC_HIEN && $('qmPanel')) $('qmPanel').style.display = 'none';
+}
 function qmThongBao(t, loai){
   const b = $('qmMsg'); $('qmMsgTxt').textContent = t;
   b.classList.remove('bad','ok','warn'); b.classList.add(loai || 'warn','show');
 }
 function moQuenMk(){
+  if(!KHOIPHUC_HIEN) return;
   const p = $('qmPanel'); const mo = p.style.display === 'none';
   p.style.display = mo ? '' : 'none';
   if(mo){ $('qmUser').value = ($('uUser').value || '').trim().toLowerCase(); $('qmMsg').classList.remove('show'); setTimeout(()=>$(($('qmUser').value) ? 'qmGuiBtn' : 'qmUser').focus(), 50); }
@@ -5199,7 +5210,8 @@ async function loadTelegramInfo(){
   taiKhoiPhucTrangThai();
 }
 async function taiKhoiPhucTrangThai(){
-  const o = $('khoiPhucTrangThai'); if(!o) return;
+  apDungKhoiPhuc();
+  const o = $('khoiPhucTrangThai'); if(!o || !KHOIPHUC_HIEN) return;
   try{
     const j = await api({action:'khoiphuc_tg_trangthai'});
     if(!j.ok) throw new Error(j.error);

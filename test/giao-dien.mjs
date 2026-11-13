@@ -431,8 +431,11 @@ kb('Quên mật khẩu Admin (màn đăng nhập): gửi mã → nhập mã + m�
   const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 390, height: 844 });
   try {
     await trang.goto('https://bmb.test/admin.html');
+    dung(!(await trang.isVisible('#qmLinkBox')), 'MẶC ĐỊNH ẨN: không có link "Quên mật khẩu Admin?"');
+    dung(/Liên hệ Admin để cấp lại mật khẩu/.test(await trang.textContent('#login')), 'chỉ còn dòng hướng dẫn liên hệ Admin');
+    await trang.evaluate(() => { KHOIPHUC_HIEN = true; apDungKhoiPhuc(); });   // bật lại tính năng (đang tạm ẩn)
     await trang.fill('#uUser', 'admin');
-    await trang.click('text=Quên mật khẩu?');
+    await trang.click('text=Quên mật khẩu Admin?');
     dung(await trang.isVisible('#qmPanel'), 'mở khung quên mật khẩu');
     bang(await trang.inputValue('#qmUser'), 'admin', 'điền sẵn tài khoản đã gõ');
     dung(!(await trang.isVisible('#qmBuoc2')), 'chưa gửi mã thì chưa hiện ô mã');
@@ -459,7 +462,8 @@ kb('Quên mật khẩu Admin (màn đăng nhập): gửi mã → nhập mã + m�
   const b = await moTrinhDuyet(m0, { width: 390, height: 844 });
   try {
     await b.trang.goto('https://bmb.test/admin.html');
-    await b.trang.click('text=Quên mật khẩu?');
+    await b.trang.evaluate(() => { KHOIPHUC_HIEN = true; apDungKhoiPhuc(); });
+    await b.trang.click('text=Quên mật khẩu Admin?');
     await b.trang.fill('#qmUser', 'admin'); await b.trang.click('#qmGuiBtn');
     await b.trang.waitForFunction(() => /chưa khai kênh/.test(document.querySelector('#qmMsgTxt').textContent));
     await b.trang.close();
@@ -470,13 +474,24 @@ kb('Quên mật khẩu Admin (màn đăng nhập): gửi mã → nhập mã + m�
     const c = await moTrinhDuyet(mm);
     try {
       await dangNhapUI(c.trang, 'admin');
-      await c.trang.evaluate(() => taiKhoiPhucTrangThai());
+      await c.trang.evaluate(() => { KHOIPHUC_HIEN = true; return taiKhoiPhucTrangThai(); });
       await c.trang.waitForFunction(() => !/Đang kiểm tra/.test(document.querySelector('#khoiPhucTrangThai').textContent));
       dung(mong.test(await c.trang.textContent('#khoiPhucTrangThai')), 'trạng thái: ' + await c.trang.textContent('#khoiPhucTrangThai'));
     } finally { await c.trinh.close(); }
   }
 });
 
+kb('Quên mật khẩu qua Telegram TẠM ẨN: thẻ 🛟 trong Cài đặt không hiện; admin vẫn kết nối Telegram riêng bình thường', async () => {
+  const m = await taoMoiTruong();
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m);
+  try {
+    await dangNhapUI(trang, 'admin');
+    await trang.evaluate(() => { diToi('cd:ketnoi'); const c = [...document.querySelectorAll('.form-card')].find(f => f.textContent.includes('Cấu hình Telegram (chung')); c.classList.add('open'); return loadTelegramInfo(); });
+    await trang.waitForTimeout(500);
+    dung(!(await trang.isVisible('#khoiPhucCard')), 'thẻ cứu hộ ẩn');
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
 kb('Thẻ Cấu hình Telegram (điện thoại 360px): đường link getUpdates dài tự xuống dòng, không tràn ngang', async () => {
   const m = await taoMoiTruong();
   const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 360, height: 800 });
