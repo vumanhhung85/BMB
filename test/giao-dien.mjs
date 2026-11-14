@@ -587,5 +587,48 @@ kb('Kỹ thuật lọc theo chi nhánh: một ô dùng chung cho Bảng/Kanban/D
   }
 });
 
+kb('Kỹ thuật thấy mô tả + ảnh ngay trên Bảng/Kanban của phiếu chờ tự nhận, và mở được lịch sử (không báo "Không tải được lịch sử")', async () => {
+  const { m } = await duLieu();
+  const tkQl2 = await m.dangNhap('ql02'), tkAd = await m.dangNhap('admin');
+  for (const k of ['kythuat_xem_bando', 'kythuat_tu_nhan_viec']) m.sql(`INSERT OR REPLACE INTO cai_dat (khoa, gia_tri) VALUES (?, 'Y')`, k);
+  const anh = 'data:image/jpeg;base64,' + Buffer.from('anh-test-' + 'x'.repeat(300)).toString('base64');
+  const t = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'Camera sân khấu mất hình từ tối qua', phong: 'P9', anh: [anh, anh, anh, anh] }, tkQl2);
+  dung(t.ok, 'tạo phiếu có ảnh: ' + t.error);
+  await m.goi('suco_tiepnhan', { maSuCo: t.maSuCo }, tkAd);                    // chưa giao ai → kỹ thuật tự nhận được
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 390, height: 844 });
+  try {
+    await dangNhapUI(trang, 'kt1');
+    await moSuCo(trang);
+    const dong = trang.locator('#bangSuCoBody tr', { hasText: 'Camera sân khấu' });
+    bang(await dong.count(), 1, 'Bảng có đúng 1 dòng phiếu camera chờ tự nhận');
+    dung(await dong.locator('button:has-text("Tự nhận")').count() === 1, 'dòng có nút Tự nhận');
+    dung(await dong.locator('.ct-mt').isVisible(), 'Bảng (điện thoại): hiện mô tả của phiếu');
+    dung((await dong.locator('.ct-mt').textContent()).includes('Camera sân khấu mất hình'), 'mô tả đúng');
+    bang(await dong.locator('.ct-anh img').count(), 3, 'tối đa 3 ảnh nhỏ');
+    bang((await dong.locator('.ct-them').textContent()).trim(), '+1', 'ảnh dư hiện +1');
+    await trang.screenshot({ path: join(ANH_CHUP, '10-kythuat-bang-mo-ta-anh.png') });
+    // bấm 🕘 → lịch sử mở được, có mô tả + ảnh
+    await dong.locator('button[title^="Lịch sử"]').click();
+    await trang.waitForSelector('#lsBody .sc-note', { timeout: 8000 });
+    dung(!(await trang.textContent('#lsBody')).includes('Không tải được'), 'lịch sử tải được');
+    dung((await trang.textContent('#lsBody')).includes('Camera sân khấu mất hình'), 'lịch sử có mô tả');
+    bang(await trang.$$eval('#lsBody .sc-photos img', d => d.length), 4, 'lịch sử có đủ 4 ảnh báo lỗi');
+    dung(!(await trang.$('#tdKhung')), 'chưa nhận việc thì không có khung nhắn tin');
+    await trang.screenshot({ path: join(ANH_CHUP, '11-kythuat-lich-su-phieu-cho-nhan.png') });
+    await trang.keyboard.press('Escape');
+    await trang.evaluate(() => { const o = document.getElementById('modalOverlay'); if (o) o.style.display = 'none'; });
+    // Kanban
+    await trang.click('#btnBtKanbanView');
+    await trang.waitForSelector('#kanbanCot .kb-the');
+    const the = trang.locator('.kb-the', { hasText: 'Camera sân khấu' });
+    bang(await the.count(), 1, 'Kanban có thẻ phiếu chờ nhận');
+    bang(await the.locator('.ct-anh img').count(), 3, 'Kanban: 3 ảnh nhỏ');
+    await trang.screenshot({ path: join(ANH_CHUP, '12-kythuat-kanban-mo-ta-anh.png') });
+    const rong = await trang.evaluate(() => document.documentElement.scrollWidth);
+    dung(rong <= 390, 'không tràn ngang (' + rong + 'px)');
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
 await chayTatCa();
 console.log('Ảnh chụp: ' + ANH_CHUP);

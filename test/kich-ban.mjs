@@ -432,4 +432,22 @@ kb('Mọi action admin.html / index.html gọi đều có trong Worker', async (
   bang(thieu.length, 0, 'thiếu: ' + thieu.join(', '));
 });
 
+kb('Kỹ thuật xem được lịch sử (chỉ xem) của phiếu chờ tự nhận để cân nhắc; phiếu giao người khác thì không; nhắn trao đổi vẫn chỉ người được giao', async () => {
+  const m = await chuanBi();
+  const bat = v => m.sql(`INSERT OR REPLACE INTO cai_dat (khoa, gia_tri) VALUES (?, ?)`, 'kythuat_xem_bando', v);
+  const t = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'Loa sân khấu rè', phong: 'P3' }, m.tk.ql01);
+  dung(t.ok, 'tạo: ' + t.error);
+  bang((await m.goi('suco_tiepnhan', { maSuCo: t.maSuCo, mucDo: 3 }, m.tk.admin)).ok, true, 'tiếp nhận');
+  // tắt "xem bản đồ/việc chờ nhận" → kỹ thuật chưa được giao thì không xem lịch sử
+  bat('N');
+  bang((await m.goi('suco_lichsu', { maSuCo: t.maSuCo }, m.tk.kt1)).error, 'FORBIDDEN', 'tắt cờ: không xem');
+  bat('Y');
+  const ls = await m.goi('suco_lichsu', { maSuCo: t.maSuCo }, m.tk.kt1);
+  dung(ls.ok && ls.data.length >= 1, 'bật cờ: kỹ thuật xem được lịch sử phiếu chờ nhận (' + ls.error + ')');
+  bang((await m.goi('suco_traodoi', { maSuCo: t.maSuCo, noiDung: 'Em xem thử nhé' }, m.tk.kt1)).ok, false, 'chưa nhận thì chưa nhắn được');
+  // phiếu đã giao cho kỹ thuật khác → không xem
+  bang((await m.goi('suco_dieuphoi', { maSuCo: t.maSuCo, kyThuat: 'ktm1' }, m.tk.admin)).ok, true, 'điều phối cho kỹ thuật khác');
+  bang((await m.goi('suco_lichsu', { maSuCo: t.maSuCo }, m.tk.kt1)).error, 'FORBIDDEN', 'phiếu của người khác: không xem');
+});
+
 await chayTatCa();

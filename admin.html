@@ -397,6 +397,13 @@ button.stat:hover{border-color:var(--pri);transform:translateY(-1px)}
 .sc-grid{display:grid;gap:6px 20px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));font-size:13.5px;margin-bottom:10px}
 .sc-grid .r{display:flex;gap:7px} .sc-grid .r i{font-style:normal;color:var(--txt-mute);min-width:70px}
 .sc-photos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px}
+/* Kỹ thuật (14/11/2026): mô tả + ảnh nhỏ ngay trên Bảng/Kanban/Bản đồ để cân nhắc có tự nhận được không */
+.ct-mt{font-size:12.5px;line-height:1.4;color:var(--txt-mute);margin-top:4px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.ct-anh{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.ct-anh img,.ct-anh .ct-them{width:46px;height:46px;border-radius:8px;border:1px solid var(--line);flex:none}
+.ct-anh img{object-fit:cover;cursor:pointer;display:block}
+.ct-anh .ct-them{display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--txt-mute);background:var(--surface2)}
+#viewSuCoTable .bs-ct .ct-mt{display:none}
 .sc-photos a img,.sc-photos img{width:74px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block;cursor:pointer}
 .sc-act{display:flex;gap:8px;flex-wrap:wrap}
 .sc-flag{font-size:12px;color:var(--bad);font-weight:700;margin-bottom:8px}
@@ -621,6 +628,7 @@ body.kb-mode .wrap.panel{max-width:min(2600px,100%)}
   #viewSuCoTable :is(th,td){padding:9px 6px;font-size:12.5px}
   #viewSuCoTable th{font-size:10.5px;letter-spacing:.02em}
   #viewSuCoTable td .btn-sm{padding:6px 9px;min-height:34px;font-size:12px}
+  #viewSuCoTable .bs-ct .ct-mt{display:-webkit-box}
 }
 table{width:100%;border-collapse:collapse;font-size:13.5px}
 th,td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line)}
@@ -4354,7 +4362,8 @@ async function veLichSu(maSuCo, moKhung){
         '<div class="sc-photos">'+t.anhHoanThanh.map((u,i)=>'<img src="'+esc(driveImgUrl(u))+'" loading="lazy" onclick=\''+esc('openXemAnh('+JSON.stringify(t.anhHoanThanh.map(x=>driveImgUrl(x,2000)))+','+i+')')+'\'>').join('')+'</div>' :
         '<div style="font-size:12.5px;color:var(--txt-mute)">Kỹ thuật chưa đính kèm ảnh khi báo xong.</div>');
 
-    $('lsBody').innerHTML = timeline + khungTD + anhBaoLoi + anhXong;
+    const moTaDau = (t && t.moTa) ? '<div class="sc-note" style="margin-bottom:12px">💬 '+esc(t.moTa)+'</div>' : '';
+    $('lsBody').innerHTML = moTaDau + timeline + khungTD + anhBaoLoi + anhXong;
     if(TD_ANH.length) drawPhotoBox('tdPhotoBox','TD_ANH');
     if(moKhung && $('tdKhung')){
       $('tdKhung').scrollIntoView({block:'center'});
@@ -4660,6 +4669,17 @@ function drawSuCoKanban(){
   }).join('');
   apDungGhimKanban();
 }
+/** Mô tả (cắt 3 dòng) + tối đa 3 ảnh báo lỗi nhỏ, bấm ảnh để phóng to — dành cho KỸ THUẬT trên Bảng/Kanban.
+ *  dung = true: chặn sự kiện nổi bọt (thẻ Kanban bấm cả thẻ để mở lịch sử). */
+function chiTietNhanhHTML(t, dung){
+  const anh = t.anhBaoLoi || [];
+  if(!t.moTa && !anh.length) return '';
+  const sp = dung ? 'event.stopPropagation();' : '';
+  const to = anh.map(x=>driveImgUrl(x,2000));
+  return '<div class="bs-ct">'+(t.moTa ? '<div class="ct-mt">💬 '+esc(t.moTa)+'</div>' : '')+
+    (anh.length ? '<div class="ct-anh">'+anh.slice(0,3).map((u,i)=>'<img src="'+esc(driveImgUrl(u))+'" alt="ảnh báo lỗi" loading="lazy" onclick=\''+esc(sp+'openXemAnh('+JSON.stringify(to)+','+i+')')+'\'>').join('')+
+      (anh.length>3 ? '<span class="ct-them">+'+(anh.length-3)+'</span>' : '')+'</div>' : '')+'</div>';
+}
 function theKanbanHTML(t, dem){
   const loai = LOAI_LOI[t.loaiLoi] || {ten:'Khác'};
   const sla = slaTrangThai(t);
@@ -4677,6 +4697,7 @@ function theKanbanHTML(t, dem){
         : esc(t.chinhanhTen))+(t.phong?' · '+esc(t.phong):'')+
       (dem && dem.n>1 ? '<button type="button" class="kb-lk" onclick="event.stopPropagation();ghimChiNhanhKanban(\''+esc(t.chinhanhId)+'\')" title="'+esc('Chi nhánh này có '+dem.n+' phiếu đang mở: '+Object.entries(dem.cot).map(([k,v])=>k+' ×'+v).join(' · ')+'. Bấm để ghim và tô sáng.')+'">🔗 +'+(dem.n-1)+'</button>' : '')+'</div>'+
     '<div class="kb-phu">'+esc(loai.ten)+(t.kyThuatTen?' · 👷 '+esc(t.kyThuatTen):'')+'</div>'+
+    (isKyThuat() ? chiTietNhanhHTML(t, true) : '')+
     '<div class="kb-tg">'+(fmtKhoangCach(t.taoLuc, isoGioVNHienTai()) ? 'báo cách đây '+fmtKhoangCach(t.taoLuc, isoGioVNHienTai()) : 'vừa báo')+
       (sla && sla.text ? ' <span class="pri pri-'+slaCls+'">'+esc(sla.text)+'</span>' : '')+
       (t.soLanQuayLai>0 ? ' <span class="pri pri-1">🚩 quay lại '+t.soLanQuayLai+'</span>' : '')+'</div>'+
@@ -4736,7 +4757,7 @@ function drawSuCoTable(){
       '<td style="white-space:nowrap">'+fmtVN(t.taoLuc)+'</td>'+
       '<td><span class="st-pill">'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+'</span></td>'+
       '<td>'+esc(t.chinhanhTen)+(t.phong?' / '+esc(t.phong):'')+'</td>'+
-      '<td>'+esc(loai.ten)+'</td>'+
+      '<td>'+esc(loai.ten)+(isKyThuat() && t.trangThai!=='dong' ? chiTietNhanhHTML(t, false) : '')+'</td>'+
       '<td>'+esc(t.moTa || '—')+'</td>'+
       '<td><span class="pri pri-'+t.mucDo+'">'+MUC_DO_LABEL[t.mucDo]+'</span></td>'+
       '<td><div style="display:flex;gap:6px;flex-wrap:wrap">'+acts+'</div></td>'+
@@ -4891,6 +4912,7 @@ async function veBanDoBaoTri(){
     const coTheTuNhan = isKyThuat() && PUBLIC_SETTINGS.kythuatTuNhanViec && t.trangThai==='da_tiep_nhan' && !t.kyThuatDuocGiao;
     m.bindPopup('<b>'+esc(t.maSuCo)+'</b> — '+esc(loai.ten)+'<br>'+esc(br.name)+(t.phong?' · '+esc(t.phong):'')+
       '<br>'+(TRANG_THAI_LABEL[t.trangThai]||t.trangThai)+(t.kyThuatTen?' · '+esc(t.kyThuatTen):'')+
+      (isKyThuat() ? chiTietNhanhHTML(t, false) : '')+
       (coTheTuNhan ? '<br><button class="btn btn-ok btn-sm" style="margin-top:6px" onclick="chanBamKep(this,tuNhanViec,\''+t.maSuCo+'\')">🙋 Tự nhận việc</button>' : ''));
     diem.push([br.lat,br.lng]);
   });
