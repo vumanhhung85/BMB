@@ -532,5 +532,60 @@ kb('Admin tự kết nối Telegram riêng (Tài khoản của tôi): có nút K
   } finally { await trinh.close(); }
 });
 
+kb('Kỹ thuật lọc theo chi nhánh: một ô dùng chung cho Bảng/Kanban/Danh sách/Bản đồ, có số việc, có "Bỏ lọc"; admin/quản lý không thấy', async () => {
+  const { m, ma } = await duLieu();
+  const tkQl2 = await m.dangNhap('ql02'), tkAd = await m.dangNhap('admin');
+  const maCN2 = (await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'Loa sân khấu chi nhánh hai rè', phong: 'P9' }, tkQl2)).maSuCo;
+  await m.goi('suco_tiepnhan', { maSuCo: maCN2 }, tkAd);
+  await m.goi('suco_dieuphoi', { maSuCo: maCN2, kyThuat: 'kt1' }, tkAd);     // kỹ thuật chỉ thấy phiếu được giao cho mình
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 390, height: 844 });
+  try {
+    await dangNhapUI(trang, 'kt1');
+    await moSuCo(trang);
+    await trang.waitForSelector('#locCNKT', { state: 'visible' });
+    const opts = await trang.$$eval('#fCNKT option', d => d.map(o => ({ v: o.value, t: o.textContent.trim() })));
+    dung(opts.length === 3 && opts[0].v === '', 'có "Tất cả" + 2 chi nhánh: ' + opts.map(o => o.t).join(' | '));
+    dung(opts.some(o => /Tây Hòa|Tay Hoa/i.test(o.t) && /\d+ việc/.test(o.t)), 'mỗi chi nhánh kèm số việc đang mở');
+    const idCN2 = opts.find(o => o.v && o.t.includes('Nguyễn Văn Tăng') || (o.v && !/Tây Hòa/.test(o.t))).v;
+    const idCN1 = opts.find(o => o.v && o.v !== idCN2).v;
+    const soBang = () => trang.$$eval('#bangSuCoBody tr', d => d.filter(r => r.children.length > 3).length);
+    const tong = await soBang();
+    bang(tong, 3, 'Bảng chưa lọc có đủ việc của cả hai chi nhánh (' + tong + ')');
+    // lọc ở Bảng
+    await trang.selectOption('#fCNKT', idCN2);
+    bang(await soBang(), 1, 'Bảng: chỉ còn việc của chi nhánh đã chọn');
+    dung((await trang.textContent('#bangSuCoBody')).includes('Loa sân khấu'), 'Bảng: đúng phiếu');
+    dung(await trang.isVisible('#locCNKTBo'), 'hiện nút Bỏ lọc');
+    dung((await trang.textContent('#locCNKTInfo')).includes('Đang lọc'), 'hiện dòng "Đang lọc…": ' + await trang.textContent('#locCNKTInfo'));
+    const rong = await trang.evaluate(() => document.documentElement.scrollWidth);
+    dung(rong <= 390, 'không tràn ngang (' + rong + 'px)');
+    await trang.screenshot({ path: join(ANH_CHUP, '9-kythuat-loc-chi-nhanh.png') });
+    // chuyển sang Kanban: bộ lọc giữ nguyên
+    await trang.click('#btnBtKanbanView');
+    await trang.waitForSelector('#kanbanCot .kb-cot');
+    bang(await trang.$$eval('.kb-the', d => d.length), 1, 'Kanban: lọc giữ nguyên, 1 thẻ');
+    bang(await trang.$eval('#fCNKT', e => e.value), idCN2, 'ô lọc vẫn đang chọn chi nhánh đó');
+    // Danh sách
+    await trang.click('#btnBtListView');
+    dung((await trang.textContent('#listSuCoChuaXuLy')).includes('Loa sân khấu'), 'Danh sách có phiếu chi nhánh đã chọn');
+    dung(!(await trang.textContent('#listSuCoChuaXuLy')).includes('Mic tay phải'), 'Danh sách: không lẫn việc chi nhánh khác');
+    // Bỏ lọc
+    await trang.click('#locCNKTBo');
+    bang(await trang.$eval('#fCNKT', e => e.value), '', 'Bỏ lọc → Tất cả');
+    dung((await trang.textContent('#listSuCoChuaXuLy')).includes('Mic tay phải') && (await trang.textContent('#listSuCoChuaXuLy')).includes('Loa sân khấu'), 'Danh sách đủ lại cả hai chi nhánh');
+    dung(!(await trang.isVisible('#locCNKTBo')), 'ẩn nút Bỏ lọc');
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+  // quản lý chi nhánh và admin không có ô này
+  for (const u of ['ql01', 'admin']) {
+    const t2 = await moTrinhDuyet(m, { width: 1360, height: 900 });
+    try {
+      await dangNhapUI(t2.trang, u);
+      await moSuCo(t2.trang);
+      dung(!(await t2.trang.isVisible('#locCNKT')), u + ' không thấy ô lọc chi nhánh của kỹ thuật');
+    } finally { await t2.trinh.close(); }
+  }
+});
+
 await chayTatCa();
 console.log('Ảnh chụp: ' + ANH_CHUP);

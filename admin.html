@@ -328,6 +328,14 @@ button.stat:hover{border-color:var(--pri);transform:translateY(-1px)}
 .stats{gap:8px;margin-bottom:14px}.stat{padding:10px 12px;border-radius:14px}.stat .k{font-size:11.5px;line-height:1.3;padding-right:12px}.stat .v{font-size:23px}.stat .go{right:8px;top:8px}}
 
 .toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.loc-cn-kt{display:flex;gap:8px 10px;flex-wrap:wrap;align-items:center;margin:-6px 0 14px;padding:9px 12px;border-radius:14px;
+  background:var(--surface);border:1px solid var(--line)}
+.loc-cn-kt label{font-weight:700;font-size:13px;white-space:nowrap}
+.loc-cn-kt select{flex:1 1 220px;min-width:0;max-width:100%;padding:9px 13px;min-height:42px;border-radius:12px;background:var(--input-bg);
+  border:1.5px solid var(--line);color:inherit;font:inherit}
+.loc-cn-kt select:focus{border-color:var(--pri);outline:none;box-shadow:0 0 0 3px var(--sel)}
+.loc-cn-kt.dang-loc{border-color:var(--pri);box-shadow:0 0 0 3px var(--sel)}
+.loc-cn-kt .loc-cn-info{flex:1 1 100%;font-size:12.5px;color:var(--txt-mute);overflow-wrap:anywhere}
 .toolbar input,.toolbar select{padding:9px 13px;min-height:40px;border-radius:12px;background:var(--input-bg);
   border:1.5px solid var(--line);font-size:14px}
 .toolbar input:focus,.toolbar select:focus{border-color:var(--pri);outline:none;box-shadow:0 0 0 3px var(--sel)}
@@ -863,6 +871,13 @@ tbody tr:hover td{background:var(--hover)}
       <button class="btn btn-ghost btn-sm" id="btnBtListView" onclick="toggleBaoTriView('list')" style="display:none">📋 Danh sách</button>
       <button class="btn btn-y btn-sm" onclick="openTaoSuCo()" id="btnTaoSuCo" style="display:none">+ Báo sự cố</button>
       <button class="btn btn-ghost btn-sm" onclick="loadSuCo(true)" id="refreshSuCoBtn">🔄 Làm mới</button>
+    </div>
+    <!-- Kỹ thuật: lọc theo chi nhánh cần xử lý (14/11/2026) — dùng chung cho Bảng, Kanban, Danh sách, Bản đồ -->
+    <div class="loc-cn-kt" id="locCNKT" style="display:none">
+      <label for="fCNKT">🏢 Chi nhánh</label>
+      <select id="fCNKT" onchange="datLocCNKT(this.value)" aria-label="Lọc theo chi nhánh"></select>
+      <button class="btn btn-ghost btn-sm" id="locCNKTBo" onclick="datLocCNKT('')" style="display:none">✕ Bỏ lọc</button>
+      <span class="loc-cn-info" id="locCNKTInfo" role="status"></span>
     </div>
 
     <div class="form-card" id="formTaoSuCo" style="display:none">
@@ -3922,7 +3937,49 @@ function capNhatDsKyThuatLoc(selectId){
   el.style.display = ds.length ? '' : 'none';
 }
 
+/* ── Lọc theo chi nhánh dành cho kỹ thuật (14/11/2026). Một bộ lọc dùng chung cho cả 4 kiểu xem; không
+   lưu lại (mở lại app là về "Tất cả chi nhánh" để khỏi sót việc). Danh sách chi nhánh lấy từ chính SUCO
+   mà server đã lọc đúng quyền → chỉ gồm chi nhánh kỹ thuật này có việc. ── */
+let CN_KT_LOC = '';
+function locCNKTHienTai(){ return isKyThuat() ? CN_KT_LOC : ''; }
+function capNhatLocCNKT(){
+  const box = $('locCNKT'); if(!box) return;
+  if(!isKyThuat()){ box.style.display='none'; CN_KT_LOC=''; return; }
+  const cn = {};
+  SUCO.forEach(t=>{
+    if(!t.chinhanhId) return;
+    const o = cn[t.chinhanhId] || (cn[t.chinhanhId] = {ten:t.chinhanhTen||t.chinhanhId, mo:0, xong:0});
+    if(t.trangThai==='dong') o.xong++; else o.mo++;
+  });
+  const ids = Object.keys(cn);
+  if(CN_KT_LOC && !cn[CN_KT_LOC]) CN_KT_LOC = '';          // chi nhánh đã hết việc → tự về "Tất cả"
+  // Ít hơn 2 chi nhánh thì lọc vô nghĩa: ẩn cho gọn
+  if(ids.length<2){ box.style.display='none'; CN_KT_LOC=''; return; }
+  const theoTen = (a,b)=>cn[a].ten.localeCompare(cn[b].ten,'vi');
+  const dangMo = ids.filter(i=>cn[i].mo).sort(theoTen), chiXong = ids.filter(i=>!cn[i].mo).sort(theoTen);
+  const tongMo = SUCO.filter(t=>t.trangThai!=='dong').length;
+  const opt = (i,nhan)=>'<option value="'+esc(i)+'"'+(i===CN_KT_LOC?' selected':'')+'>'+esc(cn[i].ten)+nhan+'</option>';
+  $('fCNKT').innerHTML = '<option value="">Tất cả chi nhánh ('+dangMo.length+' có việc đang mở)</option>'+
+    (dangMo.length ? '<optgroup label="Đang có việc mở">'+dangMo.map(i=>opt(i,' — '+cn[i].mo+' việc')).join('')+'</optgroup>' : '')+
+    (chiXong.length ? '<optgroup label="Chỉ có việc đã xong">'+chiXong.map(i=>opt(i,' — '+cn[i].xong+' đã xong')).join('')+'</optgroup>' : '');
+  $('fCNKT').value = CN_KT_LOC;
+  box.style.display = '';
+  box.classList.toggle('dang-loc', !!CN_KT_LOC);
+  $('locCNKTBo').style.display = CN_KT_LOC ? '' : 'none';
+  $('locCNKTInfo').textContent = CN_KT_LOC
+    ? 'Đang lọc: '+cn[CN_KT_LOC].ten+' · '+cn[CN_KT_LOC].mo+'/'+tongMo+' việc đang mở'+(cn[CN_KT_LOC].xong?' · '+cn[CN_KT_LOC].xong+' đã xong':'')
+    : '';
+}
+function datLocCNKT(id){
+  CN_KT_LOC = id || '';
+  capNhatLocCNKT();
+  drawSuCo();
+  if($('viewSuCoTable').style.display!=='none') drawSuCoTable();
+  if($('mapBaoTri').style.display!=='none') veBanDoBaoTri();
+}
+
 function locSuCo(list, fMuc, fKT, fCN, q){
+  fCN = fCN || locCNKTHienTai();
   return list.filter(t=>{
     if(fMuc && String(t.mucDo)!==fMuc) return false;
     if(fKT && t.kyThuatDuocGiao!==fKT) return false;
@@ -3935,6 +3992,7 @@ function locSuCo(list, fMuc, fKT, fCN, q){
 let daXongHien = 40;   // số lượng "đã xử lý xong" hiện ra, bấm "Xem thêm" để mở rộng dần theo lượt 40
 
 function drawSuCo(){
+  capNhatLocCNKT();
   const open = SUCO.filter(t=>t.trangThai!=='dong');
   const p1 = open.filter(t=>t.mucDo===1).length;
   const demTT = tt => SUCO.filter(t=>tt.includes(t.trangThai)).length;
@@ -4578,6 +4636,7 @@ function nhayToiPhieuGhim(cot){
 }
 function drawSuCoKanban(){
   if(!$('viewSuCoKanban')) return;
+  capNhatLocCNKT();
   capNhatDsKyThuatLoc('fKbKT');
   const q = norm(($('qSuCo').value||'').trim());
   let ds = locSuCo(SUCO.filter(t=>t.trangThai!=='dong'), $('fKbMuc').value, $('fKbKT').value, $('fKbCN').value, q);
@@ -4648,7 +4707,7 @@ function isoGioVNHienTai(){ return new Date(Date.now() + 7*3600e3).toISOString()
  *  nhất lên trên để dễ theo dõi ticket vừa phát sinh. */
 function filteredBangSuCo(){
   const q = norm($('qBangSuCo').value.trim());
-  const fTT = $('fBangTrangThai').value, fMuc = $('fBangMuc').value, fCN = $('fBangCN').value;
+  const fTT = $('fBangTrangThai').value, fMuc = $('fBangMuc').value, fCN = $('fBangCN').value || locCNKTHienTai();
   return SUCO.filter(t=>{
     if(fTT && t.trangThai!==fTT) return false;
     if(fMuc && String(t.mucDo)!==fMuc) return false;
@@ -4658,6 +4717,7 @@ function filteredBangSuCo(){
   }).sort((a,b)=> String(b.taoLuc).localeCompare(String(a.taoLuc)));
 }
 function drawSuCoTable(){
+  capNhatLocCNKT();
   const list = filteredBangSuCo();
   $('demBangSuCo').textContent = list.length;
   $('bangSuCoBody').innerHTML = list.length ? list.map((t,i)=>{
@@ -4819,7 +4879,9 @@ async function veBanDoBaoTri(){
   const diem = [];
 
   // Ticket đang mở (chưa đóng), lấy toạ độ theo chi nhánh từ BRANCHES đã tải sẵn
-  SUCO.filter(t=>t.trangThai!=='dong').forEach(t=>{
+  capNhatLocCNKT();
+  const cnLoc = locCNKTHienTai();
+  SUCO.filter(t=>t.trangThai!=='dong' && (!cnLoc || t.chinhanhId===cnLoc)).forEach(t=>{
     const br = BRANCHES.find(b=>b.id===t.chinhanhId);
     if(!br || !br.lat) return;
     const loai = LOAI_LOI[t.loaiLoi] || LOAI_LOI.khac || {ten:"Khác"};
