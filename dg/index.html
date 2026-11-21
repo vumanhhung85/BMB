@@ -89,8 +89,29 @@ textarea{min-height:92px;resize:vertical}
 .anh-o{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#eee}
 .anh-o img{width:100%;height:100%;object-fit:cover;display:block}
 .anh-o button{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:16px;line-height:26px;cursor:pointer}
-.them-anh{aspect-ratio:1;border-radius:12px;border:1.5px dashed #c9b8e3;background:#fbf9fe;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--tim2);font-size:12.5px;font-weight:600;cursor:pointer}
-.them-anh svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8}
+.anh-nut{display:flex;gap:10px;margin-top:10px}
+.nut-anh{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 10px;border-radius:14px;border:1.5px dashed #c9b8e3;background:#fbf9fe;color:var(--tim2);font-weight:600;font-size:14.5px;cursor:pointer}
+.nut-anh:active{transform:scale(.97)}
+.nut-anh svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;flex:none}
+.anh-dem{margin-top:8px;font-size:12.5px;color:var(--phu)}
+.anh-luoi:empty{display:none}
+/* Camera trong trang — nền đen như app camera */
+.cam-ov{position:fixed;inset:0;z-index:200;background:#000;display:none;flex-direction:column}
+.cam-ov.hien{display:flex}
+.cam-ov video{flex:1;min-height:0;width:100%;object-fit:contain;background:#000}
+.cam-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 12px;color:#fff;font-weight:600;background:linear-gradient(#000a,transparent)}
+.cam-top button{width:44px;height:44px;border-radius:50%;border:0;background:#fff2;color:#fff;font-size:20px;cursor:pointer}
+.cam-thumbs{display:flex;gap:8px;overflow-x:auto;padding:10px 14px 0;min-height:66px;background:#000}
+.cam-thumbs img{width:56px;height:56px;object-fit:cover;border-radius:10px;border:2px solid #fff4;flex:none}
+.cam-bot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px calc(env(safe-area-inset-bottom,0px) + 18px);background:#000}
+.cam-side{width:88px;height:48px;border-radius:24px;border:1px solid #fff5;background:#fff1;color:#fff;font-weight:700;font-size:15px;cursor:pointer}
+.cam-shutter{width:76px;height:76px;border-radius:50%;border:5px solid #fff;background:#fff3;flex:none;cursor:pointer;transition:transform .08s}
+.cam-shutter:active{transform:scale(.9);background:#fff9}
+.cam-shutter:disabled{opacity:.35}
+.cam-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .15s}
+.cam-loi{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;text-align:center;color:#fff;background:#000e;font-size:15px;line-height:1.5}
+.cam-loi.hien{display:flex}
+.cam-loi .nut-anh{flex:none;min-width:230px;border-color:#fff6;background:#fff1;color:#fff}
 
 /* Chọn phòng */
 .phong-luoi{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:8px}
@@ -170,7 +191,13 @@ textarea{min-height:92px;resize:vertical}
       <textarea id="chiTiet" maxlength="1000" placeholder="Ví dụ: micro số 2 bị rè từ khoảng 21 giờ…"></textarea>
       <div class="dem"><span id="demCT">0</span>/1000</div>
       <div class="anh-luoi" id="anhLuoi"></div>
+      <div class="anh-nut" id="anhNut">
+        <button type="button" class="nut-anh" id="nutChup"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg>Chụp ảnh</button>
+        <button type="button" class="nut-anh" id="nutThuVien"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m21 16-5-5-8 8"/></svg>Chọn từ thư viện</button>
+      </div>
+      <div class="anh-dem" id="anhDem"></div>
       <input type="file" id="chonAnh" accept="image/*" multiple hidden>
+      <input type="file" id="chonAnhCam" accept="image/*" capture="environment" hidden>
     </section>
 
     <section class="the">
@@ -206,6 +233,22 @@ textarea{min-height:92px;resize:vertical}
 <div class="day" id="day" hidden><button type="button" class="nut-gui" id="nutGui"><span class="quay"></span><span id="chuGui">Gửi đánh giá</span></button></div>
 <div class="phao" id="phao"></div>
 
+<div class="cam-ov" id="camOv" role="dialog" aria-modal="true" aria-label="Chụp ảnh">
+  <video id="camVideo" playsinline muted autoplay></video>
+  <div class="cam-flash" id="camFlash"></div>
+  <div class="cam-top"><span id="camDem"></span><button type="button" id="camDong" aria-label="Đóng">✕</button></div>
+  <div class="cam-thumbs" id="camThumbs"></div>
+  <div class="cam-bot">
+    <button type="button" class="cam-side" id="camDoi">🔄 Đổi</button>
+    <button type="button" class="cam-shutter" id="camShutter" aria-label="Chụp" disabled></button>
+    <button type="button" class="cam-side" id="camXong">Xong</button>
+  </div>
+  <div class="cam-loi" id="camLoi">
+    <div id="camLoiMsg"></div>
+    <button type="button" class="nut-anh" id="camMay">📷 Dùng camera của máy</button>
+    <button type="button" class="nut-anh" id="camLoiDong">Đóng</button>
+  </div>
+</div>
 <script>
 (function () {
   'use strict';
@@ -341,32 +384,95 @@ textarea{min-height:92px;resize:vertical}
   $('chiTiet').addEventListener('input', function () { $('demCT').textContent = this.value.length; });
 
   // ── Ảnh: nén trên máy khách (cạnh dài 1280px, JPEG) trước khi gửi
+  var TOI_DA = 3, CAM_MAX = 1280, CAM_CL = 0.72;
   function veAnh() {
-    $('anhLuoi').innerHTML = anh.map(function (a, i) { return '<div class="anh-o"><img src="' + a + '" alt="Ảnh ' + (i + 1) + '"><button type="button" data-xoa="' + i + '" aria-label="Xoá ảnh">×</button></div>'; }).join('') +
-      (anh.length < 3 ? '<button type="button" class="them-anh" id="themAnh"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg>Thêm ảnh</button>' : '');
+    $('anhLuoi').innerHTML = anh.map(function (a, i) { return '<div class="anh-o"><img src="' + a + '" alt="Ảnh ' + (i + 1) + '"><button type="button" data-xoa="' + i + '" aria-label="Xoá ảnh">×</button></div>'; }).join('');
+    $('anhNut').hidden = anh.length >= TOI_DA;
+    $('anhDem').textContent = anh.length ? 'Đã đính kèm ' + anh.length + '/' + TOI_DA + ' ảnh' : '';
   }
   $('anhLuoi').addEventListener('click', function (e) {
     var x = e.target.closest('[data-xoa]');
-    if (x) { anh.splice(Number(x.dataset.xoa), 1); veAnh(); return; }
-    if (e.target.closest('#themAnh')) $('chonAnh').click();
+    if (x) { anh.splice(Number(x.dataset.xoa), 1); veAnh(); }
   });
+  $('nutThuVien').addEventListener('click', function () { $('chonAnh').click(); });
+  $('nutChup').addEventListener('click', moCam);
+
+  // Nén ảnh chọn từ thư viện: giải mã thu nhỏ ngay (createImageBitmap) để máy yếu không hết bộ nhớ
+  function canhDai(src, w, h) {
+    var k = Math.min(1, CAM_MAX / Math.max(w, h)), cv = document.createElement('canvas');
+    cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+    cv.getContext('2d').drawImage(src, 0, 0, cv.width, cv.height);
+    return cv.toDataURL('image/jpeg', CAM_CL);
+  }
   function nen(file) {
-    return new Promise(function (ok, loi) {
-      var url = URL.createObjectURL(file), img = new Image();
-      img.onload = function () {
-        var max = 1280, w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, max / Math.max(w, h));
-        var cv = document.createElement('canvas'); cv.width = Math.round(w * k); cv.height = Math.round(h * k);
-        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-        URL.revokeObjectURL(url); ok(cv.toDataURL('image/jpeg', 0.72));
-      };
-      img.onerror = function () { URL.revokeObjectURL(url); loi(new Error('ANH')); };
-      img.src = url;
+    var cu = function () {
+      return new Promise(function (ok, loi) {
+        var url = URL.createObjectURL(file), img = new Image();
+        img.onload = function () { var d = canhDai(img, img.naturalWidth, img.naturalHeight); URL.revokeObjectURL(url); ok(d); };
+        img.onerror = function () { URL.revokeObjectURL(url); loi(new Error('ANH')); };
+        img.src = url;
+      });
+    };
+    if (!window.createImageBitmap) return cu();
+    return createImageBitmap(file, { resizeWidth: CAM_MAX, resizeQuality: 'medium' }).then(function (b) { var d = canhDai(b, b.width, b.height); if (b.close) b.close(); return d; }, cu);
+  }
+  function nhanFile() {
+    var ds = Array.prototype.slice.call(this.files || [], 0, TOI_DA - anh.length); this.value = '';
+    ds.reduce(function (p, f) { return p.then(function () { return nen(f).then(function (d) { anh.push(d); }, function () {}); }); }, Promise.resolve()).then(veAnh);
+  }
+  $('chonAnh').addEventListener('change', nhanFile);
+  $('chonAnhCam').addEventListener('change', nhanFile);
+
+  // ── Camera ngay trong trang (không mở app Camera ngoài: máy yếu hay giết tab trình duyệt → mất phiếu đang điền)
+  var CAM = null, camCv = document.createElement('canvas');
+  function moCam() {
+    if (anh.length >= TOI_DA) return;
+    CAM = { stream: null, facing: 'environment' };
+    $('camThumbs').innerHTML = anh.map(function (a) { return '<img src="' + a + '" alt="">'; }).join('');
+    $('camLoi').classList.remove('hien'); $('camOv').classList.add('hien'); document.body.style.overflow = 'hidden';
+    try { history.pushState({ cam: 1 }, ''); CAM.sd = true; } catch (e) {}   // nút Back của điện thoại chỉ đóng camera, không thoát phiếu
+    camDem(); batCam();
+  }
+  function camDem() { $('camDem').textContent = 'Đã chụp ' + anh.length + '/' + TOI_DA; }
+  function dungLuong() { if (CAM && CAM.stream) { CAM.stream.getTracks().forEach(function (t) { t.stop(); }); CAM.stream = null; } $('camVideo').srcObject = null; }
+  function batCam() {
+    dungLuong(); $('camShutter').disabled = true;
+    if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return camLoi('Trình duyệt này chưa hỗ trợ chụp ngay trong trang.');
+    navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: CAM && CAM.facing }, width: { ideal: 1920 }, height: { ideal: 1080 } } }).then(function (st) {
+      if (!CAM) { st.getTracks().forEach(function (t) { t.stop(); }); return; }
+      CAM.stream = st; var v = $('camVideo'); v.srcObject = st;
+      var san = function () { if (CAM && CAM.stream === st && v.videoWidth) $('camShutter').disabled = false; };   // chỉ cho chụp khi đã có khung hình
+      v.onloadeddata = san; var pl = v.play(); if (pl && pl.then) pl.then(san, function () {}); san();
+    }, function (e) {
+      camLoi(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? 'Chưa cho phép dùng camera. Quý khách có thể cho phép trong cài đặt trình duyệt, hoặc dùng camera của máy.' : 'Không mở được camera trong trang.');
     });
   }
-  $('chonAnh').addEventListener('change', function () {
-    var ds = Array.prototype.slice.call(this.files || [], 0, 3 - anh.length); this.value = '';
-    ds.reduce(function (p, f) { return p.then(function () { return nen(f).then(function (d) { anh.push(d); }, function () {}); }); }, Promise.resolve()).then(veAnh);
-  });
+  function camLoi(m) { $('camShutter').disabled = true; $('camLoiMsg').textContent = m; $('camLoi').classList.add('hien'); }
+  function tatCam() {   // đóng giao diện camera (không đụng lịch sử)
+    if (!CAM) return; dungLuong(); $('camOv').classList.remove('hien'); document.body.style.overflow = ''; $('camThumbs').innerHTML = ''; CAM = null; veAnh();
+  }
+  function dongCam() { if (!CAM) return; if (CAM.sd) { history.back(); } else tatCam(); }   // history.back → popstate → tatCam
+  window.addEventListener('popstate', function () { if (CAM) { CAM.sd = false; tatCam(); } });
+  function chup() {
+    if (!CAM || !CAM.stream) return;
+    var v = $('camVideo'); if (!v.videoWidth) return;
+    var k = Math.min(1, CAM_MAX / Math.max(v.videoWidth, v.videoHeight));
+    camCv.width = Math.round(v.videoWidth * k); camCv.height = Math.round(v.videoHeight * k);
+    camCv.getContext('2d').drawImage(v, 0, 0, camCv.width, camCv.height);
+    var d = camCv.toDataURL('image/jpeg', CAM_CL); camCv.width = camCv.height = 1;
+    anh.push(d);
+    var f = $('camFlash'); f.style.opacity = '.8'; setTimeout(function () { f.style.opacity = '0'; }, 90);
+    try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
+    var im = document.createElement('img'); im.src = d; $('camThumbs').appendChild(im); camDem();
+    if (anh.length >= TOI_DA) setTimeout(dongCam, 350);
+  }
+  $('camShutter').addEventListener('click', chup);
+  $('camDong').addEventListener('click', dongCam);
+  $('camXong').addEventListener('click', dongCam);
+  $('camDoi').addEventListener('click', function () { if (!CAM) return; CAM.facing = CAM.facing === 'environment' ? 'user' : 'environment'; batCam(); });
+  $('camMay').addEventListener('click', function () { dongCam(); setTimeout(function () { $('chonAnhCam').click(); }, 60); });
+  $('camLoiDong').addEventListener('click', dongCam);
+  document.addEventListener('visibilitychange', function () { if (!CAM) return; if (document.hidden) dungLuong(); else if (!$('camLoi').classList.contains('hien')) batCam(); });
   veAnh();
 
   // ── Gửi
