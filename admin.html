@@ -744,6 +744,7 @@ tbody tr:hover td{background:var(--hover)}
 <!-- Thanh bên của admin (12/11/2026): chia nhóm Vận hành / Danh mục / Hệ thống / Cá nhân. Máy tính luôn
      hiện; điện thoại/tablet là ngăn kéo mở bằng tab "Thêm" ở thanh dưới. Các mục Danh mục/Hệ thống/Cá
      nhân là các phần của tab Cài đặt cũ, chỉ lọc hiện đúng thẻ (data-nhom) — không đổi chức năng nào. -->
+<style>.vt-gs .tab[data-t="tongquan"],.vt-gs .tab[data-t="baotri"],.vt-gs .tab[data-t="bando"],.vt-gs .tab[data-t="dat-phong"]{display:none!important}</style>
 <aside class="side" id="sideNav" aria-label="Menu quản trị">
   <div class="side-brand"><img src="Logo_BoomBox.png" alt=""><div><b>Boom Music Box</b><span>Bảng quản trị</span></div>
     <button type="button" class="ico-btn" onclick="dongMenu()" aria-label="Đóng menu">✕</button></div>
@@ -795,6 +796,7 @@ tbody tr:hover td{background:var(--hover)}
       <button class="tab" role="tab" aria-selected="true"  data-t="baotri"   onclick="switchTab(this)"><span class="ti"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span><span class="tl" id="tlBaoTri">Bảo trì</span><span class="n zero" id="nSuCo"></span></button>
       <button class="tab" role="tab" aria-selected="false" data-t="bando" id="tabBanDo" onclick="moTabBanDo(this)" style="display:none"><span class="ti"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg></span><span class="tl">Bản đồ</span></button>
       <button class="tab" role="tab" aria-selected="false" data-t="dat-phong" onclick="switchTab(this)" style="display:none"><span class="ti"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span class="tl">Đặt phòng</span><span class="n zero" id="nPending"></span></button>
+      <button class="tab" role="tab" aria-selected="false" data-t="danhgia" id="tabDanhGia" onclick="moTabDanhGia()" style="display:none"><span class="ti"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></span><span class="tl">Đánh giá</span></button>
       <button class="tab" role="tab" aria-selected="false" data-t="caidat"   onclick="bamTabCaiDat(this)" id="tabCaiDat"><span class="ti" id="tiCaiDat"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span class="tl" id="tlCaiDat">Tài khoản</span></button>
     </div>
   </div>
@@ -1134,6 +1136,7 @@ tbody tr:hover td{background:var(--hover)}
           <option value="manager">Quản lý chi nhánh</option>
           <option value="kythuat">Kỹ thuật viên</option>
           <option value="kythuat_mang">Kỹ thuật mạng</option>
+          <option value="giamsat">Giám sát chất lượng</option>
         </select>
       </div>
       <div id="listTaiKhoan"></div>
@@ -2161,6 +2164,17 @@ function bamTabCaiDat(el){
   switchTab(el);
 }
 /** Kỹ thuật viên: tab "Bản đồ" = Bảo trì + view bản đồ (TAB vẫn là 'baotri'). */
+/* ─── ĐÁNH GIÁ KHÁCH HÀNG: tab chỉ hiện khi tài khoản CÓ QUYỀN (lấy từ máy chủ), không theo tên vai trò ─── */
+let QUYEN = {};
+function moTabDanhGia(){ location.href = 'dg/baocao.html'; }   // cùng cửa sổ, cùng phiên đăng nhập
+async function napQuyenDanhGia(){
+  const tab = $('tabDanhGia'); tab.style.display = 'none';
+  try{
+    const j = await api({ action:'quyen_cua_toi' }, { nen:true });
+    QUYEN = (j && j.ok && j.quyen) || {};
+  }catch(e){ QUYEN = {}; }   // Worker chưa cập nhật / mất mạng → đơn giản là không hiện tab
+  if(SESSION) tab.style.display = QUYEN['DANHGIA.XEM'] ? '' : 'none';
+}
 function moTabBanDo(el){
   switchTab(document.querySelector('.tab[data-t="baotri"]'));
   toggleBaoTriView('map');
@@ -2599,7 +2613,7 @@ async function doLogin(){
   }
 }
 
-const ROLE_LABEL = {admin:'Quản trị', manager:'Quản lý chi nhánh', kythuat:'Kỹ thuật viên', kythuat_mang:'Kỹ thuật mạng'};
+const ROLE_LABEL = {admin:'Quản trị', manager:'Quản lý chi nhánh', kythuat:'Kỹ thuật viên', kythuat_mang:'Kỹ thuật mạng', giamsat:'Giám sát chất lượng'};
 const isKyThuat = () => SESSION && (SESSION.role==='kythuat' || SESSION.role==='kythuat_mang');
 
 /** Tự đặt lịch gọi lại `suco_list` — khoảng cách THAY ĐỔI theo trạng thái lúc gọi, không phải hằng số
@@ -2647,6 +2661,10 @@ function moTuQuay(){
   return TRONG_APP_QUAY;
 }
 async function enterApp(){
+  /* MỘT CỬA ĐĂNG NHẬP (21/11/2026): mọi người đăng nhập ở trang này; trang báo cáo đánh giá (dg/baocao.html) dùng CHUNG phiên.
+     Giám sát chất lượng không có việc bảo trì/đặt phòng → vào thẳng báo cáo. `?khong_chuyen=1` = ở lại trang quản lý
+     (đổi mật khẩu, Telegram…) — nút "Quản lý" trên trang báo cáo dẫn về đây. */
+  if(SESSION.role==='giamsat' && !/[?&]khong_chuyen=1/.test(location.search)){ location.replace('dg/baocao.html'); return; }
   $('login').style.display='none'; $('app').style.display='block';
   $('btnVeQuay').style.display = moTuQuay() ? '' : 'none';
   $('hBranch').textContent = SESSION.branchName || 'Toàn hệ thống';
@@ -2674,9 +2692,12 @@ async function enterApp(){
   // trước, tránh chớp hiện rồi biến mất); admin luôn thấy để còn xử lý/xem báo cáo.
   capNhatHienTabDatPhong(false);
   datNhanTheoVaiTro();
-  // Admin mở đầu ở Tổng quan (12/11/2026); kỹ thuật & quản lý vẫn vào thẳng Bảo trì như cũ.
+  const laGiamSat = SESSION.role === 'giamsat';
+  document.body.classList.toggle('vt-gs', laGiamSat);   // đặt cả 2 chiều (bài học 19/09/2026)
+  // Admin mở đầu ở Tổng quan (12/11/2026); kỹ thuật & quản lý vẫn vào thẳng Bảo trì như cũ; giám sát chỉ có Tài khoản + Đánh giá.
   CD_LOC = '';
-  switchTab(document.querySelector('.tab[data-t="'+(laAdmin ? 'tongquan' : 'baotri')+'"]'), true);
+  switchTab(document.querySelector('.tab[data-t="'+(laAdmin ? 'tongquan' : laGiamSat ? 'caidat' : 'baotri')+'"]'), true);
+  napQuyenDanhGia();   // hiện tab Đánh giá nếu tài khoản có quyền xem (không chặn việc vào app)
   if(isKyThuat()){
     batDauChiaSeViTri();   // định kỳ nhẹ mỗi 5 phút trong lúc còn mở app — xem thêm ở nhanViec/batDauXuLy/submitBaoXong
   }
@@ -5642,7 +5663,7 @@ async function xoaTaiKhoanUI(taikhoan){
 /* ─── thêm / sửa tài khoản ─── */
 const VAITRO_LIST = [
   {v:'manager', l:'Quản lý chi nhánh'}, {v:'kythuat', l:'Kỹ thuật chung'},
-  {v:'kythuat_mang', l:'Kỹ thuật mạng'}, {v:'admin', l:'Quản trị hệ thống'}
+  {v:'kythuat_mang', l:'Kỹ thuật mạng'}, {v:'giamsat', l:'Giám sát chất lượng'}, {v:'admin', l:'Quản trị hệ thống'}
 ];
 let tkVaiTroChon = 'manager', tkTaikhoanCu = '';
 
@@ -5651,7 +5672,7 @@ function renderTkVaiTroPick(){
     const on = r.v===tkVaiTroChon;
     return '<button type="button" class="btn btn-sm '+(on?'btn-y':'btn-ghost')+'" onclick="tkVaiTroChon=\''+r.v+'\';renderTkVaiTroPick()">'+r.l+'</button>';
   }).join('');
-  $('tkChiNhanhWrap').style.display = tkVaiTroChon==='admin' ? 'none' : 'block';
+  $('tkChiNhanhWrap').style.display = (tkVaiTroChon==='admin' || tkVaiTroChon==='giamsat') ? 'none' : 'block';   // giamsat xem toàn chuỗi → không gắn chi nhánh
   $('tkSieuAdminWrap').style.display = tkVaiTroChon==='admin' ? 'block' : 'none';
 }
 
@@ -5692,10 +5713,10 @@ async function submitTaiKhoan(){
   const hoten = $('tkHoten').value.trim();
   if(!taikhoan || taikhoan.length<3) return toast('Tên đăng nhập tối thiểu 3 ký tự.','bad');
   if(!hoten) return toast('Nhập họ tên.','bad');
-  if(tkVaiTroChon!=='admin' && !$('tkChiNhanh').value) return toast('Chọn chi nhánh phụ trách.','bad');
+  if(tkVaiTroChon!=='admin' && tkVaiTroChon!=='giamsat' && !$('tkChiNhanh').value) return toast('Chọn chi nhánh phụ trách.','bad');
 
   const payload = {
-    taikhoan, hoten, vaitro:tkVaiTroChon, chinhanhId: tkVaiTroChon==='admin' ? '' : $('tkChiNhanh').value,
+    taikhoan, hoten, vaitro:tkVaiTroChon, chinhanhId: (tkVaiTroChon==='admin' || tkVaiTroChon==='giamsat') ? '' : $('tkChiNhanh').value,
     email:$('tkEmail').value.trim(), sieuAdmin: tkVaiTroChon==='admin' && $('tkSieuAdmin').checked
   };
   try{
