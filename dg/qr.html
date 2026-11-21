@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3a1466">
+<meta name="robots" content="noindex">
+<title>Mã QR đánh giá | BOOM MUSICBOX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --tim0:#1d0838;--tim1:#3a1466;--tim2:#5b21a6;--tim3:#7b3fbf;--tim4:#a66ee8;--tim5:#efe5fd;
+  --vang:#f5b800;--vang2:#ffd54a;--vangNhat:#fff6d6;
+  --nen:#f6f2fc;--the:#fff;--chu:#22163a;--phu:#6b5f80;--vien:#e6dcf5;
+  --xanh:#16a34a;--do:#dc2626;--doNhat:#fdecec;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{font-family:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--chu);background:var(--nen);font-size:15px;line-height:1.45;min-height:100vh}
+button,input,select{font:inherit;color:inherit}
+[hidden]{display:none!important}
+svg{display:block}
+
+/* ── Đăng nhập ── */
+.dn{min-height:100vh;display:grid;place-items:center;padding:20px;
+  background:radial-gradient(120% 90% at 85% 0%,#8d4ad6 0%,transparent 55%),radial-gradient(90% 80% at 0% 100%,#2a0d52 0%,transparent 60%),linear-gradient(160deg,var(--tim2),var(--tim1) 55%,var(--tim0))}
+.dn-hop{width:100%;max-width:380px;background:#fff;border-radius:24px;padding:26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:len .5s both}
+.dn-hop img{height:50px;display:block;margin:0 auto 10px}
+.dn-hop h1{margin:0 0 4px;text-align:center;font-size:19px}
+.dn-hop p{margin:0 0 16px;text-align:center;color:var(--phu);font-size:13.5px}
+.dn-hop label{display:block;font-size:13px;font-weight:600;color:var(--phu);margin:10px 0 5px}
+input[type=text],input[type=password],select{width:100%;border:1.5px solid var(--vien);border-radius:12px;padding:11px 13px;background:#fbf9fe;outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus{border-color:var(--tim3);box-shadow:0 0 0 3px var(--tim5);background:#fff}
+.nut{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;padding:11px 16px;font-weight:600;cursor:pointer;transition:transform .1s,filter .2s;text-decoration:none}
+.nut:active{transform:scale(.97)}
+.nut[disabled]{filter:grayscale(.5) opacity(.7);cursor:default}
+.nut-vang{background:linear-gradient(135deg,var(--vang2),var(--vang));color:var(--tim0);box-shadow:0 6px 16px rgba(245,184,0,.35)}
+.nut-tim{background:linear-gradient(135deg,var(--tim3),var(--tim1));color:#fff;box-shadow:0 6px 16px rgba(91,33,166,.3)}
+.nut-vien{background:#fff;border:1.5px solid var(--vien);color:var(--tim2)}
+.nut-do{background:#fff;border:1.5px solid #f3b9b9;color:var(--do)}
+.nut-be{padding:7px 11px;font-size:13px;border-radius:10px}
+.dn-hop .nut{width:100%;margin-top:16px;padding:13px}
+.dn-loi{margin-top:12px;color:var(--do);font-size:13.5px;font-weight:500;text-align:center;min-height:20px}
+
+/* ── Khung chính ── */
+.dau{position:sticky;top:0;z-index:20;color:#fff;background:linear-gradient(135deg,var(--tim1),var(--tim2));box-shadow:0 4px 18px rgba(29,8,56,.25)}
+.dau-trong{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.dau img{height:34px}
+.dau .ten{font-weight:700;letter-spacing:.03em;line-height:1.15;white-space:nowrap}
+.dau .ten small{display:block;font-weight:500;font-size:11.5px;opacity:.78;letter-spacing:0}
+.dau .phai{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px}
+.dau .phai a,.dau .phai button{color:#fff;text-decoration:none;font-weight:600;font-size:13px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);cursor:pointer;white-space:nowrap}
+.dau .phai a:hover,.dau .phai button:hover{background:rgba(255,255,255,.24)}
+main{max-width:1100px;margin:0 auto;padding:16px 16px 90px}
+.thanh{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#fff;border:1px solid var(--vien);border-radius:16px;padding:12px;margin-bottom:16px}
+.thanh select{max-width:340px;flex:1 1 220px}
+.thanh .gian{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.muc{margin-bottom:22px;animation:len .4s both}
+.muc>h2{margin:0 0 2px;font-size:17px;display:flex;align-items:center;gap:8px}
+.muc>h2 .so{font-size:12px;font-weight:600;background:var(--tim5);color:var(--tim2);border-radius:99px;padding:2px 9px}
+.muc>p{margin:0 0 10px;color:var(--phu);font-size:13.5px}
+.luoi{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.the{background:#fff;border:1px solid var(--vien);border-radius:16px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 1px 2px rgba(58,20,102,.05);text-align:center;min-width:0}
+.the .qr{width:100%;max-width:170px;aspect-ratio:1;padding:8px;border-radius:12px;background:#fff;border:1px solid var(--vien)}
+.the .qr svg{width:100%;height:100%}
+.the b{font-size:15px}
+.the small{color:var(--phu);font-size:12px}
+.the .hanh{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:4px}
+.the .hanh .nut{padding:6px 9px;font-size:12px;border-radius:9px}
+.the.trong{border-style:dashed;background:#fbf9fe;justify-content:center;min-height:150px;color:var(--phu)}
+.ghi{background:var(--vangNhat);border:1px solid #f1dc8f;border-radius:12px;padding:10px 12px;font-size:13.5px;margin-bottom:10px}
+.rong{padding:30px;text-align:center;color:var(--phu)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);z-index:90;background:var(--tim0);color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.hien{opacity:1;transform:translateX(-50%)}
+@keyframes len{from{opacity:0;transform:translateY(10px)}}
+@keyframes mo{from{opacity:0}}
+
+/* ── Hộp phóng to ── */
+.phu{position:fixed;inset:0;z-index:60;background:rgba(29,8,56,.6);display:grid;place-items:center;padding:16px;animation:mo .2s both}
+.hop-lon{background:#fff;border-radius:22px;padding:18px;width:100%;max-width:420px;text-align:center;max-height:96vh;overflow:auto}
+.hop-lon .qr-lon{width:min(78vw,320px);margin:6px auto;padding:10px;border:1px solid var(--vien);border-radius:16px}
+.hop-lon .qr-lon svg{width:100%;height:auto}
+.hop-lon h3{margin:4px 0 0;font-size:19px}
+.hop-lon p{margin:2px 0 8px;color:var(--phu);font-size:13px;word-break:break-all}
+.hop-lon .hanh{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+
+/* ── Màn hình hiển thị cho TV (?hien=MÃ) ── */
+.tv{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2vh;padding:3vh 4vw;text-align:center;color:#fff;
+  background:radial-gradient(120% 90% at 85% 0%,#8d4ad6 0%,transparent 55%),radial-gradient(90% 80% at 0% 100%,#2a0d52 0%,transparent 60%),linear-gradient(160deg,var(--tim2),var(--tim1) 55%,var(--tim0))}
+.tv img{height:9vh;max-height:80px}
+.tv h1{margin:0;font-size:clamp(22px,5vh,52px);letter-spacing:.04em}
+.tv .vang{color:var(--vang2)}
+.tv .khung{background:#fff;border-radius:3vh;padding:2.4vh;width:min(58vh,80vw);box-shadow:0 20px 70px rgba(0,0,0,.45)}
+.tv .khung svg{width:100%;height:auto}
+.tv .ten-tv{font-size:clamp(20px,4.4vh,46px);font-weight:700}
+.tv .phu-tv{font-size:clamp(13px,2.4vh,24px);opacity:.82}
+
+/* ── Tem in (A4: 3 cột × 4 hàng) ── */
+#inSheet{display:none}
+.tem{width:62mm;height:68mm;border:.4mm solid #5b21a6;border-radius:4mm;padding:2.5mm 3mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;break-inside:avoid;background:#fff;color:#22163a;overflow:hidden}
+.tem .t1{font-weight:700;font-size:3.7mm;letter-spacing:.2mm;color:#5b21a6}
+.tem .qr-t{width:41mm;height:41mm}
+.tem .qr-t svg{width:100%;height:100%}
+.tem .t2{font-weight:700;font-size:5mm;line-height:1.1}
+.tem .t3{font-size:3mm;color:#6b5f80;line-height:1.15}
+@page{size:A4;margin:6mm}
+@media print{
+  body.dang-in{background:#fff}
+  body.dang-in>*:not(#inSheet){display:none!important}
+  body.dang-in #inSheet{display:grid;grid-template-columns:repeat(3,62mm);gap:3mm 4mm;justify-content:center}
+  .tem{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media(max-width:560px){.dau .ten small,.dau .ten .pc{display:none}.dau .phai{gap:6px}.dau .phai a,.dau .phai button{padding:7px 9px}.luoi{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="dn" id="manDangNhap" hidden>
+  <form class="dn-hop" id="formDN" autocomplete="on">
+    <img src="../Logo_BoomBox.png" alt="BOOM MUSICBOX">
+    <h1>Mã QR đánh giá</h1>
+    <p>Đăng nhập bằng tài khoản BMB của anh/chị</p>
+    <label for="dnUser">Tài khoản</label>
+    <input type="text" id="dnUser" autocomplete="username" autocapitalize="none" spellcheck="false">
+    <label for="dnPass">Mật khẩu</label>
+    <input type="password" id="dnPass" autocomplete="current-password">
+    <button class="nut nut-vang" id="nutDN" type="submit">Đăng nhập</button>
+    <div class="dn-loi" id="dnLoi"></div>
+  </form>
+</div>
+
+<div id="ungDung" hidden>
+  <header class="dau">
+    <div class="dau-trong">
+      <img src="../Logo_BoomBox.png" alt="BOOM">
+      <div class="ten">MÃ QR<span class="pc"> ĐÁNH GIÁ</span><small id="phamViNho"></small></div>
+      <div class="phai"><a id="veBaoCao" href="baocao.html" hidden>Báo cáo</a><a href="../admin.html?khong_chuyen=1">Quản lý</a><button id="nutThoat" type="button">Thoát</button></div>
+    </div>
+  </header>
+  <main>
+    <div class="thanh">
+      <select id="chonCN" aria-label="Chi nhánh"></select>
+      <div class="gian">
+        <button class="nut nut-vien nut-be" id="nutInCN" type="button">🖨 In tem cả chi nhánh</button>
+        <button class="nut nut-tim nut-be" id="nutTaoLoat" type="button" hidden>＋ Tạo mã cho phòng còn thiếu</button>
+      </div>
+    </div>
+    <div id="vung"></div>
+  </main>
+</div>
+
+<div id="tvMan" class="tv" hidden>
+  <img src="../Logo_BoomBox.png" alt="BOOM MUSICBOX">
+  <h1>ĐÁNH GIÁ <span class="vang">DỊCH VỤ</span></h1>
+  <div class="khung" id="tvQr"></div>
+  <div class="ten-tv" id="tvTen"></div>
+  <div class="phu-tv">Mở camera điện thoại, quét mã để chấm điểm và góp ý cho chúng tôi</div>
+</div>
+
+<div id="inSheet" aria-hidden="true"></div>
+<div class="toast" id="toast"></div>
+
+<script src="qrcode.js"></script>
+<script>
+(function () {
+  'use strict';
+  var API = 'https://bmb-quanly-worker.vumanhhung85.workers.dev';
+  /* MỘT CỬA ĐĂNG NHẬP: dùng CHUNG phiên và mã thiết bị với admin.html và báo cáo (cùng tên miền) */
+  var KHOA = 'bmb2_adm_s', KHOA_TB = 'bmb2_adm_device';
+  var LOI_API = { BAD_LOGIN: 'Sai tài khoản hoặc mật khẩu.', LOCKED: 'Nhập sai nhiều lần. Vui lòng thử lại sau 15 phút.', FORBIDDEN: 'Tài khoản này không có quyền xem mã QR đánh giá.' };
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function tru(a, b) { return Promise.race([a, new Promise(function (_, r) { setTimeout(function () { r(new Error('TIMEOUT')); }, b || 25000); })]); }
+  function luu(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} }
+  function doc(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function thietBi() { var v = doc(KHOA_TB); if (!v) { v = 'tb_' + (window.crypto && crypto.randomUUID ? crypto.randomUUID().slice(0, 12) : (Date.now().toString(36) + Math.random().toString(36).slice(2, 8))); luu(KHOA_TB, v); } return v; }
+  function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('hien'); clearTimeout(toast._t); toast._t = setTimeout(function () { e.classList.remove('hien'); }, 2800); }
+  function gio(ms) { if (!ms) return ''; var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(ms); return m ? m[4] + ':' + m[5] + ' ' + m[3] + '/' + m[2] : ms; }
+
+  /* ───────────── QR ───────────── */
+  function qrDoi(text) { var q = qrcode(0, 'Q'); q.addData(text); q.make(); return q; }
+  function qrSvg(text) {
+    var q = qrDoi(text), n = q.getModuleCount(), d = '';
+    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) d += 'M' + c + ' ' + r + 'h1v1h-1z';
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + n + ' ' + n + '" shape-rendering="crispEdges" role="img" aria-label="Mã QR"><rect width="' + n + '" height="' + n + '" fill="#fff"/><path d="' + d + '" fill="#000"/></svg>';
+  }
+  var P = new URLSearchParams(location.search);
+
+  /* ═════ Chế độ hiển thị cho TV: qr.html?hien=MÃ&ten=Phòng 12 — KHÔNG cần đăng nhập (mã QR vốn công khai) ═════ */
+  if (P.get('hien')) {
+    var maTv = String(P.get('hien')).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+    var goc = new URL('./', location.href).href;
+    $('tvQr').innerHTML = qrSvg(goc + '?q=' + encodeURIComponent(maTv));
+    $('tvTen').textContent = P.get('ten') || '';
+    $('tvMan').hidden = false; document.title = 'Đánh giá dịch vụ | BOOM MUSICBOX';
+    return;
+  }
+
+  var S = null, Q = {}, DS = [], THIEU = [], LINK_GOC = '', CN = '', CN_DS = [];
+  function co(q) { return !!Q[q]; }
+  function api(body, ms) {
+    var b = Object.assign({}, body); if (S && b.action !== 'login') b.token = S.token;
+    return tru(fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(b) }).then(function (r) { return r.json(); }), ms).then(function (j) {
+      if (j && j.ok === false && (j.error === 'BAD_TOKEN' || j.error === 'UNAUTHORIZED' || j.error === 'SESSION_EXPIRED')) { thoat(true); throw new Error('PHIEN'); }
+      return j;
+    });
+  }
+  async function sha256(s) { var b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.prototype.map.call(new Uint8Array(b), function (x) { return x.toString(16).padStart(2, '0'); }).join(''); }
+
+  $('formDN').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var u = $('dnUser').value.trim().toLowerCase(), p = $('dnPass').value;
+    if (!u || !p) { $('dnLoi').textContent = 'Vui lòng nhập tài khoản và mật khẩu.'; return; }
+    $('nutDN').disabled = true; $('dnLoi').textContent = '';
+    try {
+      var j = await api({ action: 'login', user: u, hash: await sha256(u + '::' + p + '::boom'), thietBi: thietBi() });
+      if (!j || !j.ok) { $('dnLoi').textContent = LOI_API[j && j.error] || 'Đăng nhập không thành công.'; return; }
+      S = j.session;
+      if (!(await napQuyen())) { S = null; $('dnLoi').textContent = LOI_API.FORBIDDEN; return; }
+      luu(KHOA, JSON.stringify(S)); $('dnPass').value = ''; vaoApp();
+    } catch (er) { $('dnLoi').textContent = 'Không kết nối được. Vui lòng kiểm tra mạng.'; }
+    finally { $('nutDN').disabled = false; }
+  });
+  async function napQuyen() {
+    try { var j = await api({ action: 'quyen_cua_toi' }); Q = (j && j.ok && j.quyen) || {}; } catch (er) { Q = {}; }
+    return co('DANHGIA.QR_XEM');
+  }
+  function thoat(hetHan) { Q = {}; S = null; luu(KHOA, null); $('ungDung').hidden = true; $('manDangNhap').hidden = false; if (hetHan) $('dnLoi').textContent = 'Phiên đăng nhập đã hết, vui lòng đăng nhập lại.'; }
+  $('nutThoat').addEventListener('click', function () { thoat(false); });
+
+  /* ───────────── Vào ứng dụng ───────────── */
+  async function vaoApp() {
+    $('manDangNhap').hidden = true; $('ungDung').hidden = false;
+    var xem = Q['DANHGIA.QR_XEM'], ql = co('DANHGIA.QR_QUANLY');
+    $('phamViNho').textContent = xem.tatCa ? 'Toàn chuỗi' : xem.chiNhanh.map(function (c) { return c.ten; }).join(', ');
+    $('veBaoCao').hidden = !co('DANHGIA.XEM');
+    $('nutTaoLoat').hidden = !ql;
+    if (xem.tatCa) {
+      try { var b = await tru(fetch(API + '?action=branches').then(function (r) { return r.json(); }), 20000); CN_DS = (b.data || []).map(function (x) { return { id: x.id, ten: x.short || x.name }; }); } catch (e) { CN_DS = []; }
+    } else CN_DS = xem.chiNhanh.slice();
+    CN_DS.sort(function (a, b) { return a.ten.localeCompare(b.ten, 'vi'); });
+    $('chonCN').innerHTML = CN_DS.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.ten) + '</option>'; }).join('');
+    CN = CN_DS.length ? CN_DS[0].id : '';
+    tai();
+  }
+  $('chonCN').addEventListener('change', function () { CN = this.value; ve(); });
+
+  async function tai() {
+    $('vung').innerHTML = '<div class="rong">Đang tải…</div>';
+    try {
+      var j = await api({ action: 'dg_qr_list' });
+      if (!j || !j.ok) { $('vung').innerHTML = '<div class="rong">' + esc(LOI_API[j && j.error] || 'Không tải được danh sách mã.') + '</div>'; return; }
+      DS = j.data; THIEU = j.phongChuaCoMa || []; LINK_GOC = j.linkGoc || '';
+      ve();
+    } catch (e) { if (e.message !== 'PHIEN') $('vung').innerHTML = '<div class="rong">Không kết nối được. Vui lòng thử lại.</div>'; }
+  }
+  function ten(x) { return x.loai === 'phong' ? 'Phòng ' + x.phong : x.loai === 'chi_nhanh' ? 'Chi nhánh ' + x.chiNhanh : 'Toàn chuỗi'; }
+  function tenTem(x) { return x.loai === 'phong' ? x.phong.replace(/^Phòng\s*/i, '') ? 'Phòng ' + x.phong.replace(/^Phòng\s*/i, '') : x.phong : x.loai === 'chi_nhanh' ? 'Quét mã để đánh giá' : 'Boom Music Box'; }
+  function thongTin(x) { return x.soLanQuet ? 'Quét ' + x.soLanQuet + ' lần' + (x.quetCuoi ? ' · gần nhất ' + gio(x.quetCuoi) : '') : 'Chưa có lượt quét'; }
+  function theHtml(x) {
+    var ql = co('DANHGIA.QR_QUANLY');
+    return '<article class="the" data-ma="' + esc(x.ma) + '"><div class="qr">' + qrSvg(x.link) + '</div><b>' + esc(ten(x)) + '</b><small>' + esc(thongTin(x)) + '</small><div class="hanh">' +
+      '<button class="nut nut-vien" data-a="lon">Phóng to</button><button class="nut nut-vien" data-a="png">Tải ảnh</button><button class="nut nut-vien" data-a="link">Chép link</button><button class="nut nut-vien" data-a="tv" title="Link để mở trên màn hình TV">Màn hình TV</button>' +
+      (ql ? '<button class="nut nut-vien" data-a="doi">Đổi mã</button><button class="nut nut-do" data-a="thu">Thu hồi</button>' : '') + '</div></article>';
+  }
+  function ve() {
+    var ql = co('DANHGIA.QR_QUANLY'), tatCa = Q['DANHGIA.QR_XEM'].tatCa, h = '';
+    var cnTen = (CN_DS.filter(function (c) { return c.id === CN; })[0] || {}).ten || '';
+    if (tatCa) {
+      var chung = DS.filter(function (x) { return x.loai === 'chung'; });
+      h += '<section class="muc"><h2>🌐 Mã chung toàn chuỗi</h2><p>Một mã cho cả chuỗi — khách tự chọn chi nhánh và phòng. Dùng cho poster, mạng xã hội, màn hình quảng cáo.</p><div class="luoi">' +
+        (chung.length ? chung.map(theHtml).join('') : '<div class="the trong">Chưa có mã chung' + (ql ? '<button class="nut nut-tim nut-be" data-tao="chung">Tạo mã chung</button>' : '') + '</div>') + '</div></section>';
+    }
+    var cn = DS.filter(function (x) { return x.loai === 'chi_nhanh' && x.chiNhanhId === CN; });
+    h += '<section class="muc"><h2>🏠 Mã chi nhánh — ' + esc(cnTen) + '</h2><p>Một mã cho cả chi nhánh — khách chọn hoặc ghi số phòng. Dùng cho quầy lễ tân, bàn ghế, standee; hoặc chi nhánh chưa có danh sách phòng.</p><div class="luoi">' +
+      (cn.length ? cn.map(theHtml).join('') : '<div class="the trong">Chưa có mã chi nhánh' + (ql ? '<button class="nut nut-tim nut-be" data-tao="chi_nhanh">Tạo mã chi nhánh</button>' : '') + '</div>') + '</div></section>';
+    var ph = DS.filter(function (x) { return x.loai === 'phong' && x.chiNhanhId === CN; }).sort(function (a, b) { return a.phong.localeCompare(b.phong, 'vi', { numeric: true }); });
+    var thieu = THIEU.filter(function (x) { return x.chiNhanhId === CN; });
+    h += '<section class="muc"><h2>🚪 Mã theo phòng <span class="so">' + ph.length + ' phòng</span></h2><p>Mỗi phòng một mã — in tem dán tại phòng (hoặc hiển thị trên TV của phòng). Phản hồi biết đúng phòng nào, không cần khách ghi.</p>';
+    if (thieu.length) h += '<div class="ghi">Còn <b>' + thieu.length + '</b> phòng chưa có mã: ' + esc(thieu.map(function (x) { return x.ten; }).join(', ')) + '.' + (ql ? ' Bấm “Tạo mã cho phòng còn thiếu”.' : '') + '</div>';
+    if (!ph.length && !thieu.length) h += '<div class="ghi">Chi nhánh này <b>chưa có danh sách phòng</b> trong hệ thống — hãy dùng mã chi nhánh ở trên (khách tự ghi số phòng), hoặc nhờ IT nhập danh sách phòng rồi quay lại đây.</div>';
+    h += '<div class="luoi">' + ph.map(theHtml).join('') + '</div></section>';
+    $('vung').innerHTML = h;
+    $('nutInCN').hidden = !ph.length && !cn.length;
+    $('nutTaoLoat').disabled = !thieu.length && !!cn.length;
+  }
+
+  /* ───────────── Thao tác ───────────── */
+  function tim(ma) { return DS.filter(function (x) { return x.ma === ma; })[0]; }
+  function linkTv(x) { return new URL('qr.html?hien=' + encodeURIComponent(x.ma) + '&ten=' + encodeURIComponent(x.loai === 'phong' ? x.phong + ' · ' + x.chiNhanh : x.loai === 'chi_nhanh' ? x.chiNhanh : 'Boom Music Box'), location.href).href; }
+  function chep(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).then(function () { toast('Đã chép'); }, function () { toast(t); });
+    var a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); toast('Đã chép'); } catch (e) { toast(t); } a.remove();
+  }
+  async function taoMa(loai, phongId) {
+    var j = await api({ action: 'dg_qr_tao', loai: loai, chiNhanhId: loai === 'chung' ? '' : CN, phongId: phongId || '' });
+    if (j && j.ok) { toast('Đã tạo mã mới'); await tai(); } else toast('Không tạo được mã (' + ((j && j.error) || 'lỗi') + ')');
+  }
+  $('vung').addEventListener('click', async function (e) {
+    var t = e.target.closest('[data-tao]'); if (t) return taoMa(t.dataset.tao);
+    var b = e.target.closest('[data-a]'); if (!b) return;
+    var x = tim(b.closest('.the').dataset.ma); if (!x) return; var a = b.dataset.a;
+    if (a === 'lon') return phongTo(x);
+    if (a === 'png') return taiPng(x);
+    if (a === 'link') return chep(x.link);
+    if (a === 'tv') return chep(linkTv(x));
+    if (a === 'doi') {
+      if (!confirm('Đổi mã cho ' + ten(x) + '?\n\nTem đã in với mã CŨ sẽ KHÔNG còn dùng được — phải in và dán tem mới.')) return;
+      return taoMa(x.loai, x.phongId);
+    }
+    if (a === 'thu') {
+      if (!confirm('Thu hồi mã của ' + ten(x) + '?\n\nQuét mã này sẽ báo “mã không còn dùng”. Tem đã in sẽ vô hiệu.')) return;
+      var j = await api({ action: 'dg_qr_thuhoi', ma: x.ma });
+      if (j && j.ok) { toast('Đã thu hồi'); tai(); } else toast('Không thu hồi được');
+    }
+  });
+  $('nutTaoLoat').addEventListener('click', async function () {
+    var btn = this; btn.disabled = true;
+    try {
+      var j = await api({ action: 'dg_qr_tao_loat', chiNhanhId: CN });
+      if (j && j.ok) { toast('Đã tạo ' + j.soPhong + ' mã phòng' + (j.taoChiNhanh ? ' + mã chi nhánh' : '')); await tai(); } else toast('Không tạo được (' + ((j && j.error) || 'lỗi') + ')');
+    } catch (er) { toast('Không kết nối được'); } finally { btn.disabled = false; ve(); }
+  });
+
+  /* ───────────── Phóng to ───────────── */
+  function phongTo(x) {
+    var d = document.createElement('div'); d.className = 'phu';
+    d.innerHTML = '<div class="hop-lon"><div class="qr-lon">' + qrSvg(x.link) + '</div><h3>' + esc(ten(x)) + '</h3><p>' + esc(x.chiNhanh) + '<br>' + esc(x.link) + '</p><div class="hanh">' +
+      '<button class="nut nut-tim nut-be" data-k="png">Tải ảnh</button><button class="nut nut-vien nut-be" data-k="in">In tem này</button><button class="nut nut-vien nut-be" data-k="tv">Mở trên TV</button><button class="nut nut-vien nut-be" data-k="dong">Đóng</button></div></div>';
+    d.addEventListener('click', function (e) {
+      var k = e.target.closest('[data-k]'); if (!k && e.target !== d) return;
+      var a = k ? k.dataset.k : 'dong';
+      if (a === 'dong') d.remove(); else if (a === 'png') taiPng(x); else if (a === 'in') { d.remove(); inTem([x]); } else if (a === 'tv') window.open(linkTv(x), '_blank');
+    });
+    document.body.appendChild(d);
+  }
+
+  /* ───────────── Tải ảnh (PNG): QR + tên phòng, sẵn để gửi/in ───────────── */
+  function taiPng(x) {
+    var W = 900, H = 1100, c = document.createElement('canvas'); c.width = W; c.height = H; var g = c.getContext('2d');
+    function rr(px, py, w, h, r) { g.beginPath(); g.moveTo(px + r, py); g.arcTo(px + w, py, px + w, py + h, r); g.arcTo(px + w, py + h, px, py + h, r); g.arcTo(px, py + h, px, py, r); g.arcTo(px, py, px + w, py, r); g.closePath(); }
+    g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+    g.lineWidth = 8; g.strokeStyle = '#5b21a6'; rr(24, 24, W - 48, H - 48, 48); g.stroke();
+    g.textAlign = 'center'; g.fillStyle = '#5b21a6'; g.font = '700 58px "Be Vietnam Pro",system-ui,sans-serif'; g.fillText('ĐÁNH GIÁ DỊCH VỤ', W / 2, 120);
+    var q = qrDoi(x.link), n = q.getModuleCount(), tong = 640, ce = Math.floor(tong / n), kt = ce * n, ox = Math.round((W - kt) / 2), oy = 170;
+    g.fillStyle = '#fff'; g.fillRect(ox - 20, oy - 20, kt + 40, kt + 40); g.fillStyle = '#000';
+    for (var r = 0; r < n; r++) for (var k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect(ox + k * ce, oy + r * ce, ce, ce);
+    g.fillStyle = '#22163a'; g.font = '700 84px "Be Vietnam Pro",system-ui,sans-serif'; g.fillText(tenTem(x), W / 2, oy + kt + 130);
+    g.fillStyle = '#6b5f80'; g.font = '500 40px "Be Vietnam Pro",system-ui,sans-serif'; g.fillText(x.loai === 'chung' ? 'Chọn chi nhánh khi quét' : 'Boom Music Box · ' + x.chiNhanh, W / 2, oy + kt + 195);
+    g.font = '500 34px "Be Vietnam Pro",system-ui,sans-serif'; g.fillText('Quét mã để chấm điểm và góp ý', W / 2, oy + kt + 250);
+    c.toBlob(function (bl) {
+      var u = URL.createObjectURL(bl), a = document.createElement('a'); a.href = u; a.download = 'QR-danh-gia-' + (x.loai === 'phong' ? x.phong : x.loai === 'chi_nhanh' ? x.chiNhanh : 'chung').replace(/[^\wÀ-ỹ-]+/g, '-') + '.png';
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
+    }, 'image/png');
+  }
+
+  /* ───────────── In tem (A4, 3×4 tem/trang) ───────────── */
+  function inTem(ds) {
+    $('inSheet').innerHTML = ds.map(function (x) {
+      return '<div class="tem"><div class="t1">ĐÁNH GIÁ DỊCH VỤ</div><div class="qr-t">' + qrSvg(x.link) + '</div><div class="t2">' + esc(tenTem(x)) + '</div><div class="t3">' + esc(x.loai === 'chung' ? 'Chọn chi nhánh khi quét' : 'Boom Music Box · ' + x.chiNhanh) + '<br>Quét mã để chấm điểm và góp ý</div></div>';
+    }).join('');
+    document.body.classList.add('dang-in');
+    var xong = function () { document.body.classList.remove('dang-in'); window.removeEventListener('afterprint', xong); };
+    window.addEventListener('afterprint', xong);
+    window.print();
+    setTimeout(function () { if (document.body.classList.contains('dang-in') && !window.matchMedia('print').matches) xong(); }, 1500);
+  }
+  $('nutInCN').addEventListener('click', function () {
+    var ds = DS.filter(function (x) { return x.chiNhanhId === CN && (x.loai === 'phong' || x.loai === 'chi_nhanh'); })
+      .sort(function (a, b) { return (a.loai === b.loai ? 0 : a.loai === 'phong' ? -1 : 1) || (a.phong || '').localeCompare(b.phong || '', 'vi', { numeric: true }); });
+    if (!ds.length) return toast('Chưa có mã để in');
+    inTem(ds);
+  });
+
+  /* ───────────── Khởi động ───────────── */
+  var cu = doc(KHOA);
+  if (cu) { try { S = JSON.parse(cu); } catch (e) { S = null; } }
+  if (S && S.token) { napQuyen().then(function (ok) { if (ok) vaoApp(); else if (S) { S = null; luu(KHOA, null); $('manDangNhap').hidden = false; } }); } else { S = null; $('manDangNhap').hidden = false; }
+})();
+</script>
+</body>
+</html>

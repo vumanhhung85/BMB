@@ -53,6 +53,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--tim3);box-shadow:0 0 
 .dau .nguoi{text-align:right;line-height:1.2}
 #veQuanLy{color:#fff;text-decoration:none;font-weight:600;font-size:13px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28)}
 #veQuanLy:hover{background:rgba(255,255,255,.24)}
+#veQR{color:#fff;text-decoration:none;font-weight:600;font-size:13px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);white-space:nowrap}
+#veQR:hover{background:rgba(255,255,255,.24)}
 #veQuanLy,#nutThoat{white-space:nowrap}
 @media(max-width:520px){.dau .nguoi{display:none}.dau .phai{gap:6px}}
 .dau .nguoi small{display:block;opacity:.75;font-size:11px}
@@ -188,7 +190,7 @@ main{max-width:1040px;margin:0 auto;padding:14px 16px 90px}
     <div class="dau-trong">
       <img src="../Logo_BoomBox.png" alt="BOOM">
       <div class="ten">ĐÁNH GIÁ KHÁCH HÀNG<small id="phamViNho"></small></div>
-      <div class="phai"><div class="nguoi"><span id="tenNguoi"></span><small id="vaiTro"></small></div><a id="veQuanLy" href="../admin.html?khong_chuyen=1" title="Tài khoản, đổi mật khẩu, bảo trì…">Quản lý</a><button id="nutThoat" type="button">Thoát</button></div>
+      <div class="phai"><div class="nguoi"><span id="tenNguoi"></span><small id="vaiTro"></small></div><a id="veQR" href="qr.html" hidden title="In và quản lý mã QR đánh giá">Mã QR</a><a id="veQuanLy" href="../admin.html?khong_chuyen=1" title="Tài khoản, đổi mật khẩu, bảo trì…">Quản lý</a><button id="nutThoat" type="button">Thoát</button></div>
     </div>
     <nav class="tab"><button class="bat" data-tab="tq">Tổng quan</button><button data-tab="ds">Phiếu đánh giá <span id="soCanXL"></span></button></nav>
   </header>
@@ -311,6 +313,7 @@ main{max-width:1040px;margin:0 auto;padding:14px 16px 90px}
 
   function vaoApp() {
     $('manDangNhap').hidden = true; $('ungDung').hidden = false;
+    $('veQR').hidden = !co('DANHGIA.QR_XEM');
     $('tenNguoi').textContent = S.fullName || S.user; $('vaiTro').textContent = TEN_VT[S.role] || S.role;
     var xem = Q['DANHGIA.XEM'];
     $('phamViNho').textContent = xem.tatCa ? 'Toàn chuỗi' : (xem.chiNhanh.map(function (c) { return c.ten; }).join(', ') || 'Chi nhánh của bạn');

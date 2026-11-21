@@ -756,6 +756,7 @@ tbody tr:hover td{background:var(--hover)}
   <nav class="nav-g" aria-label="Danh mục"><small>Danh mục</small>
       <button class="nav-i" data-go="cd:chinhanh" onclick="diToi('cd:chinhanh')"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h1M14 10h1M9 14h1M14 14h1M10 21v-3h4v3"/></svg><span>Chi nhánh</span></button>
       <button class="nav-i" data-go="cd:taikhoan" onclick="diToi('cd:taikhoan')"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 3.13a4 4 0 0 1 0 7.75M22 21a7 7 0 0 0-5-6.7"/></svg><span>Tài khoản</span></button>
+      <button class="nav-i" id="sideQrDG" onclick="location.href='dg/qr.html'" style="display:none"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M17 20h4v-3"/></svg><span>Mã QR đánh giá</span></button>
       <button class="nav-i" data-go="cd:loaisuco" onclick="diToi('cd:loaisuco')"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/></svg><span>Loại sự cố</span></button>
   </nav>
   <nav class="nav-g" aria-label="Hệ thống"><small>Hệ thống</small>
@@ -2166,14 +2167,16 @@ function bamTabCaiDat(el){
 /** Kỹ thuật viên: tab "Bản đồ" = Bảo trì + view bản đồ (TAB vẫn là 'baotri'). */
 /* ─── ĐÁNH GIÁ KHÁCH HÀNG: tab chỉ hiện khi tài khoản CÓ QUYỀN (lấy từ máy chủ), không theo tên vai trò ─── */
 let QUYEN = {};
-function moTabDanhGia(){ location.href = 'dg/baocao.html'; }   // cùng cửa sổ, cùng phiên đăng nhập
+function moTabDanhGia(){ location.href = QUYEN['DANHGIA.XEM'] ? 'dg/baocao.html' : 'dg/qr.html'; }   // cùng cửa sổ, cùng phiên đăng nhập
 async function napQuyenDanhGia(){
   const tab = $('tabDanhGia'); tab.style.display = 'none';
+  const sq = $('sideQrDG'); if(sq) sq.style.display = 'none';
   try{
     const j = await api({ action:'quyen_cua_toi' }, { nen:true });
     QUYEN = (j && j.ok && j.quyen) || {};
   }catch(e){ QUYEN = {}; }   // Worker chưa cập nhật / mất mạng → đơn giản là không hiện tab
-  if(SESSION) tab.style.display = QUYEN['DANHGIA.XEM'] ? '' : 'none';
+  if(SESSION) tab.style.display = (QUYEN['DANHGIA.XEM'] || QUYEN['DANHGIA.QR_XEM']) ? '' : 'none';
+  if(SESSION && sq) sq.style.display = QUYEN['DANHGIA.QR_XEM'] ? '' : 'none';
 }
 function moTabBanDo(el){
   switchTab(document.querySelector('.tab[data-t="baotri"]'));
