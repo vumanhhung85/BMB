@@ -2177,7 +2177,7 @@ function bamTabCaiDat(el){
    dongKhiBack() }. Vỏ chỉ đưa cho module đúng 1 cầu nối: MOD_CTX (bên dưới).
    Thêm module mới: (1) thêm 1 dòng vào MODULES; (2) 1 nút .tab data-t="<tên>" + 1 khung <div id="mod_<tên>">;
    (3) quy tắc hiện tab theo quyền trong napQuyenModule(). Đổi MOD_VER mỗi lần sửa file module (xoá bộ đệm). */
-const MOD_VER = '20261121d';
+const MOD_VER = '20261122a';
 const MODULES = {
   danhgia: { src:'mod/danhgia.js', ten:'Đánh giá khách hàng' },
 };
@@ -2194,6 +2194,27 @@ function napModule(k){
     document.head.appendChild(s);
   });
   return _napMod[k];
+}
+/* Module PHỤ (không phải tab): nạp khi cần, vd hộp "Phân quyền" (mod/quyen.js). Cùng cầu nối MOD_CTX. */
+const MODULES_PHU = { quyen: { src:'mod/quyen.js', ten:'Phân quyền' } };
+const _napPhu = {};
+function napModulePhu(k){
+  if(window.BMB_MOD && window.BMB_MOD[k]) return Promise.resolve(window.BMB_MOD[k]);
+  if(_napPhu[k]) return _napPhu[k];
+  _napPhu[k] = new Promise((ok, loi) => {
+    const s = document.createElement('script');
+    s.src = MODULES_PHU[k].src + '?v=' + MOD_VER;
+    s.onload = () => (window.BMB_MOD && window.BMB_MOD[k]) ? ok(window.BMB_MOD[k]) : (delete _napPhu[k], loi(new Error('MODULE')));
+    s.onerror = () => { delete _napPhu[k]; loi(new Error('MODULE')); };
+    document.head.appendChild(s);
+  });
+  return _napPhu[k];
+}
+/** Admin: mở hộp tick chọn quyền cho 1 tài khoản (kiêm nhiệm, quản lý vùng, ngoại lệ). */
+async function moPhanQuyen(taikhoan){
+  const u = TAIKHOAN_LIST.find(x => x.taikhoan === taikhoan); if(!u) return;
+  try{ const m = await napModulePhu('quyen'); m.moChoTaiKhoan(MOD_CTX, u); }
+  catch(e){ toast('Không tải được hộp phân quyền. Kiểm tra mạng rồi thử lại.','bad'); }
 }
 const MOD_CTX = {
   api: (payload, tuyChon) => api(payload, tuyChon),
@@ -2221,6 +2242,7 @@ async function moModule(k){
 /** Nút Back của điện thoại: hỏi các module đã nạp xem có lớp phủ nào đang mở để đóng không. */
 function dongModuleKhiBack(){
   for(const k in MODULES){ const m = window.BMB_MOD && window.BMB_MOD[k]; if(m && m.dongKhiBack && m.dongKhiBack()) return true; }
+  for(const k in MODULES_PHU){ const m = window.BMB_MOD && window.BMB_MOD[k]; if(m && m.dongKhiBack && m.dongKhiBack()) return true; }
   return false;
 }
 
@@ -5482,6 +5504,7 @@ function drawTaiKhoanList(){
         <button class="kebab-btn" onclick="toggleKebab(this,event)">⋮</button>
         <div class="kebab-menu">
           <button class="kebab-item" onclick="openSuaTaiKhoan('${esc(u.taikhoan)}')">Sửa</button>
+          ${(SESSION && SESSION.role==='admin') ? `<button class="kebab-item" onclick="moPhanQuyen('${esc(u.taikhoan)}')">Phân quyền (tick chọn)…</button>` : ''}
           <button class="kebab-item" onclick="chanBamKep(this,adminDoiMatKhau,'${esc(u.taikhoan)}')">Đổi mật khẩu</button>
           ${u.vaitro!=='admin' ? `<button class="kebab-item ${u.doiMkBat?'bad':'ok'}" onclick="chanBamKep(this,adminToggleDoiMK,'${esc(u.taikhoan)}',${!u.doiMkBat})">${u.doiMkBat?'Khoá tự đổi mật khẩu':'Mở tự đổi mật khẩu'}</button>` : ''}
           <button class="kebab-item ${u.kichhoat?'bad':'ok'}" onclick="chanBamKep(this,adminToggleKichHoat,'${esc(u.taikhoan)}',${!u.kichhoat})">${u.kichhoat?'Vô hiệu hoá':'Bật lại'}</button>
