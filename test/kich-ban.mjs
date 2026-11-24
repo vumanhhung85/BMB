@@ -429,6 +429,165 @@ kb('Bot: admin kết nối qua /start → lời chào đúng vai trò; /viec cho
   dung(/2 sự cố chưa đóng/.test(v) && /Mới báo[^\n]*<b>1<\/b>/.test(v) && /Đã tiếp nhận[^\n]*<b>1<\/b>/.test(v), '/viec admin: ' + v);
 });
 
+/* ───────── Bảo trì + Đặt phòng theo QUYỀN chức năng × phạm vi (24/11/2026) ───────── */
+const { createHash: _ch } = await import('node:crypto');
+const _sha = x => _ch('sha256').update(x).digest('hex');
+/** Thêm tài khoản thử (mật khẩu 1234) rồi đăng nhập — dùng cho vai trò không có sẵn trong môi trường (giám sát…). */
+async function themTK(m, u, vaiTro, cn = null) {
+  m.sql(`INSERT INTO tai_khoan (username, mat_khau_hash, ho_ten, vai_tro, chi_nhanh_id, sieu_admin, tao_luc) VALUES (?,?,?,?,?,0,?)`,
+    u, 'legacy_sha256$' + _sha(_sha(u + '::1234::boom') + 'legacy-test'), 'TK ' + u, vaiTro, cn, Date.now());
+  return m.dangNhap(u);
+}
+const cap = async (m, taikhoan, quyen, phamVi) => {
+  const r = await m.goi('quyen_cap', { taikhoan, quyen, phamVi }, m.tk.admin);
+  dung(r.ok, 'cấp ' + quyen + ' ' + phamVi + ' cho ' + taikhoan + ': ' + r.error);
+  return r.id;
+};
+const dsMa = async (m, token) => ((await m.goi('suco_list', {}, token)).data || []).map(x => x.maSuCo);
+
+kb('Quyền mặc định: quản lý có BAOTRI.XEM/BAO/XACNHAN + DATPHONG.XEM/DUYET ở chi nhánh mình; admin có đủ toàn chuỗi; danh mục có nhóm mới', async () => {
+  const m = await chuanBi();
+  const q = (await m.goi('quyen_cua_toi', {}, m.tk.ql01)).quyen;
+  for (const k of ['BAOTRI.XEM', 'BAOTRI.BAO', 'BAOTRI.XACNHAN', 'DATPHONG.XEM', 'DATPHONG.DUYET'])
+    dung(q[k] && !q[k].tatCa && q[k].chiNhanh.length === 1 && q[k].chiNhanh[0].id === 'CN01', 'quản lý ' + k);
+  for (const k of ['BAOTRI.TIEPNHAN', 'BAOTRI.DIEUPHOI', 'BAOTRI.DONG']) dung(!q[k], 'quản lý KHÔNG có ' + k);
+  const qa = (await m.goi('quyen_cua_toi', {}, m.tk.admin)).quyen;
+  for (const k of ['BAOTRI.XEM', 'BAOTRI.TIEPNHAN', 'BAOTRI.DIEUPHOI', 'BAOTRI.DONG', 'DATPHONG.DUYET']) dung(qa[k] && qa[k].tatCa, 'admin ' + k);
+  const qk = (await m.goi('quyen_cua_toi', {}, m.tk.kt1)).quyen;
+  dung(!Object.keys(qk).some(k => k.startsWith('BAOTRI') || k.startsWith('DATPHONG')), 'kỹ thuật không có quyền theo chi nhánh');
+  const ql = await m.goi('quyen_list', { taikhoan: 'ql02' }, m.tk.admin);
+  dung(ql.danhMuc['BAOTRI.DIEUPHOI'] && ql.danhMuc['DATPHONG.DUYET'], 'danh mục có quyền mới');
+  dung(ql.macDinh.quyen.some(x => x.quyen === 'BAOTRI.XACNHAN' && x.phamVi === 'CN:CN02'), 'mặc định theo vai trò hiện trong hộp tick');
+});
+
+kb('Cấp thêm BAOTRI.XEM chi nhánh khác: thấy danh sách + lịch sử + delta, KHÔNG báo/xác nhận/nhắn ở đó; thu hồi → mất ngay', async () => {
+  const m = await chuanBi();
+  const t2 = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'Loa CN02', phong: 'P2' }, m.tk.ql02);
+  dung(!(await dsMa(m, m.tk.ql01)).includes(t2.maSuCo), 'trước khi cấp: không thấy phiếu CN02');
+  const id = await cap(m, 'ql01', 'BAOTRI.XEM', 'CN02');
+  dung((await dsMa(m, m.tk.ql01)).includes(t2.maSuCo), 'sau khi cấp: thấy phiếu CN02');
+  bang((await m.goi('suco_lichsu', { maSuCo: t2.maSuCo }, m.tk.ql01)).ok, true, 'xem lịch sử phiếu CN02');
+  const dl = await m.goi('suco_list', { sau: Date.now() - 60e3 }, m.tk.ql01);
+  dung(dl.delta && dl.data.some(x => x.maSuCo === t2.maSuCo && !x.an), 'delta có phiếu CN02');
+  bang((await m.goi('suco_traodoi', { maSuCo: t2.maSuCo, noiDung: 'hỏi' }, m.tk.ql01)).error, 'FORBIDDEN', 'chỉ xem: không nhắn');
+  bang((await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'x', chinhanhId: 'CN02' }, m.tk.ql01)).error, 'FORBIDDEN', 'không báo hộ CN02');
+  const t1 = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'Mic CN01', phong: 'P1' }, m.tk.ql01);
+  bang(m.sql('SELECT chi_nhanh_id c FROM su_co WHERE ma_su_co=?', t1.maSuCo)[0].c, 'CN01', 'không gửi chi nhánh → vẫn báo cho chi nhánh mình');
+  bang((await m.goi('quyen_thu', { id }, m.tk.admin)).ok, true);
+  dung(!(await dsMa(m, m.tk.ql01)).includes(t2.maSuCo), 'thu hồi → không thấy nữa');
+  bang((await m.goi('suco_lichsu', { maSuCo: t2.maSuCo }, m.tk.ql01)).error, 'FORBIDDEN', 'thu hồi → không xem lịch sử');
+  dung((await m.goi('suco_list', { sau: Date.now() - 60e3 }, m.tk.ql01)).data.every(x => x.maSuCo !== t2.maSuCo), 'delta không lộ mã phiếu CN02 sau thu hồi');
+});
+
+kb('Cấp BAOTRI.TIEPNHAN + DIEUPHOI theo chi nhánh: tiếp nhận/phân công/làm thay ở chi nhánh đó, không ở chi nhánh khác; có danh sách + vị trí kỹ thuật', async () => {
+  const m = await chuanBi();
+  bang((await m.goi('kythuat_list', {}, m.tk.ql01)).error, 'FORBIDDEN', 'chưa cấp: không có danh sách kỹ thuật');
+  await cap(m, 'ql01', 'BAOTRI.TIEPNHAN', 'CN01'); await cap(m, 'ql01', 'BAOTRI.DIEUPHOI', 'CN01');
+  const a = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'A', phong: 'P1' }, m.tk.ql01);
+  const b = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'B', phong: 'P2' }, m.tk.ql02);
+  bang((await m.goi('suco_tiepnhan', { maSuCo: a.maSuCo, mucDo: 2 }, m.tk.ql01)).ok, true, 'tiếp nhận CN01');
+  bang((await m.goi('suco_tiepnhan', { maSuCo: b.maSuCo }, m.tk.ql01)).error, 'FORBIDDEN', 'không tiếp nhận CN02');
+  bang((await m.goi('suco_dieuphoi', { maSuCo: a.maSuCo, kyThuat: 'kt1' }, m.tk.ql01)).ok, true, 'phân công CN01');
+  bang((await m.goi('suco_nhanviec', { maSuCo: a.maSuCo }, m.tk.ql01)).ok, true, 'người điều phối nhận việc thay kỹ thuật');
+  await m.goi('suco_tiepnhan', { maSuCo: b.maSuCo }, m.tk.admin);
+  bang((await m.goi('suco_dieuphoi', { maSuCo: b.maSuCo, kyThuat: 'kt1' }, m.tk.ql01)).error, 'FORBIDDEN', 'không phân công CN02');
+  const kd = await m.goi('khoi_dong', {}, m.tk.ql01);
+  dung(Array.isArray(kd.kythuat) && kd.kythuat.length >= 2, 'khoi_dong trả danh sách kỹ thuật cho người điều phối');
+  bang((await m.goi('kythuat_vitri_list', {}, m.tk.ql01)).ok, true, 'xem vị trí kỹ thuật');
+  bang((await m.goi('suco_dong', { maSuCo: a.maSuCo }, m.tk.ql01)).error, 'FORBIDDEN', 'không có BAOTRI.DONG → không đóng');
+});
+
+kb('Giám sát được cấp BAOTRI.XEM + DATPHONG.XEM toàn chuỗi: thấy mọi phiếu và đơn, không duyệt đơn, không báo sự cố', async () => {
+  const m = await chuanBi();
+  const gs = await themTK(m, 'gs1', 'giamsat');
+  const t = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'A', phong: 'P1' }, m.tk.ql02);
+  await m.goi('book', { branchId: 'CN01', date: new Date(Date.now() + 7 * 3600e3 + 864e5).toISOString().slice(0, 10), startTime: '19:00', endTime: '21:00', duration: 2, name: 'Khách A', phone: '0912345678' });
+  bang((await dsMa(m, gs)).length, 0, 'mặc định giám sát không thấy bảo trì');
+  bang(((await m.goi('list', {}, gs)).data || []).length, 0, 'mặc định giám sát không thấy đơn');
+  await cap(m, 'gs1', 'BAOTRI.XEM', 'TATCA'); await cap(m, 'gs1', 'DATPHONG.XEM', 'TATCA');
+  dung((await dsMa(m, gs)).includes(t.maSuCo), 'thấy phiếu mọi chi nhánh');
+  const don = (await m.goi('list', {}, gs)).data;
+  bang(don.length, 1, 'thấy đơn giữ phòng');
+  bang((await m.goi('update', { code: don[0].code, status: 'approved' }, gs)).error, 'FORBIDDEN', 'không duyệt đơn');
+  bang((await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'x', chinhanhId: 'CN01' }, gs)).error, 'FORBIDDEN', 'không báo sự cố');
+});
+
+kb('Kỹ thuật KHÔNG tự xác nhận phiếu ở chi nhánh gốc của mình (trước đây lọt); quản lý chi nhánh vẫn xác nhận được', async () => {
+  const m = await chuanBi();
+  const ma = await m.taoVaGiao();
+  bang((await m.goi('suco_baoxong', { maSuCo: ma, ghiChu: 'xong' }, m.tk.kt1)).ok, true);
+  bang((await m.goi('suco_xacnhan', { maSuCo: ma, xong: true }, m.tk.kt1)).error, 'FORBIDDEN', 'kỹ thuật (gốc Tây Hòa) không tự xác nhận');
+  bang((await m.goi('suco_xacnhan', { maSuCo: ma, xong: true }, m.tk.ql02)).error, 'FORBIDDEN', 'quản lý chi nhánh khác');
+  bang((await m.goi('suco_xacnhan', { maSuCo: ma, xong: true }, m.tk.ql01)).ok, true, 'quản lý Tây Hòa xác nhận');
+});
+
+kb('Kỹ thuật không còn đọc được đơn giữ phòng (dữ liệu khách) qua action list — trước đây lọt theo chi nhánh gốc', async () => {
+  const m = await chuanBi();
+  await m.goi('book', { branchId: 'CN01', date: new Date(Date.now() + 7 * 3600e3 + 864e5).toISOString().slice(0, 10), startTime: '19:00', endTime: '21:00', duration: 2, name: 'Khách A', phone: '0912345678' });
+  bang(((await m.goi('list', {}, m.tk.ql01)).data || []).length, 1, 'quản lý thấy đơn');
+  bang(((await m.goi('list', {}, m.tk.kt1)).data || []).length, 0, 'kỹ thuật không thấy');
+});
+
+kb('Đặt phòng: cấp DATPHONG.XEM + DUYET chi nhánh khác → thấy và duyệt được đơn ở đó; chỉ XEM thì không duyệt', async () => {
+  const m = await chuanBi();
+  const ngay = new Date(Date.now() + 7 * 3600e3 + 864e5).toISOString().slice(0, 10);
+  await m.goi('book', { branchId: 'CN02', date: ngay, startTime: '19:00', endTime: '21:00', duration: 2, name: 'Khách B', phone: '0912345679' });
+  bang(((await m.goi('list', {}, m.tk.ql01)).data || []).length, 0, 'chưa cấp: không thấy đơn CN02');
+  await cap(m, 'ql01', 'DATPHONG.XEM', 'CN02');
+  const don = (await m.goi('list', {}, m.tk.ql01)).data;
+  bang(don.length, 1, 'thấy đơn CN02');
+  bang((await m.goi('update', { code: don[0].code, status: 'approved' }, m.tk.ql01)).error, 'FORBIDDEN', 'chỉ xem: không duyệt');
+  await cap(m, 'ql01', 'DATPHONG.DUYET', 'CN02');
+  bang((await m.goi('update', { code: don[0].code, status: 'approved' }, m.tk.ql01)).ok, true, 'có DUYET: duyệt được');
+});
+
+kb('Telegram theo phạm vi quyền: người được cấp xem chi nhánh nhận tin sự cố/đơn của chi nhánh đó, không nhận chi nhánh khác; thu hồi thì thôi', async () => {
+  const m = await chuanBi();
+  const gs = await themTK(m, 'gs1', 'giamsat');
+  await m.noiTG('gs1', 7001);
+  const idX = await cap(m, 'gs1', 'BAOTRI.XEM', 'CN02');
+  m.xoaTin();
+  const a = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'A', phong: 'P1' }, m.tk.ql01);
+  const b = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'B', phong: 'P2' }, m.tk.ql02);
+  dung(m.tin(7001).some(x => x.text.includes(b.maSuCo)), 'nhận sự cố mới của CN02');
+  dung(!m.tin(7001).some(x => x.text.includes(a.maSuCo)), 'không nhận sự cố của CN01');
+  m.xoaTin();
+  const ngay = new Date(Date.now() + 7 * 3600e3 + 864e5).toISOString().slice(0, 10);
+  await m.goi('book', { branchId: 'CN02', date: ngay, startTime: '19:00', endTime: '21:00', duration: 2, name: 'Khách B', phone: '0912345679' });
+  dung(!m.tin(7001).some(x => /giữ phòng/i.test(x.text)), 'chưa có DATPHONG.XEM → không nhận tin đơn');
+  await cap(m, 'gs1', 'DATPHONG.XEM', 'CN02');
+  m.xoaTin();
+  await m.goi('book', { branchId: 'CN02', date: ngay, startTime: '20:00', endTime: '22:00', duration: 2, name: 'Khách C', phone: '0912345670' });
+  dung(m.tin(7001).some(x => /giữ phòng/i.test(x.text)), 'có DATPHONG.XEM → nhận tin đơn mới');
+  await m.goi('quyen_thu', { id: idX }, m.tk.admin);
+  m.xoaTin();
+  await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'C', phong: 'P3' }, m.tk.ql02);
+  bang(m.tin(7001).length, 0, 'thu hồi → hết nhận tin sự cố');
+  // Quản lý chi nhánh vẫn nhận như cũ, và có cấp thêm quyền trùng chi nhánh mình cũng KHÔNG bị nhận 2 lần
+  await m.noiTG('ql02', 7002);
+  await cap(m, 'ql02', 'BAOTRI.XEM', 'TATCA');
+  m.xoaTin();
+  const d = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'D', phong: 'P4', chinhanhId: 'CN02' }, m.tk.admin);
+  bang(m.tin(7002).filter(x => x.text.includes(d.maSuCo)).length, 1, 'quản lý CN02 nhận đúng 1 tin');
+  void gs;
+});
+
+kb('/viec theo phạm vi: quản lý được cấp thêm chi nhánh thấy sự cố cả 2 chi nhánh; giám sát chưa được giao → báo chưa có', async () => {
+  const m = await chuanBi();
+  await themTK(m, 'gs1', 'giamsat');
+  await m.noiTG('ql01', 7101); await m.noiTG('gs1', 7102);
+  m.sql("UPDATE tai_khoan SET telegram_id='' WHERE username IN ('ql01','gs1')");
+  await cap(m, 'ql01', 'BAOTRI.XEM', 'CN02');
+  const a = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'A', phong: 'P1' }, m.tk.ql01);
+  const b = await m.goi('suco_tao', { loaiLoi: 'am_thanh', moTa: 'B', phong: 'P2' }, m.tk.ql02);
+  m.xoaTin();
+  await m.webhook({ update_id: 11, message: { message_id: 11, chat: { id: 7101, type: 'private' }, from: { id: 7101 }, text: '/viec' } });
+  const v = (m.tin(7101)[0] || {}).text || '';
+  dung(v.includes(a.maSuCo) && v.includes(b.maSuCo) && /2 chi nhánh/.test(v), '/viec quản lý vùng: ' + v);
+  await m.webhook({ update_id: 12, message: { message_id: 12, chat: { id: 7102, type: 'private' }, from: { id: 7102 }, text: '/viec' } });
+  dung(/chưa được giao/.test((m.tin(7102)[0] || {}).text || ''), '/viec giám sát chưa được giao');
+});
+
 /* ───────── kiểm tên action ───────── */
 kb('Mọi action admin.html / index.html gọi đều có trong Worker', async () => {
   const { thieu } = kiemTraAction();

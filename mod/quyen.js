@@ -25,13 +25,20 @@
   /* Quyền phụ thuộc: có quyền bên trái thì phải có quyền bên phải (ở phạm vi bằng hoặc rộng hơn) mới dùng được */
   var CAN = {
     'DANHGIA.XULY': 'DANHGIA.XEM', 'DANHGIA.XEM_SDT': 'DANHGIA.XEM', 'DANHGIA.XUAT': 'DANHGIA.XEM',
-    'DANHGIA.QR_QUANLY': 'DANHGIA.QR_XEM'
+    'DANHGIA.QR_QUANLY': 'DANHGIA.QR_XEM',
+    // Bảo trì + Đặt phòng (24/11/2026): mọi thao tác trên phiếu/đơn đều cần thấy được phiếu/đơn đó
+    'BAOTRI.BAO': 'BAOTRI.XEM', 'BAOTRI.XACNHAN': 'BAOTRI.XEM', 'BAOTRI.TIEPNHAN': 'BAOTRI.XEM',
+    'BAOTRI.DIEUPHOI': 'BAOTRI.XEM', 'BAOTRI.DONG': 'BAOTRI.XEM',
+    'DATPHONG.DUYET': 'DATPHONG.XEM'
   };
-  var NHAY_CAM = { 'DANHGIA.XEM_SDT': 1, 'DANHGIA.XUAT': 1 };   // dữ liệu cá nhân của khách
+  var NHAY_CAM = { 'DANHGIA.XEM_SDT': 1, 'DANHGIA.XUAT': 1, 'DATPHONG.XEM': 1 };   // dữ liệu cá nhân của khách (SĐT, tên)
   var MAU = [
-    { ten: 'Chỉ xem báo cáo', mo: 'Xem số liệu và phiếu, không gọi được khách', q: ['DANHGIA.XEM'] },
-    { ten: 'Xử lý khiếu nại', mo: 'Xem, xem số điện thoại, ghi nhận xử lý', q: ['DANHGIA.XEM', 'DANHGIA.XEM_SDT', 'DANHGIA.XULY'] },
-    { ten: 'Toàn quyền nghiệp vụ', mo: 'Như giám sát chất lượng (có xuất Excel, xem mã QR)', q: ['DANHGIA.XEM', 'DANHGIA.XULY', 'DANHGIA.XEM_SDT', 'DANHGIA.XUAT', 'DANHGIA.QR_XEM'] }
+    { ten: 'Chỉ xem báo cáo', mo: 'Đánh giá: xem số liệu và phiếu, không gọi được khách', q: ['DANHGIA.XEM'] },
+    { ten: 'Xử lý khiếu nại', mo: 'Đánh giá: xem, xem số điện thoại, ghi nhận xử lý', q: ['DANHGIA.XEM', 'DANHGIA.XEM_SDT', 'DANHGIA.XULY'] },
+    { ten: 'Toàn quyền nghiệp vụ', mo: 'Đánh giá: như giám sát chất lượng (có xuất Excel, xem mã QR)', q: ['DANHGIA.XEM', 'DANHGIA.XULY', 'DANHGIA.XEM_SDT', 'DANHGIA.XUAT', 'DANHGIA.QR_XEM'] },
+    { ten: 'Quản lý vùng', mo: 'Như quản lý chi nhánh: xem, báo, xác nhận sự cố; xem + duyệt đơn', q: ['BAOTRI.XEM', 'BAOTRI.BAO', 'BAOTRI.XACNHAN', 'DATPHONG.XEM', 'DATPHONG.DUYET'] },
+    { ten: 'Điều phối bảo trì', mo: 'Tiếp nhận, phân công kỹ thuật, đóng phiếu', q: ['BAOTRI.XEM', 'BAOTRI.TIEPNHAN', 'BAOTRI.DIEUPHOI', 'BAOTRI.DONG'] },
+    { ten: 'Chỉ theo dõi sự cố', mo: 'Xem phiếu và lịch sử xử lý, không thao tác', q: ['BAOTRI.XEM'] }
   ];
   var LOI = {
     FORBIDDEN: 'Chỉ tài khoản quản trị mới được phân quyền.', KHONG_TU_CAP: 'Không thể tự cấp quyền cho chính mình. Hãy nhờ một quản trị khác.',
