@@ -809,6 +809,10 @@ kb('Module Bảo trì (mod/baotri.js): tải đúng 1 lần trước khi vẽ ch
     await trang.waitForSelector('#modalOverlay', { state: 'hidden' });
     dung(await trang.isVisible('#ctaBaoSuCo'), 'vẫn ở trang Sự cố sau khi lùi');
     dung(await trang.evaluate(() => !!document.getElementById('modBaoTriCss')), 'CSS của module đã gắn');
+    // Số phiên bản: module tải kèm đúng số của trang (xoá bộ đệm), Tài khoản của tôi ghi cả 2 số
+    dung(nap[0].includes('v=' + await trang.evaluate(() => PHIEN_BAN_GD)), 'module tải kèm ?v=<số phiên bản trang>');
+    await trang.evaluate(() => diToi('cd:canhan'));
+    dung(/Phiên bản giao diện \d{4}\.\d{2}\.\d{2}-\d+ · máy chủ \d{4}\.\d{2}\.\d{2}-\d+/.test(await trang.textContent('#phienBanTxt')), 'hiện 2 số phiên bản: ' + await trang.textContent('#phienBanTxt'));
     bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
   } finally { await trinh.close(); }
 });

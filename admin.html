@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<!-- Số phiên bản giao diện — TĂNG mỗi lần sửa admin.html hoặc mod/*.js (dùng luôn làm MOD_VER để trình duyệt tải lại module).
+     Kiểm tra bản đang chạy trên GitHub Pages: đọc thẻ này ở boommusicbox.vn/admin.html. -->
+<meta name="bmb-phien-ban" content="2026.11.24-2">
 <title>Bảng điều khiển — Boom Music Box</title>
 <link rel="icon" href="Logo_BoomBox.png" id="favicon">
 <link rel="manifest" href="manifest-admin.webmanifest">
@@ -1286,6 +1289,7 @@ tbody tr:hover td{background:var(--hover)}
         <div>
           <h3 style="font-size:18px;margin-bottom:6px">Đổi mật khẩu của tôi</h3>
           <p style="color:var(--txt-mute);font-size:13.5px">Tài khoản đang đăng nhập: <span id="tkmTaiKhoanHienTai" style="color:var(--txt)"></span></p>
+          <p style="color:var(--txt-mute);font-size:12px;margin-top:4px" id="phienBanTxt"></p>
         </div>
         <span class="ff-toggle"><span class="ff-txt-closed">Xem thêm</span><span class="ff-txt-open">Thu gọn</span><span class="ff-chevron">▾</span></span>
       </button>
@@ -1821,7 +1825,10 @@ function bamTabCaiDat(el){
    dongKhiBack() }. Vỏ chỉ đưa cho module đúng 1 cầu nối: MOD_CTX (bên dưới).
    Thêm module mới: (1) thêm 1 dòng vào MODULES; (2) 1 nút .tab data-t="<tên>" + 1 khung <div id="mod_<tên>">;
    (3) quy tắc hiện tab theo quyền trong napQuyenModule(). Đổi MOD_VER mỗi lần sửa file module (xoá bộ đệm). */
-const MOD_VER = '20261124c';
+/* Một số duy nhất cho cả trang + module: lấy từ thẻ <meta name="bmb-phien-ban"> đầu file (tăng số đó mỗi lần sửa giao diện). */
+const PHIEN_BAN_GD = (document.querySelector('meta[name="bmb-phien-ban"]') || {}).content || '';
+const MOD_VER = PHIEN_BAN_GD || '20261124c';
+let PHIEN_BAN_MC = '';   // số phiên bản Worker (khoi_dong trả về)
 const MODULES = {
   danhgia: { src:'mod/danhgia.js', ten:'Đánh giá khách hàng' },
   'dat-phong': { src:'mod/datphong.js', ten:'Đặt phòng' },   // 24/11/2026: giao diện Đặt phòng; DỮ LIỆU đơn + thông báo vẫn ở vỏ
@@ -2580,6 +2587,7 @@ async function khoiDongDuLieu(){
     khoiDongLanThu = 0;
 
     if(j.settings) PUBLIC_SETTINGS = j.settings;
+    if(j.phienBanMayChu) PHIEN_BAN_MC = j.phienBanMayChu;
     const quyenCu = JSON.stringify(QUYEN);
     if(j.quyen) QUYEN = j.quyen;   // quyền thật (24/11/2026) — trước mọi chỗ dựng giao diện theo quyền bên dưới
     BRANCHES = j.branches || [];
@@ -3225,6 +3233,7 @@ function switchTab(el, khongTai){   // khongTai = true: chỉ đổi giao diện
   }
   else if(isCaiDat){
     $('tkmTaiKhoanHienTai').textContent = '@'+SESSION.user;
+    $('phienBanTxt').textContent = 'Phiên bản giao diện ' + (PHIEN_BAN_GD || '—') + ' · máy chủ ' + (PHIEN_BAN_MC || '—');
     capNhatUIVanTay();
     veOChonXemSuCo();
     capNhatUIDoiMK();

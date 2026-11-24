@@ -588,6 +588,15 @@ kb('/viec theo phạm vi: quản lý được cấp thêm chi nhánh thấy sự
   dung(/chưa được giao/.test((m.tin(7102)[0] || {}).text || ''), '/viec giám sát chưa được giao');
 });
 
+kb('Số phiên bản: ping trả phienBan (+ mã triển khai khi có binding), khoi_dong trả phienBanMayChu', async () => {
+  const m = await chuanBi({ env: { CF_VERSION_METADATA: { id: 'abc12345-0000', timestamp: '2026-11-24T13:00:00Z' } } });
+  const r = await (await m.worker.fetch(new Request('https://bmb-test.local/?action=ping'), m.env, { waitUntil: () => {} })).json();
+  dung(/^\d{4}\.\d{2}\.\d{2}-\d+$/.test(r.phienBan), 'phienBan dạng NĂM.THÁNG.NGÀY-lần: ' + r.phienBan);
+  bang(r.banTrienKhai && r.banTrienKhai.id, 'abc12345-0000', 'mã triển khai Cloudflare');
+  const kd = await m.goi('khoi_dong', {}, m.tk.ql01);
+  bang(kd.phienBanMayChu, r.phienBan, 'khoi_dong cùng số phiên bản');
+});
+
 /* ───────── kiểm tên action ───────── */
 kb('Mọi action admin.html / index.html gọi đều có trong Worker', async () => {
   const { thieu } = kiemTraAction();
