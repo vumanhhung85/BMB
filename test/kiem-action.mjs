@@ -1,10 +1,10 @@
-/* Kiểm tên action: mọi action mà admin.html / index.html gọi phải có trong Worker.
+/* Kiểm tên action: mọi action mà admin.html / index.html / mod/*.js / dg/*.html gọi phải có trong Worker.
    Lý do: frontend gọi một action Worker chưa có → máy chủ trả CHUA_HO_TRO, nút bấm "im lặng" không
    làm gì (đúng loại lỗi qlcv gọi là unknown_action). Hay gặp nhất khi thay admin.html TRƯỚC khi deploy
    Worker mới. Chạy trước khi giao file:   node test/kiem-action.mjs
-   (tuỳ chọn --worker <đường dẫn>, mặc định test/.nguon/worker.js)
+   (tuỳ chọn --worker <đường dẫn>; mặc định lấy ở kho riêng BMB-worker nằm cạnh kho này, xem moi-truong.mjs)
    Kết quả: liệt kê action thiếu (lỗi, thoát mã 1) và action Worker có mà frontend không gọi (chỉ để biết). */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DUONG_WORKER } from './moi-truong.mjs';
@@ -51,7 +51,10 @@ export function kiemTraAction(duongWorker = DUONG_WORKER) {
   const coGet = new Set([...w.matchAll(/\ba === '([a-z_0-9]+)'/g)].map(m => m[1]));
 
   const thieu = [], dung = new Set();
-  for (const file of ['admin.html', 'index.html']) {
+  // Vỏ admin.html + trang khách + các module (mod/*.js) + trang đánh giá (dg/*.html) — module mới tự được kiểm.
+  const dsFile = ['admin.html', 'index.html',
+    ...['mod', 'dg'].flatMap(d => existsSync(join(GOC, d)) ? readdirSync(join(GOC, d)).filter(f => /\.(js|html)$/.test(f) && f !== 'qrcode.js').map(f => d + '/' + f) : [])];
+  for (const file of dsFile) {
     const h = readFileSync(join(GOC, file), 'utf-8');
     // action:'x' nằm trong URLSearchParams({...}) là lời gọi GET (vd trang chủ gọi ?action=trangchu)
     const post = new Set(), get = new Set([...h.matchAll(/[?&]action=([a-z_0-9]+)/g)].map(m => m[1]));

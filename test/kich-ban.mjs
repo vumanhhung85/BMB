@@ -212,9 +212,12 @@ kb('Trao đổi trong giờ yên lặng → tin vẫn tới nhưng không kêu',
 });
 kb('DB cũ chưa có cột trao đổi: lịch sử vẫn đọc được, lần nhắn đầu tự thêm cột', async () => {
   const m = await chuanBi();
+  // D1 thật đã có 2 cột này từ 05/11/2026 → tự xoá để dựng lại đúng "DB cũ" (schema lấy từ D1 thật vẫn chạy được).
+  if (m.sql('PRAGMA table_info(lich_su_xu_ly)').some(c => c.name === 'anh')) m.sql('ALTER TABLE lich_su_xu_ly DROP COLUMN anh');
+  if (m.sql('PRAGMA table_info(su_co)').some(c => c.name === 'so_trao_doi')) m.sql('ALTER TABLE su_co DROP COLUMN so_trao_doi');
   const ma = await m.taoVaGiao();
   const truoc = m.sql('PRAGMA table_info(lich_su_xu_ly)').map(c => c.name);
-  dung(!truoc.includes('anh'), 'schema thật hiện chưa có cột anh');
+  dung(!truoc.includes('anh'), 'DB cũ chưa có cột anh');
   const ls = await m.goi('suco_lichsu', { maSuCo: ma }, m.tk.ql01);
   dung(ls.ok && ls.data.every(l => Array.isArray(l.anh)), 'dòng cũ trả anh = []');
   dung((await m.goi('suco_traodoi', { maSuCo: ma, noiDung: 'x' }, m.tk.ql01)).ok);

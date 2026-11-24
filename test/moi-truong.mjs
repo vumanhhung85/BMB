@@ -4,9 +4,9 @@
    - Chặn mọi lời gọi mạng ra ngoài (Telegram, Resend, bmb.id.vn) → ghi lại để kiểm nội dung.
    - Mỗi môi trường nạp Worker thành 1 bản module MỚI (biến cache cấp module như _daKiemTgRieng không
      dính từ môi trường trước sang).
-   Mã nguồn Worker + schema KHÔNG nằm trong git (repo công khai) — xem test/README.md cách lấy về
-   test/.nguon/ (thư mục này đã nằm trong .gitignore). */
-import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
+   Mã nguồn Worker + schema KHÔNG nằm trong repo này (repo công khai) — chúng ở kho riêng BMB-worker,
+   clone cạnh repo này là test tự tìm thấy. Xem test/README.md. */
+import { readFileSync, writeFileSync, mkdtempSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -15,8 +15,12 @@ import { taoD1, taoR2 } from './d1-gia.mjs';
 
 const THU_MUC = dirname(fileURLToPath(import.meta.url));
 const thamSo = ten => { const i = process.argv.indexOf('--' + ten); return i > 0 ? process.argv[i + 1] : ''; };
-export const DUONG_WORKER = resolve(thamSo('worker') || join(THU_MUC, '.nguon', 'worker.js'));
-export const DUONG_SCHEMA = resolve(thamSo('schema') || join(THU_MUC, '.nguon', 'schema.sql'));
+// Từ 24/11/2026 mã Worker + schema nằm ở kho RIÊNG `BMB-worker` (clone cạnh kho này). Thứ tự tìm:
+// --worker/--schema → kho BMB-worker cạnh bên → test/.nguon/ (cách cũ, vẫn dùng được).
+const timDau = (...ds) => ds.find(p => p && existsSync(p)) || ds[ds.length - 1];
+const KHO_WORKER = [join(THU_MUC, '..', '..', 'BMB-worker'), join(THU_MUC, '..', '..', 'bmb-worker')].find(d => existsSync(d)) || '';
+export const DUONG_WORKER = resolve(thamSo('worker') || timDau(KHO_WORKER && join(KHO_WORKER, 'src', 'index.js'), join(THU_MUC, '.nguon', 'worker.js')));
+export const DUONG_SCHEMA = resolve(thamSo('schema') || timDau(KHO_WORKER && join(KHO_WORKER, 'schema', 'schema.sql'), join(THU_MUC, '.nguon', 'schema.sql')));
 
 const SECRET = 'bi-mat-chi-de-test', LEGACY = 'legacy-test';
 const sha256 = s => createHash('sha256').update(s).digest('hex');
