@@ -341,9 +341,9 @@ button.stat:hover{border-color:var(--pri);transform:translateY(-1px)}
 .toolbar input:focus,.toolbar select:focus{border-color:var(--pri);outline:none;box-shadow:0 0 0 3px var(--sel)}
 /* điện thoại: ô tìm kiếm chiếm trọn 1 hàng, các nút (Bảng/Kanban/Bản đồ/Danh sách…) xuống hàng dưới, không bị che */
 @media(max-width:600px){
-  #toolbarSuCo,#toolbar{gap:8px}
-  #toolbarSuCo input,#toolbar input{min-width:0!important;flex:1 0 100%!important}
-  #toolbarSuCo>.btn,#toolbar>.btn{flex:1 1 auto}
+  #toolbarSuCo,#mdpToolbar{gap:8px}
+  #toolbarSuCo input,#mdpToolbar input{min-width:0!important;flex:1 0 100%!important}
+  #toolbarSuCo>.btn,#mdpToolbar>.btn{flex:1 1 auto}
 }
 
 .list{display:grid;gap:11px;grid-template-columns:minmax(0,1fr)}
@@ -842,34 +842,9 @@ tbody tr:hover td{background:var(--hover)}
   <!-- ══════════ KHUNG MODULE (21/11/2026): mỗi module (mod/<tên>.js) vẽ vào đúng 1 khung này, nạp khi mở tab lần đầu ══════════ -->
   <div id="mod_danhgia" class="mod-khung" style="display:none"></div>
 
-  <div class="stats" id="stats"></div>
-
-  <div class="toolbar" id="toolbar">
-    <input id="qSearch" placeholder="Tìm tên, số điện thoại hoặc mã…" style="flex:1;min-width:190px" oninput="draw()">
-    <select id="fStatus" onchange="draw()">
-      <option value="">Mọi trạng thái</option>
-      <option value="pending">Chờ duyệt</option>
-      <option value="approved">Đã duyệt</option>
-      <option value="done">Đã tới hát</option>
-      <option value="rejected">Từ chối</option>
-    </select>
-    <select id="fBranch" onchange="draw()" style="display:none"><option value="">Tất cả chi nhánh</option></select>
-    <select id="fDate" onchange="draw()">
-      <option value="">Mọi ngày</option>
-      <option value="today">Hôm nay</option>
-      <option value="tomorrow">Ngày mai</option>
-      <option value="week">7 ngày tới</option>
-    </select>
-    <button class="btn btn-y btn-sm" id="btnViewList" onclick="toggleBookingView('list')">📋 Danh sách</button>
-    <button class="btn btn-ghost btn-sm" id="btnViewReport" onclick="toggleBookingView('report')">📊 Báo cáo</button>
-    <button class="btn btn-ghost btn-sm" onclick="loadBookings(true)" id="refreshBtn">🔄 Làm mới</button>
-    <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇️ Xuất Excel</button>
-  </div>
+  <div id="mod_dat-phong" class="mod-khung" style="display:none"></div>   <!-- Đặt phòng (mod/datphong.js, 24/11/2026) -->
 
   <div class="msg warn" id="offlineMsg"><span id="offlineIcon">📴</span><span id="offlineTxt"></span></div>
-
-  <div class="list" id="list"></div>
-  <div id="report" style="display:none"></div>
 
   <!-- ══════════ BẢO TRÌ ══════════ -->
   <div id="baotri" style="display:none">
@@ -2177,9 +2152,10 @@ function bamTabCaiDat(el){
    dongKhiBack() }. Vỏ chỉ đưa cho module đúng 1 cầu nối: MOD_CTX (bên dưới).
    Thêm module mới: (1) thêm 1 dòng vào MODULES; (2) 1 nút .tab data-t="<tên>" + 1 khung <div id="mod_<tên>">;
    (3) quy tắc hiện tab theo quyền trong napQuyenModule(). Đổi MOD_VER mỗi lần sửa file module (xoá bộ đệm). */
-const MOD_VER = '20261124a';
+const MOD_VER = '20261124b';
 const MODULES = {
   danhgia: { src:'mod/danhgia.js', ten:'Đánh giá khách hàng' },
+  'dat-phong': { src:'mod/datphong.js', ten:'Đặt phòng' },   // 24/11/2026: giao diện Đặt phòng; DỮ LIỆU đơn + thông báo vẫn ở vỏ
 };
 let MOD_VIEW_CHO = '', MOD_VIEW_HIEN = '';   // view con được yêu cầu / đang hiện (để tô thanh bên + tiêu đề)
 const _napMod = {};
@@ -2226,6 +2202,12 @@ const MOD_CTX = {
   moModalCoBack: () => moModalCoBack(),
   dongModalCoBack: () => dongModalCoBack(),
   baoView: v => { MOD_VIEW_HIEN = v; capNhatDieuHuong(); },
+  // Quyền chức năng × chi nhánh (24/11/2026)
+  coQ: q => coQ(q), coQCN: (q, cn) => coQCN(q, cn), qNhieuCN: q => qNhieuCN(q),
+  // Đặt phòng: dữ liệu đơn do VỎ giữ (cần cả khi chưa mở tab: số đếm, chuông đơn mới, Tổng quan)
+  donPhong: () => DATA,
+  taiDon: tay => loadBookings(!!tay, !tay),
+  donDaDoi: () => { draw(); if(TAB==='tongquan') drawTongQuan(); },
 };
 async function moModule(k){
   const khung = $('mod_'+k), view = MOD_VIEW_CHO; MOD_VIEW_CHO = '';
@@ -2292,14 +2274,13 @@ function apDungQuyenGiaoDien(){
   if(!SESSION) return;
   const tBt = document.querySelector('.tab[data-t="baotri"]'), coBt = isKyThuat() || coQ('BAOTRI.XEM');
   tBt.style.display = coBt ? '' : 'none';
-  $('fBranch').style.display = qNhieuCN('DATPHONG.XEM') ? '' : 'none';
   capNhatHienTabDatPhong(DA_CO_CAI_DAT);
   apDungDanhSachChiNhanh();
   capNhatNutChuyenView();
   veOChonXemSuCo();
   taoLichDon();
   if(TAB==='baotri'){ if(!coBt) switchTab(document.querySelector('.tab[data-t="caidat"]')); else { toggleBaoTriView(kieuXemMacDinh()); drawSuCo(); } }
-  else if(TAB==='dat-phong') draw();
+  else if(TAB==='dat-phong') draw();   // vẽ lại module Đặt phòng (nút Duyệt theo quyền mới)
 }
 function moTabDanhGia(){ diToi('danhgia'); }   // giữ tên cũ cho chỗ nào còn gọi
 async function napQuyenDanhGia(){
@@ -2825,7 +2806,6 @@ async function enterApp(){
   const laAdmin = SESSION.role === 'admin';
   QUYEN = quyenMacDinhVaiTro();   // tạm theo vai trò cho tới khi máy chủ trả quyền thật (khoi_dong)
   DA_CO_CAI_DAT = false;
-  $('fBranch').style.display = qNhieuCN('DATPHONG.XEM') ? '' : 'none';
   document.querySelector('.tab[data-t="baotri"]').style.display = (isKyThuat() || coQ('BAOTRI.XEM')) ? '' : 'none';
   document.querySelectorAll('.caidat-admin-only').forEach(el => el.style.display = laAdmin ? '' : 'none');
   $('cfgTelegramWrap').style.display = laAdmin ? '' : 'none';
@@ -3489,8 +3469,6 @@ function logout(reason){
 
 /* ─── TẢI ĐƠN ─── */
 async function loadBookings(manual, silent){
-  if(!silent) $('list').innerHTML = '<div class="sk"></div><div class="sk"></div><div class="sk"></div>';
-  if(manual){ $('refreshBtn').disabled = true; $('refreshBtn').innerHTML = '<span class="spin"></span>'; }
   try{
     // Bấm "Làm mới" bằng tay → luôn tải đủ (không gửi ver), phòng khi dữ liệu trên máy lệch.
     const j = await api(manual ? { action:'list' } : { action:'list', ver: DON_VER }, {nen: !!silent && !manual});
@@ -3502,8 +3480,6 @@ async function loadBookings(manual, silent){
     else throw new Error(j.error||'LOAD_FAIL');
   }catch(e){
     hienLoiKetNoi(e, DATA.length > 0);
-  }finally{
-    if(manual){ $('refreshBtn').disabled=false; $('refreshBtn').textContent='🔄 Làm mới'; }
   }
   xuLyDonSauKhiTai();
 }
@@ -3511,16 +3487,10 @@ async function loadBookings(manual, silent){
 /** Phần xử lý SAU KHI đã có dữ liệu DATA (đơn đặt phòng): dựng dropdown chi nhánh, đếm đơn chờ duyệt,
  *  vẽ lại danh sách. Tách riêng để action gộp `khoi_dong` dùng lại (mới, 18/09/2026). */
 function xuLyDonSauKhiTai(){
-  if(SESSION && qNhieuCN('DATPHONG.XEM')){
-    const bs=[...new Set(DATA.map(d=>d.branchName))].sort();
-    $('fBranch').innerHTML='<option value="">Tất cả chi nhánh</option>'+bs.map(b=>'<option>'+esc(b)+'</option>').join('');
-  }
   checkNewBookings(DATA.filter(d=>d.status==='pending').length);
   draw();
   if(TAB==='tongquan') drawTongQuan();
 }
-
-let BOOKING_VIEW = 'list';   // 'list' | 'report' — view con bên trong tab Đặt phòng
 
 function switchTab(el, khongTai){   // khongTai = true: chỉ đổi giao diện, chưa gọi máy chủ (lúc vừa đăng nhập, khoi_dong sẽ tải)
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected','false'));
@@ -3529,15 +3499,8 @@ function switchTab(el, khongTai){   // khongTai = true: chỉ đổi giao diện
   taoLichSuCo();   // nhịp Bảo trì phụ thuộc đúng tab vừa đổi (xem taoLichSuCo) — đặt lại lịch ngay, không đợi hết chu kỳ cũ
   const isBaoTri = TAB==='baotri', isCaiDat = TAB==='caidat', isTongQuan = TAB==='tongquan';
   const isMod = !!MODULES[TAB];
-  const isBooking = !isBaoTri && !isCaiDat && !isTongQuan && !isMod;
   for(const k in MODULES) $('mod_'+k).style.display = TAB===k ? '' : 'none';
   if(!isMod) MOD_VIEW_HIEN = '';
-  const isReportView = isBooking && BOOKING_VIEW==='report';
-
-  $('stats').style.display = isBooking ? '' : 'none';
-  $('toolbar').style.display = isBooking ? 'flex' : 'none';
-  $('list').style.display = (isBooking && !isReportView) ? '' : 'none';
-  $('report').style.display = isReportView ? '' : 'none';
   $('baotri').style.display = isBaoTri ? '' : 'none';
   $('toolbarSuCo').style.display = isBaoTri ? 'flex' : 'none';
   $('caidat').style.display = isCaiDat ? '' : 'none';
@@ -3575,178 +3538,18 @@ function switchTab(el, khongTai){   // khongTai = true: chỉ đổi giao diện
   }
   else if(isTongQuan) drawTongQuan();
   else if(isMod) moModule(TAB);
-  else if(isReportView) drawReport();
-  else draw();
 }
 
-/** Chuyển giữa xem Danh sách và xem Báo cáo, cả 2 đều nằm trong tab Đặt phòng — không phải 2 tab
- *  riêng như trước (gộp lại theo yêu cầu chỉ còn 3 tab chính: Đặt phòng / Bảo trì / Cài đặt). */
-function toggleBookingView(view){
-  BOOKING_VIEW = view;
-  $('btnViewList').className = 'btn btn-sm ' + (view==='list' ? 'btn-y' : 'btn-ghost');
-  $('btnViewReport').className = 'btn btn-sm ' + (view==='report' ? 'btn-y' : 'btn-ghost');
-  const isReportView = view==='report';
-  $('list').style.display = isReportView ? 'none' : '';
-  $('report').style.display = isReportView ? '' : 'none';
-  if(isReportView) drawReport(); else draw();
-}
-
-function filtered(){
-  const q = norm($('qSearch').value.trim());
-  const fs = $('fStatus').value, fb = $('fBranch').value, fd = $('fDate').value;
-  const today = new Date().toISOString().slice(0,10);
-  const tmr = new Date(Date.now()+864e5).toISOString().slice(0,10);
-  const wk  = new Date(Date.now()+7*864e5).toISOString().slice(0,10);
-  return DATA.filter(d=>{
-    if(fs && d.status!==fs) return false;
-    if(fb && d.branchName!==fb) return false;
-    if(fd==='today' && d.date!==today) return false;
-    if(fd==='tomorrow' && d.date!==tmr) return false;
-    if(fd==='week' && !(d.date>=today && d.date<=wk)) return false;
-    if(q && !norm(d.name+' '+d.phone+' '+d.code+' '+d.branchName).includes(q)) return false;
-    return true;
-  }).sort((a,b)=> (a.date+a.startTime).localeCompare(b.date+b.startTime));
-}
-
+/** Đơn đặt phòng vừa đổi (tải định kỳ, duyệt/từ chối…): cập nhật số đơn chờ duyệt trên tab + thanh bên + tiêu đề
+ *  trang; đang mở tab Đặt phòng thì nhờ module (mod/datphong.js) vẽ lại. Giao diện tab nằm hẳn trong module (24/11/2026). */
 function draw(){
   const nP = DATA.filter(d=>d.status==='pending').length;
   $('nPending').textContent = nP || '';
   $('nPending').className = 'n' + (nP?'':' zero');
   dongBoDemThanhBen();
   document.title = (nP? '('+nP+') ':'') + 'Bảng điều khiển — Boom Music Box';
-
-  const today = new Date().toISOString().slice(0,10);
-  const tD = DATA.filter(d=>d.date===today);
-  $('stats').innerHTML =
-    '<div class="stat r"><div class="k">Chờ duyệt</div><div class="v">'+nP+'</div></div>'+
-    '<div class="stat y"><div class="k">Đơn hôm nay</div><div class="v">'+tD.length+'</div></div>'+
-    '<div class="stat g"><div class="k">Đã duyệt hôm nay</div><div class="v">'+tD.filter(d=>d.status==='approved').length+'</div></div>'+
-    '<div class="stat"><div class="k">Khách hôm nay</div><div class="v">'+tD.filter(d=>d.status!=='rejected').reduce((s,d)=>s+(+d.guests||0),0)+'</div></div>';
-
-  if(TAB==='baotri' || TAB==='caidat' || TAB==='tongquan' || MODULES[TAB]) return;   // panel riêng, không dùng #list đặt phòng
-  if(BOOKING_VIEW==='report') return drawReport();
-
-  const fs = $('fStatus').value;
-  const rows = filtered();
-  $('list').innerHTML = rows.length ? rows.map(bkHTML).join('') :
-    '<div class="empty"><div class="big">'+(fs==='pending'?'✅':'📭')+'</div>'+
-    '<b style="font-family:\'Baloo 2\';font-size:19px;display:block;margin-bottom:6px">'+
-    (fs==='pending'?'Không còn đơn nào chờ duyệt':'Chưa có đơn nào ở mục này')+'</b><p>'+
-    (fs==='pending'?'Đơn mới sẽ hiện ở đây và trang tự làm mới mỗi phút.':'Thử đổi bộ lọc ngày hoặc xoá từ khoá tìm kiếm.')+'</p></div>';
-}
-
-function bkHTML(d){
-  const day = new Date(d.date+'T00:00:00');
-  const label = {pending:'Chờ duyệt',approved:'Đã duyệt',rejected:'Từ chối',done:'Đã tới hát'}[d.status]||d.status;
-  const smsOK = encodeURIComponent('Boom Music Box xac nhan giu phong '+d.code+': '+d.date+' '+d.startTime+'-'+d.endTime+', '+d.guests+' nguoi. Hen gap ban!');
-  const smsNo = encodeURIComponent('Boom Music Box: rat tiec khung gio '+d.date+' '+d.startTime+' da kin. Ban chon gio khac giup minh nhe!');
-  return '<article class="bk" data-s="'+esc(d.status)+'">'+
-    '<div class="bk-top"><div>'+
-      '<div class="bk-name">'+esc(d.name)+' <span class="pill-s '+esc(d.status)+'">'+label+'</span></div>'+
-      '<div style="font-size:13px;color:var(--txt-mute)">'+esc(d.branchName)+' · gửi lúc '+esc(String(d.createdAt||'').replace('T',' ').slice(0,16))+'</div>'+
-    '</div><span class="bk-code">'+esc(d.code)+'</span></div>'+
-    '<div class="bk-grid">'+
-      '<div class="r"><i>Ngày</i><b>'+day.toLocaleDateString('vi-VN',{weekday:'short',day:'2-digit',month:'2-digit'})+'</b></div>'+
-      '<div class="r"><i>Giờ</i><b>'+esc(d.startTime)+' → '+esc(d.endTime)+'</b></div>'+
-      '<div class="r"><i>Số người</i><b>'+esc(d.guests)+'</b></div>'+
-      '<div class="r"><i>Điện thoại</i><b><a href="tel:'+esc(d.phone)+'" style="color:var(--yellow)">'+esc(d.phone)+'</a></b></div>'+
-      (d.email?'<div class="r"><i>Email</i><b style="font-weight:500;font-size:12.5px">'+esc(d.email)+'</b></div>':'')+
-    '</div>'+
-    (d.note?'<div class="bk-note">💬 '+esc(d.note)+'</div>':'')+
-    (d.handledBy?'<div style="font-size:12.5px;color:var(--txt-mute);margin-bottom:10px">Xử lý bởi '+esc(d.handledBy)+' · '+esc(String(d.handledAt||'').replace('T',' ').slice(0,16))+'</div>':'')+
-    '<div class="bk-act">'+
-      '<a class="btn btn-ghost btn-sm" href="tel:'+esc(d.phone)+'">📞 Gọi khách</a>'+
-      (d.status==='pending' && coQCN('DATPHONG.DUYET', d.branchId) ?
-        '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,act,\''+esc(d.code)+'\',\'approved\')">✓ Duyệt</button>'+
-        '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,act,\''+esc(d.code)+'\',\'rejected\')">✕ Từ chối</button>' : '')+
-      (d.status==='approved' ?
-        '<a class="btn btn-y btn-sm" href="sms:'+esc(d.phone)+'?body='+smsOK+'">💬 Nhắn xác nhận</a>'+
-        (coQCN('DATPHONG.DUYET', d.branchId) ? '<button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,act,\''+esc(d.code)+'\',\'done\')">🎤 Khách đã tới</button>' : '') : '')+
-      (d.status==='rejected' ? '<a class="btn btn-ghost btn-sm" href="sms:'+esc(d.phone)+'?body='+smsNo+'">💬 Nhắn xin lỗi</a>' : '')+
-      '<a class="btn btn-ghost btn-sm" href="https://zalo.me/'+esc(d.phone)+'" target="_blank" rel="noopener">Zalo</a>'+
-    '</div></article>';
-}
-
-async function act(code, status){
-  const d = DATA.find(x=>x.code===code); if(!d) return;
-  let reason = '';
-  if(status==='rejected'){
-    reason = prompt('Lý do từ chối (khách sẽ thấy trong email):', 'Khung giờ này đã kín phòng');
-    if(reason === null) return;
-  }
-  const prev = d.status;
-  d.status = status;
-  d.handledBy = SESSION.fullName || SESSION.user;
-  d.handledAt = new Date().toISOString();
-  draw();                                              // cập nhật lạc quan
-  try{
-    const j = await api({ action:'update', code, status, reason });
-    if(!j.ok) throw new Error(j.error||'FAIL');
-    toast(status==='approved' ? 'Đã duyệt và gửi thông báo cho khách.'
-        : status==='rejected' ? 'Đã từ chối và báo lại cho khách.'
-        : 'Đã ghi nhận khách tới hát.','ok');
-  }catch(e){
-    d.status = prev; draw();
-    toast('Không lưu được lên máy chủ. Kiểm tra kết nối rồi thử lại.','bad');
-  }
-}
-
-/* ─── BÁO CÁO ─── */
-function drawReport(){
-  const byBranch = {}, byDay = {}, byStatus = {pending:0,approved:0,rejected:0,done:0};
-  DATA.forEach(d=>{
-    byBranch[d.branchName] = byBranch[d.branchName] || {t:0,a:0,g:0};
-    byBranch[d.branchName].t++;
-    if(d.status==='approved'||d.status==='done'){ byBranch[d.branchName].a++; byBranch[d.branchName].g += (+d.guests||0); }
-    byDay[d.date] = (byDay[d.date]||0)+1;
-    byStatus[d.status] = (byStatus[d.status]||0)+1;
-  });
-  const rows = Object.entries(byBranch).sort((a,b)=>b[1].t-a[1].t);
-  const days = Object.entries(byDay).sort().slice(-14);
-  const maxD = Math.max(1,...days.map(d=>d[1]));
-  const total = DATA.length || 1;
-
-  $('report').innerHTML =
-  '<div class="stats" style="margin-bottom:24px">'+
-    '<div class="stat"><div class="k">Tổng đơn</div><div class="v">'+DATA.length+'</div></div>'+
-    '<div class="stat g"><div class="k">Tỉ lệ duyệt</div><div class="v">'+Math.round((byStatus.approved+byStatus.done)/total*100)+'%</div></div>'+
-    '<div class="stat y"><div class="k">Tổng lượt khách</div><div class="v">'+DATA.filter(d=>d.status!=='rejected').reduce((s,d)=>s+(+d.guests||0),0)+'</div></div>'+
-    '<div class="stat r"><div class="k">Bị từ chối</div><div class="v">'+byStatus.rejected+'</div></div>'+
-  '</div>'+
-  '<h3 style="font-size:19px;margin-bottom:12px">Đơn theo ngày (14 ngày gần nhất)</h3>'+
-  '<div style="display:flex;gap:5px;align-items:flex-end;height:140px;background:var(--surface2);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:26px;overflow-x:auto">'+
-    (days.length ? days.map(function(e){ var d=e[0], n=e[1];
-      return '<div style="flex:1;min-width:26px;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end">'+
-             '<b style="font-size:11.5px;color:var(--yellow)">'+n+'</b>'+
-             '<div style="width:100%;height:'+Math.max(6,n/maxD*82)+'%;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--yellow),var(--gold))" title="'+d+': '+n+' đơn"></div>'+
-             '<span style="font-size:10px;color:var(--txt-mute);white-space:nowrap">'+d.slice(8)+'/'+d.slice(5,7)+'</span></div>';
-    }).join('') : '<span style="color:var(--txt-mute);font-size:13.5px">Chưa có dữ liệu.</span>')+
-  '</div>'+
-  '<h3 style="font-size:19px;margin-bottom:12px">Xếp hạng chi nhánh</h3>'+
-  '<div class="tblwrap"><table><thead><tr><th>#</th><th>Chi nhánh</th><th>Tổng đơn</th><th>Đã duyệt</th><th>Lượt khách</th><th>Tỉ lệ duyệt</th></tr></thead><tbody>'+
-    (rows.length ? rows.map(function(e,i){ var b=e[0], v=e[1]; var pct=Math.round(v.a/v.t*100);
-      return '<tr><td><b style="color:var(--yellow)">'+(i+1)+'</b></td><td><b>'+esc(b)+'</b></td>'+
-             '<td>'+v.t+'</td><td>'+v.a+'</td><td>'+v.g+'</td>'+
-             '<td><div style="display:flex;align-items:center;gap:8px">'+
-             '<div style="flex:1;min-width:56px;height:6px;background:var(--line);border-radius:99px;overflow:hidden">'+
-             '<div style="width:'+pct+'%;height:100%;background:var(--ok)"></div></div><span>'+pct+'%</span></div></td></tr>';
-    }).join('') : '<tr><td colspan="6" style="color:var(--txt-mute);padding:24px;text-align:center">Chưa có dữ liệu.</td></tr>')+
-  '</tbody></table></div>';
-}
-
-function exportCSV(){
-  const rows = filtered();
-  if(!rows.length) return toast('Không có dòng nào để xuất.','bad');
-  const cols = ['code','branchName','date','startTime','endTime','duration','guests','name','phone','email','note','status','handledBy','handledAt','createdAt'];
-  const head = ['Mã','Chi nhánh','Ngày','Bắt đầu','Kết thúc','Số giờ','Số người','Khách','Điện thoại','Email','Ghi chú','Trạng thái','Người xử lý','Lúc xử lý','Lúc đặt'];
-  const csv = '\uFEFF' + [head.join(',')].concat(
-    rows.map(r=>cols.map(c=>'"'+String(r[c]==null?'':r[c]).replace(/"/g,'""')+'"').join(','))
-  ).join('\r\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download = 'boom-donphong-' + new Date().toISOString().slice(0,10) + '.csv';
-  a.click(); URL.revokeObjectURL(a.href);
-  toast('Đã xuất ' + rows.length + ' dòng.','ok');
+  const m = window.BMB_MOD && window.BMB_MOD['dat-phong'];
+  if(TAB==='dat-phong' && m) m.veLai();
 }
 
 /* ══════════════════════════════════════════════

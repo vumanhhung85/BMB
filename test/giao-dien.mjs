@@ -701,13 +701,82 @@ kb('Đặt phòng theo quyền: quản lý được cấp xem thêm chi nhánh k
     await dangNhapUI(trang, 'ql01');
     await trang.waitForSelector('.tab[data-t="dat-phong"]', { state: 'visible', timeout: 8000 });
     await trang.click('.tab[data-t="dat-phong"]');
-    await trang.waitForSelector('#list .bk', { timeout: 8000 });
-    bang(await trang.$$eval('#list .bk', d => d.length), 2, 'thấy đơn 2 chi nhánh');
-    dung(await trang.isVisible('#fBranch'), 'có ô lọc chi nhánh');
-    const nut = await trang.$$eval('#list .bk', d => d.map(x => ({ ten: x.querySelector('.bk-name').textContent, duyet: [...x.querySelectorAll('button')].some(b => /Duyệt/.test(b.textContent)) })));
+    await trang.waitForSelector('#mdpList .bk', { timeout: 8000 });
+    bang(await trang.$$eval('#mdpList .bk', d => d.length), 2, 'thấy đơn 2 chi nhánh');
+    dung(await trang.isVisible('#mdpCN'), 'có ô lọc chi nhánh');
+    const nut = await trang.$$eval('#mdpList .bk', d => d.map(x => ({ ten: x.querySelector('.bk-name').textContent, duyet: [...x.querySelectorAll('button')].some(b => /Duyệt/.test(b.textContent)) })));
     dung(nut.find(x => /Khách Một/.test(x.ten)).duyet, 'đơn chi nhánh mình: có nút Duyệt');
     dung(!nut.find(x => /Khách Hai/.test(x.ten)).duyet, 'đơn chi nhánh được cấp xem: không có nút Duyệt');
     await trang.screenshot({ path: join(ANH_CHUP, '22-quanly-don-2-chi-nhanh.png') });
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Module Đặt phòng (mod/datphong.js): tải lười 1 lần; lọc, báo cáo, duyệt / từ chối (D1 đổi, số chờ duyệt trên tab giảm), xuất CSV; đơn mới tự hiện khi đang mở tab; quản lý 1 chi nhánh không có ô lọc chi nhánh', async () => {
+  const m = await taoMoiTruong();
+  const ngay = new Date(Date.now() + 7 * 3600e3 + 864e5).toISOString().slice(0, 10);
+  const dat = (cn, gio, ten, sdt) => m.goi('book', { branchId: cn, date: ngay, startTime: gio, endTime: '23:00', duration: 2, name: ten, phone: sdt });
+  await dat('CN01', '19:00', 'Khách Một', '0912345601');
+  await dat('CN01', '20:00', 'Khách Hai', '0912345602');
+  await dat('CN02', '21:00', 'Khách Ba', '0912345603');
+  m.sql(`INSERT OR REPLACE INTO cai_dat (khoa, gia_tri) VALUES ('dat_phong_bat','Y')`);
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m);
+  const napMod = [];
+  trang.on('request', r => { if (/mod\/datphong\.js/.test(r.url())) napMod.push(r.url()); });
+  try {
+    await dangNhapUI(trang, 'admin');
+    bang(napMod.length, 0, 'chưa mở tab → chưa tải module');
+    bang((await trang.textContent('#nPending')).trim(), '3', 'số chờ duyệt trên tab (vỏ giữ dữ liệu)');
+    await trang.evaluate(() => diToi('dat-phong'));
+    await trang.waitForSelector('#mdpList .bk', { timeout: 8000 });
+    bang(await trang.$$eval('#mdpList .bk', d => d.length), 3, '3 đơn');
+    dung(await trang.isVisible('#mdpCN'), 'admin: có ô lọc chi nhánh');
+    await trang.fill('#mdpTim', 'khach hai');
+    bang(await trang.$$eval('#mdpList .bk', d => d.length), 1, 'tìm không dấu');
+    await trang.fill('#mdpTim', '');
+    await trang.selectOption('#mdpCN', { label: 'Nguyễn Văn Tăng' });
+    bang(await trang.$$eval('#mdpList .bk', d => d.length), 1, 'lọc chi nhánh');
+    await trang.selectOption('#mdpCN', '');
+    // duyệt
+    const ma1 = m.sql(`SELECT ma FROM don_phong WHERE ten_khach='Khách Một'`)[0].ma;
+    await trang.click('#mdp-' + ma1 + ' button:has-text("Duyệt")');
+    await trang.waitForFunction(id => document.querySelector('#mdp-' + id) && document.querySelector('#mdp-' + id).dataset.s === 'approved', ma1);
+    await trang.waitForFunction(() => document.querySelector('#nPending').textContent.trim() === '2');
+    await trang.waitForTimeout(300);
+    bang(m.sql('SELECT trang_thai FROM don_phong WHERE ma=?', ma1)[0].trang_thai, 'approved', 'D1: đã duyệt');
+    // từ chối (hộp hỏi lý do sẵn của trình duyệt)
+    const ma2 = m.sql(`SELECT ma FROM don_phong WHERE ten_khach='Khách Hai'`)[0].ma;
+    trang.once('dialog', d => d.accept('Hết phòng giờ đó'));
+    await trang.click('#mdp-' + ma2 + ' button:has-text("Từ chối")');
+    await trang.waitForFunction(id => document.querySelector('#mdp-' + id).dataset.s === 'rejected', ma2);
+    await trang.waitForTimeout(300);
+    bang(m.sql('SELECT ly_do FROM don_phong WHERE ma=?', ma2)[0].ly_do, 'Hết phòng giờ đó', 'D1: lý do từ chối');
+    // báo cáo
+    await trang.click('#mdpXemBc');
+    dung(await trang.isVisible('#mdpReport table'), 'báo cáo có bảng xếp hạng');
+    bang(await trang.isVisible('#mdpList'), false, 'báo cáo: ẩn danh sách');
+    await trang.click('#mdpXemDs');
+    // xuất CSV
+    const [tai] = await Promise.all([trang.waitForEvent('download'), trang.click('button:has-text("Xuất Excel")')]);
+    dung(/boom-donphong-.*\.csv/.test(tai.suggestedFilename()), 'tên file CSV');
+    // đơn mới khi đang mở tab → tự hiện (vỏ tải định kỳ → module vẽ lại)
+    await dat('CN02', '22:00', 'Khách Bốn', '0912345604');
+    await trang.evaluate(() => loadBookings(false, true));
+    await trang.waitForFunction(() => [...document.querySelectorAll('#mdpList .bk-name')].some(x => /Khách Bốn/.test(x.textContent)), null, { timeout: 8000 });
+    // qua tab khác rồi quay lại: không tải lại file module, bộ lọc giữ nguyên
+    await trang.selectOption('#mdpTT', 'pending');
+    await trang.evaluate(() => diToi('baotri'));
+    await trang.evaluate(() => diToi('dat-phong'));
+    bang(await trang.inputValue('#mdpTT'), 'pending', 'giữ bộ lọc');
+    bang(napMod.length, 1, 'module chỉ tải 1 lần');
+    await trang.screenshot({ path: join(ANH_CHUP, '23-module-dat-phong.png') });
+    // quản lý 1 chi nhánh: không có ô lọc chi nhánh, chỉ đơn chi nhánh mình
+    await trang.evaluate(() => localStorage.removeItem(CFG.PREFIX + 's'));
+    await dangNhapUI(trang, 'ql02');
+    await trang.evaluate(() => diToi('dat-phong'));
+    await trang.waitForSelector('#mdpList .bk', { timeout: 8000 });
+    dung(!(await trang.isVisible('#mdpCN')), 'quản lý: không có ô lọc chi nhánh');
+    bang(await trang.$$eval('#mdpList .bk', d => d.length), 2, 'quản lý CN02 thấy 2 đơn của mình');
     bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
   } finally { await trinh.close(); }
 });
