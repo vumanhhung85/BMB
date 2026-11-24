@@ -817,5 +817,49 @@ kb('Module Bảo trì (mod/baotri.js): tải đúng 1 lần trước khi vẽ ch
   } finally { await trinh.close(); }
 });
 
+kb('Lưu lượng truy cập: điện thoại 360px không tràn ngang, thanh menu dưới đứng yên, biểu đồ + xếp hạng nằm trong thẻ; máy tính 2 cột', async () => {
+  const m = await taoMoiTruong();
+  // 30 ngày × nhiều lượt, đủ giờ trong ngày, 14 tài khoản tên dài/ngắn lẫn lộn, nhiều nguồn
+  const bay = Date.now();
+  for (let n = 0; n < 30; n++) for (let k = 0; k < 3 + (n % 7); k++) {
+    const luc = bay - n * 864e5 - k * 3600e3 * (1 + (n % 5));
+    m.sql("INSERT INTO luu_luong_truy_cap (luc, username, vai_tro, chi_nhanh_id, ung_dung) VALUES (?,?,?,?,?)", luc, 'tai_khoan_rat_dai_' + ((n + k) % 14), 'manager', 'CN01', 'quanly');
+    m.sql("INSERT INTO luu_luong_trang_chu (luc, chi_nhanh_id, nguon, thiet_bi) VALUES (?,?,?,?)", luc, k % 2 ? 'CN01' : '', ['google', 'truc_tiep', 'facebook', 'khac', 'tiktok', 'zalo'][(n + k) % 6], k % 3 ? 'mobile' : 'desktop');
+  }
+  for (const [kt, mo] of [[{ width: 360, height: 780 }, true], [{ width: 1360, height: 900 }, false]]) {
+    const { trinh, trang, loiJS } = await moTrinhDuyet(m, kt);
+    try {
+      await dangNhapUI(trang, 'admin');
+      for (const nguon of ['dangnhap', 'trangchu']) {
+        await trang.evaluate(() => diToi('cd:luuluong'));
+        await trang.waitForSelector('#ttNguonDuLieu', { state: 'visible' });
+        await trang.selectOption('#ttNguonDuLieu', nguon);
+        await trang.waitForSelector('#ttThan .tt-gio-in', { timeout: 8000 });
+        await trang.waitForTimeout(300);
+        const r = await trang.evaluate(() => {
+          const the = document.querySelector('#ttThan').closest('.form-card').getBoundingClientRect();
+          const ra = [...document.querySelectorAll('#ttThan .tt-hop, #ttThan .tt-xh, #ttThan .stat')].filter(e => e.getBoundingClientRect().width)
+            .filter(e => e.getBoundingClientRect().right > the.right + 1).length;
+          const gio = document.querySelector('.tt-gio-in'), cotGio = [...gio.children].map(c => c.getBoundingClientRect());
+          const luoi = getComputedStyle(document.querySelector('.tt-luoi')).gridTemplateColumns.split(' ').length;
+          const nav = document.querySelector('.bottom-nav, #bottomNav, nav.tabs-bottom');
+          return { docW: document.documentElement.scrollWidth, vw: innerWidth, ra, gioPhai: Math.round(gio.getBoundingClientRect().right), gioSoCot: cotGio.length, gioCotRong: Math.round(cotGio[0].width), luoi,
+                   dayCot: cotGio.every(c => Math.abs(c.bottom - cotGio[0].bottom) < 1), ngayCuon: document.querySelector('.tt-ngay').scrollLeft > 0 || !(document.querySelector('.tt-ngay').scrollWidth > document.querySelector('.tt-ngay').clientWidth) };
+        });
+        const ten = (mo ? 'đt ' : 'pc ') + nguon + ' ' + JSON.stringify(r);
+        bang(r.docW, r.vw, 'trang không tràn ngang: ' + ten);
+        bang(r.ra, 0, 'khối vượt mép thẻ: ' + ten);
+        bang(r.gioSoCot, 24, '24 cột giờ');
+        dung(r.dayCot, 'đáy các cột giờ thẳng hàng: ' + ten);
+        dung(r.ngayCuon, 'biểu đồ ngày cuộn sẵn tới ngày mới nhất: ' + ten);
+        bang(r.luoi, mo ? 1 : 2, 'số cột bảng xếp hạng: ' + ten);
+        await trang.locator('#ttThan').screenshot({ path: join(ANH_CHUP, 'luuluong-' + (mo ? 'dt' : 'pc') + '-' + nguon + '.png') });
+        if (mo) await trang.screenshot({ path: join(ANH_CHUP, 'luuluong-dt-toanman-' + nguon + '.png') });
+      }
+      bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+    } finally { await trinh.close(); }
+  }
+});
+
 await chayTatCa();
 console.log('Ảnh chụp: ' + ANH_CHUP);

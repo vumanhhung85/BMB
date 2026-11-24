@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <!-- Số phiên bản giao diện — TĂNG mỗi lần sửa admin.html hoặc mod/*.js (dùng luôn làm MOD_VER để trình duyệt tải lại module).
      Kiểm tra bản đang chạy trên GitHub Pages: đọc thẻ này ở boommusicbox.vn/admin.html. -->
-<meta name="bmb-phien-ban" content="2026.11.24-2">
+<meta name="bmb-phien-ban" content="2026.11.24-3">
 <title>Bảng điều khiển — Boom Music Box</title>
 <link rel="icon" href="Logo_BoomBox.png" id="favicon">
 <link rel="manifest" href="manifest-admin.webmanifest">
@@ -464,6 +464,44 @@ button.stat:hover{border-color:var(--pri);transform:translateY(-1px)}
 .form-card.ff-collapse .ff-body{display:none;margin-top:14px}
 .form-card.ff-collapse.open .ff-body{display:block}
 .form-card.ff-collapse.open .ff-chevron{transform:rotate(180deg)}
+/* Lưu lượng truy cập (24/11/2026): mọi khối phải co theo bề rộng thẻ — không để biểu đồ/bảng đẩy trang rộng ra
+   (trước đây biểu đồ giờ có min-width cứng làm cả trang tràn ngang, thanh menu dưới bị lệch theo). */
+.form-card.ff-collapse .ff-body,#ttThan{min-width:0;max-width:100%}
+.tt-tit{font-size:16px;margin:0 0 10px}
+.tt-hop{background:var(--surface2);border:1px solid var(--line);border-radius:16px;margin-bottom:22px;max-width:100%;min-width:0}
+.tt-ngay{overflow-x:auto;overflow-y:hidden;padding:14px 12px 10px;-webkit-overflow-scrolling:touch}
+.tt-ngay-in{display:flex;gap:5px;align-items:flex-end;height:150px;min-width:100%;width:max-content}
+.tt-cot{flex:1 0 36px;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+.tt-cot b{font-size:10.5px;color:var(--yellow);line-height:1}
+.tt-cot .tt-t{width:100%;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--yellow),var(--gold))}
+.tt-cot span{font-size:9.5px;color:var(--txt-mute);white-space:nowrap;line-height:1.2;min-height:12px}
+.tt-gio{padding:14px 12px 8px;overflow:hidden}
+.tt-gio-in{display:flex;gap:2px;align-items:flex-end;height:130px}
+.tt-gio-in .tt-cot{flex:1 1 0;min-width:0;gap:3px}
+.tt-gio-in .tt-t{background:var(--info);border-radius:3px 3px 0 0}
+.tt-gio-in .tt-cot span{font-size:9px;overflow:visible}
+.tt-dinh{font-size:13px;color:var(--txt-mute);margin:-4px 0 10px}
+.tt-dinh b{color:var(--txt)}
+.tt-luoi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px;margin-bottom:12px}
+.tt-luoi>div{min-width:0}
+.tt-xh{list-style:none;margin:0;padding:4px 14px;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.tt-xh li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;column-gap:10px;row-gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.tt-xh li:last-child{border-bottom:0}
+.tt-xh .tt-h{font-weight:700;color:var(--yellow);font-size:13px;text-align:center}
+.tt-xh .tt-ten{font-size:14px;overflow-wrap:anywhere;min-width:0}
+.tt-xh .tt-n{font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.tt-xh .tt-b{grid-column:2 / 4;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.tt-xh .tt-b i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--yellow),var(--gold))}
+.tt-xh .tt-trong{display:block;padding:12px 0;color:var(--txt-mute);font-size:13.5px}
+.tt-xh li.tt-an{display:none}
+.tt-xh.mo li.tt-an{display:grid}
+.tt-them{margin-top:8px;width:100%}
+.tt-them .tt-dong{display:none}
+.tt-xh.mo~.tt-them .tt-dong{display:inline}.tt-xh.mo~.tt-them .tt-mo{display:none}
+@media(max-width:720px){
+  .tt-luoi{grid-template-columns:minmax(0,1fr)}
+  .tt-ngay-in{height:130px}.tt-gio-in{height:110px}
+}
 .form-card.ff-collapse.open .ff-txt-closed{display:none}
 .form-card.ff-collapse.open .ff-txt-open{display:inline}
 @media(max-width:560px){.ff-toggle .ff-txt-closed,.ff-toggle .ff-txt-open{display:none!important}.ff-toggle{padding:8px 10px}}
@@ -3717,39 +3755,50 @@ async function xemLuuLuongTruyCap(){
     const maxGio  = Math.max(1,...d.theoGio);
 
     const barNgay = d.theoNgay.length ? d.theoNgay.map(x=>
-      '<div style="flex:1;min-width:22px;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end">'+
-      '<b style="font-size:10.5px;color:var(--yellow)">'+x.soLuot+'</b>'+
-      '<div style="width:100%;height:'+Math.max(6,x.soLuot/maxNgay*82)+'%;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--yellow),var(--gold))" title="'+x.ngay+': '+x.soLuot+' lượt"></div>'+
-      '<span style="font-size:9.5px;color:var(--txt-mute);white-space:nowrap">'+x.ngay.slice(8)+'/'+x.ngay.slice(5,7)+'</span></div>'
+      '<div class="tt-cot" title="'+x.ngay+': '+x.soLuot+' lượt">'+
+      '<b>'+x.soLuot+'</b>'+
+      '<div class="tt-t" style="height:'+Math.max(4,x.soLuot/maxNgay*72)+'%"></div>'+
+      '<span>'+x.ngay.slice(8)+'/'+x.ngay.slice(5,7)+'</span></div>'
     ).join('') : '<span style="color:var(--txt-mute);font-size:13.5px">Chưa có dữ liệu.</span>';
 
+    // Cột giờ: luôn có hàng nhãn riêng (rỗng ở giờ không ghi) để đáy các cột thẳng hàng với nhau.
     const barGio = d.theoGio.map((n,h)=>
-      '<div style="flex:1;min-width:14px;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end">'+
-      '<div style="width:100%;height:'+Math.max(4,n/maxGio*82)+'%;border-radius:4px 4px 0 0;background:var(--info)" title="'+h+'h: '+n+' lượt"></div>'+
-      (h%3===0 ? '<span style="font-size:8.5px;color:var(--txt-mute)">'+h+'h</span>' : '')+'</div>'
+      '<div class="tt-cot" title="'+h+'h: '+n+' lượt">'+
+      '<div class="tt-t" style="height:'+Math.max(3,n/maxGio*84)+'%"></div>'+
+      '<span>'+(h%3===0 ? h+'h' : '')+'</span></div>'
     ).join('');
+    const gioDinh = d.theoGio.indexOf(maxGio);
+    const dongDinh = d.tongSoLuot>0
+      ? '<p class="tt-dinh">Đông nhất: <b>'+gioDinh+'h–'+((gioDinh+1)%24)+'h</b> ('+maxGio+' lượt)</p>' : '';
 
-    function bang(rows,cot,nhan){
-      return '<div class="tblwrap"><table><thead><tr><th>#</th><th>'+cot+'</th><th>Số lượt</th></tr></thead><tbody>'+
-        (rows.length ? rows.map((r,i)=>'<tr><td><b style="color:var(--yellow)">'+(i+1)+'</b></td><td>'+esc(nhan?(nhan[r.ten]||r.ten):r.ten)+'</td><td>'+r.soLuot+'</td></tr>').join('')
-          : '<tr><td colspan="3" style="color:var(--txt-mute)">Chưa có dữ liệu.</td></tr>')+
-        '</tbody></table></div>';
+    // Bảng xếp hạng dạng danh sách có thanh tỉ lệ (không dùng bảng → không bao giờ phải cuộn ngang trên điện thoại).
+    // Hiện 10 dòng đầu, còn lại bấm "Xem tất cả".
+    function bang(rows,nhan){
+      if(!rows.length) return '<ul class="tt-xh"><li><span class="tt-trong">Chưa có dữ liệu.</span></li></ul>';
+      const mx = Math.max(1,...rows.map(r=>r.soLuot));
+      return '<ul class="tt-xh">'+rows.map((r,i)=>
+        '<li'+(i>=10?' class="tt-an"':'')+'><span class="tt-h">'+(i+1)+'</span>'+
+        '<span class="tt-ten">'+esc(nhan?(nhan[r.ten]||r.ten):r.ten)+'</span><span class="tt-n">'+r.soLuot+'</span>'+
+        '<span class="tt-b"><i style="width:'+Math.max(2,Math.round(r.soLuot/mx*100))+'%"></i></span></li>'
+      ).join('')+'</ul>'+
+      (rows.length>10 ? '<button type="button" class="btn btn-ghost btn-sm tt-them" onclick="this.previousElementSibling.classList.toggle(\'mo\')">'+
+        '<span class="tt-mo">Xem tất cả ('+rows.length+')</span><span class="tt-dong">Thu gọn</span></button>' : '');
     }
 
     // 2 bảng cuối khác nhau tuỳ nguồn: đăng nhập → chi nhánh + tài khoản; trang chủ → chi nhánh khách
     // bấm vào từ link riêng + nguồn giới thiệu, kèm 2 thẻ tỉ lệ mobile/desktop.
     const khungCuoi = laTrangChu
-      ? '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px">'+
-          '<div><h3 style="font-size:16px;margin-bottom:10px">Chi nhánh khách bấm từ link riêng</h3>'+bang(d.theoChiNhanh,'Chi nhánh')+'</div>'+
-          '<div><h3 style="font-size:16px;margin-bottom:10px">Nguồn giới thiệu</h3>'+bang(d.theoNguon,'Nguồn',NHAN_NGUON_TRUYCAP)+'</div>'+
+      ? '<div class="tt-luoi">'+
+          '<div><h3 class="tt-tit">Chi nhánh khách bấm từ link riêng</h3>'+bang(d.theoChiNhanh)+'</div>'+
+          '<div><h3 class="tt-tit">Nguồn giới thiệu</h3>'+bang(d.theoNguon,NHAN_NGUON_TRUYCAP)+'</div>'+
         '</div>'+
         '<div class="stats">'+
           '<div class="stat g"><div class="k">📱 Điện thoại</div><div class="v">'+d.soMobile+'</div></div>'+
           '<div class="stat"><div class="k">💻 Máy tính</div><div class="v">'+d.soDesktop+'</div></div>'+
         '</div>'
-      : '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">'+
-          '<div><h3 style="font-size:16px;margin-bottom:10px">Theo chi nhánh</h3>'+bang(d.theoChiNhanh,'Chi nhánh')+'</div>'+
-          '<div><h3 style="font-size:16px;margin-bottom:10px">Theo tài khoản</h3>'+bang(d.theoTaiKhoan,'Tài khoản')+'</div>'+
+      : '<div class="tt-luoi">'+
+          '<div><h3 class="tt-tit">Theo chi nhánh</h3>'+bang(d.theoChiNhanh)+'</div>'+
+          '<div><h3 class="tt-tit">Theo tài khoản</h3>'+bang(d.theoTaiKhoan)+'</div>'+
         '</div>';
 
     box.innerHTML =
@@ -3757,11 +3806,13 @@ async function xemLuuLuongTruyCap(){
         '<div class="stat"><div class="k">'+(laTrangChu?'Tổng lượt mở trang':'Tổng lượt đăng nhập')+'</div><div class="v">'+d.tongSoLuot+'</div></div>'+
         '<div class="stat y"><div class="k">Khoảng thời gian</div><div class="v" style="font-size:14px">'+d.tuNgay+' → '+d.denNgay+'</div></div>'+
       '</div>'+
-      '<h3 style="font-size:16px;margin-bottom:10px">Theo ngày</h3>'+
-      '<div style="display:flex;gap:4px;align-items:flex-end;height:130px;background:var(--surface2);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:22px;overflow-x:auto">'+barNgay+'</div>'+
-      '<h3 style="font-size:16px;margin-bottom:10px">Theo giờ trong ngày (cộng dồn cả khoảng)</h3>'+
-      '<div style="display:flex;gap:2px;align-items:flex-end;height:100px;background:var(--surface2);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:22px">'+barGio+'</div>'+
+      '<h3 class="tt-tit">Theo ngày</h3>'+
+      '<div class="tt-hop tt-ngay"><div class="tt-ngay-in">'+barNgay+'</div></div>'+
+      '<h3 class="tt-tit">Theo giờ trong ngày (cộng dồn cả khoảng)</h3>'+dongDinh+
+      '<div class="tt-hop tt-gio"><div class="tt-gio-in">'+barGio+'</div></div>'+
       khungCuoi;
+    // nhiều ngày thì cuộn sẵn tới ngày mới nhất (bên phải)
+    const cuon = box.querySelector('.tt-ngay'); if(cuon) cuon.scrollLeft = cuon.scrollWidth;
   }catch(e){
     box.innerHTML = '<div class="empty" style="padding:24px 0">Không tải được thống kê. Thử lại.</div>';
   }
