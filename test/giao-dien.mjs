@@ -630,5 +630,87 @@ kb('Kỹ thuật thấy mô tả + ảnh ngay trên Bảng/Kanban của phiếu 
   } finally { await trinh.close(); }
 });
 
+/* ───────── Bảo trì / Đặt phòng theo QUYỀN (24/11/2026) ───────── */
+async function themTKUI(m, u, vaiTro, cn = null) {
+  const { createHash } = await import('node:crypto');
+  const sha = x => createHash('sha256').update(x).digest('hex');
+  m.sql(`INSERT INTO tai_khoan (username, mat_khau_hash, ho_ten, vai_tro, chi_nhanh_id, sieu_admin, tao_luc) VALUES (?,?,?,?,?,0,?)`,
+    u, 'legacy_sha256$' + sha(sha(u + '::1234::boom') + 'legacy-test'), 'TK ' + u, vaiTro, cn, Date.now());
+}
+async function capUI(m, taikhoan, quyen, phamVi) {
+  const tkAdmin = await m.dangNhap('admin');
+  const r = await m.goi('quyen_cap', { taikhoan, quyen, phamVi }, tkAdmin);
+  dung(r.ok, 'cấp ' + quyen + ': ' + r.error);
+}
+
+kb('Quản lý được cấp Tiếp nhận + Điều phối chi nhánh mình: có giao diện điều phối (Kanban, nút Tiếp nhận/Điều phối); vẫn không có nút Đóng', async () => {
+  const { m, ma } = await duLieu();
+  await capUI(m, 'ql01', 'BAOTRI.TIEPNHAN', 'CN01');
+  await capUI(m, 'ql01', 'BAOTRI.DIEUPHOI', 'CN01');
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m);
+  try {
+    await dangNhapUI(trang, 'ql01');
+    await trang.waitForFunction(() => document.querySelector('#viewSuCoKanban') && getComputedStyle(document.querySelector('#viewSuCoKanban')).display !== 'none', null, { timeout: 8000 });
+    dung(await trang.$('#kb-' + ma.moi + ' button:has-text("Tiếp nhận")'), 'thẻ Mới có nút Tiếp nhận');
+    dung(await trang.$('#kb-' + ma.tn + ' button:has-text("Điều phối")'), 'thẻ Đã tiếp nhận có nút Điều phối');
+    bang(await trang.$$eval('.kb-the button', d => d.filter(b => /Đóng/.test(b.textContent)).length), 0, 'không có nút Đóng');
+    dung(!(await trang.isVisible('#ctaBaoSuCo')) && await trang.isVisible('#btnTaoSuCo'), 'giao diện điều phối: nút nhỏ Báo sự cố, không có nút to');
+    dung(!(await trang.isVisible('#fKbCN')), 'chỉ 1 chi nhánh → không có ô lọc chi nhánh');
+    trang.once('dialog', d => d.accept('2'));
+    await trang.click('#kb-' + ma.moi + ' button:has-text("Tiếp nhận")');
+    await trang.waitForFunction(id => document.querySelector('.kb-cot[data-cot="tiepnhan"] #kb-' + id), ma.moi, { timeout: 8000 });
+    bang(m.sql('SELECT trang_thai FROM su_co WHERE ma_su_co=?', ma.moi)[0].trang_thai, 'da_tiep_nhan', 'D1: đã tiếp nhận');
+    await trang.screenshot({ path: join(ANH_CHUP, '20-quanly-duoc-dieu-phoi.png') });
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Giám sát được cấp BAOTRI.XEM toàn chuỗi: hiện tab Sự cố (chỉ xem, có lọc chi nhánh), không có nút Báo/Tiếp nhận/Xác nhận; chưa cấp thì không có tab', async () => {
+  const { m, ma } = await duLieu();
+  await themTKUI(m, 'gs1', 'giamsat');
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 390, height: 844 });
+  try {
+    await dangNhapUI(trang, 'gs1');
+    dung(!(await trang.isVisible('.tab[data-t="baotri"]')), 'chưa cấp: không có tab Sự cố');
+    await trang.evaluate(() => localStorage.removeItem(CFG.PREFIX + 's'));
+    await capUI(m, 'gs1', 'BAOTRI.XEM', 'TATCA');
+    await dangNhapUI(trang, 'gs1');
+    dung(await trang.isVisible('.tab[data-t="baotri"]'), 'đã cấp: có tab Sự cố');
+    await trang.click('.tab[data-t="baotri"]');
+    await trang.waitForSelector('#toolbarSuCo', { state: 'visible' });
+    await trang.click('#btnBtListView').catch(() => {});
+    await trang.waitForSelector('#sc-' + ma.cx, { timeout: 8000 });
+    dung(!(await trang.isVisible('#ctaBaoSuCo')) && !(await trang.isVisible('#btnTaoSuCo')), 'không có nút báo sự cố');
+    bang(await trang.$$eval('#listSuCoChuaXuLy button', d => d.filter(b => /Tiếp nhận|Điều phối|Đã xong|Chưa xong|Đóng/.test(b.textContent)).length), 0, 'không có nút thao tác');
+    bang(await trang.$$eval('#listSuCoChuaXuLy button', d => d.filter(b => /Trao đổi/.test(b.textContent)).length), 0, 'không có nút Trao đổi (chỉ xem)');
+    dung(await trang.isVisible('#fMoiCN'), 'toàn chuỗi → có ô lọc chi nhánh');
+    await trang.screenshot({ path: join(ANH_CHUP, '21-giamsat-xem-su-co.png') });
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Đặt phòng theo quyền: quản lý được cấp xem thêm chi nhánh khác → thấy đơn 2 chi nhánh, có ô lọc chi nhánh, chỉ duyệt được đơn chi nhánh mình', async () => {
+  const m = await taoMoiTruong();
+  const ngay = new Date(Date.now() + 7 * 3600e3 + 864e5).toISOString().slice(0, 10);
+  await m.goi('book', { branchId: 'CN01', date: ngay, startTime: '19:00', endTime: '21:00', duration: 2, name: 'Khách Một', phone: '0912345678' });
+  await m.goi('book', { branchId: 'CN02', date: ngay, startTime: '20:00', endTime: '22:00', duration: 2, name: 'Khách Hai', phone: '0912345679' });
+  m.sql(`INSERT OR REPLACE INTO cai_dat (khoa, gia_tri) VALUES ('dat_phong_bat','Y')`);
+  await capUI(m, 'ql01', 'DATPHONG.XEM', 'CN02');
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m);
+  try {
+    await dangNhapUI(trang, 'ql01');
+    await trang.waitForSelector('.tab[data-t="dat-phong"]', { state: 'visible', timeout: 8000 });
+    await trang.click('.tab[data-t="dat-phong"]');
+    await trang.waitForSelector('#list .bk', { timeout: 8000 });
+    bang(await trang.$$eval('#list .bk', d => d.length), 2, 'thấy đơn 2 chi nhánh');
+    dung(await trang.isVisible('#fBranch'), 'có ô lọc chi nhánh');
+    const nut = await trang.$$eval('#list .bk', d => d.map(x => ({ ten: x.querySelector('.bk-name').textContent, duyet: [...x.querySelectorAll('button')].some(b => /Duyệt/.test(b.textContent)) })));
+    dung(nut.find(x => /Khách Một/.test(x.ten)).duyet, 'đơn chi nhánh mình: có nút Duyệt');
+    dung(!nut.find(x => /Khách Hai/.test(x.ten)).duyet, 'đơn chi nhánh được cấp xem: không có nút Duyệt');
+    await trang.screenshot({ path: join(ANH_CHUP, '22-quanly-don-2-chi-nhanh.png') });
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
 await chayTatCa();
 console.log('Ảnh chụp: ' + ANH_CHUP);

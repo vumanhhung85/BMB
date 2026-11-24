@@ -744,7 +744,7 @@ tbody tr:hover td{background:var(--hover)}
 <!-- Thanh bên của admin (12/11/2026): chia nhóm Vận hành / Danh mục / Hệ thống / Cá nhân. Máy tính luôn
      hiện; điện thoại/tablet là ngăn kéo mở bằng tab "Thêm" ở thanh dưới. Các mục Danh mục/Hệ thống/Cá
      nhân là các phần của tab Cài đặt cũ, chỉ lọc hiện đúng thẻ (data-nhom) — không đổi chức năng nào. -->
-<style>.vt-gs .tab[data-t="tongquan"],.vt-gs .tab[data-t="baotri"],.vt-gs .tab[data-t="bando"],.vt-gs .tab[data-t="dat-phong"]{display:none!important}</style>
+<style>.vt-gs .tab[data-t="tongquan"],.vt-gs .tab[data-t="bando"]{display:none!important}</style>
 <aside class="side" id="sideNav" aria-label="Menu quản trị">
   <div class="side-brand"><img src="Logo_BoomBox.png" alt=""><div><b>Boom Music Box</b><span>Bảng quản trị</span></div>
     <button type="button" class="ico-btn" onclick="dongMenu()" aria-label="Đóng menu">✕</button></div>
@@ -2248,6 +2248,59 @@ function dongModuleKhiBack(){
 
 /* ─── ĐÁNH GIÁ KHÁCH HÀNG: tab chỉ hiện khi tài khoản CÓ QUYỀN (lấy từ máy chủ), không theo tên vai trò ─── */
 let QUYEN = {};
+/* ─── QUYỀN chức năng × phạm vi cho Bảo trì / Đặt phòng (24/11/2026) ───
+   QUYEN = { 'BAOTRI.XEM': {tatCa, chiNhanh:[{id,ten}]}, … } lấy từ máy chủ (khoi_dong / quyen_cua_toi). Trước khi máy chủ trả
+   về (vừa đăng nhập) hoặc khi Worker cũ chưa có, dùng bộ MẶC ĐỊNH theo vai trò — khớp dgQuyenMacDinh() ở Worker — nên màn
+   đầu không lệch. Mọi nút/menu Bảo trì · Đặt phòng hỏi các hàm dưới đây, KHÔNG hỏi tên vai trò. Kỹ thuật vẫn theo phiếu được giao. */
+function quyenMacDinhVaiTro(){
+  const q = {};
+  if(!SESSION) return q;
+  const toan = k => { q[k] = {tatCa:true, chiNhanh:[]}; };
+  const cn = k => { q[k] = {tatCa:false, chiNhanh:[{id:SESSION.branchId, ten:SESSION.branchName||SESSION.branchId}]}; };
+  if(SESSION.role==='admin') ['BAOTRI.XEM','BAOTRI.BAO','BAOTRI.XACNHAN','BAOTRI.TIEPNHAN','BAOTRI.DIEUPHOI','BAOTRI.DONG','DATPHONG.XEM','DATPHONG.DUYET','DANHGIA.QR_XEM','DANHGIA.QR_QUANLY'].forEach(toan);
+  else if(SESSION.role==='manager' && SESSION.branchId) ['BAOTRI.XEM','BAOTRI.BAO','BAOTRI.XACNHAN','DATPHONG.XEM','DATPHONG.DUYET','DANHGIA.XEM','DANHGIA.XULY','DANHGIA.XEM_SDT','DANHGIA.XUAT','DANHGIA.QR_XEM'].forEach(cn);
+  else if(SESSION.role==='giamsat') ['DANHGIA.XEM','DANHGIA.XULY','DANHGIA.XEM_SDT','DANHGIA.XUAT','DANHGIA.QR_XEM'].forEach(toan);
+  return q;
+}
+/** Có chức năng q ở ít nhất 1 chi nhánh. */
+const coQ = q => { const e = QUYEN[q]; return !!e && (e.tatCa || (e.chiNhanh||[]).length > 0); };
+/** Có chức năng q ở chi nhánh cn (toàn chuỗi phủ mọi chi nhánh). */
+const coQCN = (q, cn) => { const e = QUYEN[q]; return !!e && (e.tatCa || (e.chiNhanh||[]).some(c => c.id === cn)); };
+/** Chức năng q phủ HƠN 1 chi nhánh (→ cần ô chọn/lọc chi nhánh). */
+const qNhieuCN = q => { const e = QUYEN[q]; return !!e && (e.tatCa || (e.chiNhanh||[]).length > 1); };
+/** Các chi nhánh (phần tử BRANCHES) nằm trong phạm vi chức năng q. */
+const cnTheoQuyen = q => { const e = QUYEN[q]; if(!e) return []; return e.tatCa ? BRANCHES.slice() : BRANCHES.filter(b => (e.chiNhanh||[]).some(c => c.id === b.id)); };
+/** "Bàn điều phối": có Tiếp nhận / Điều phối / Đóng phiếu → giao diện điều phối (Kanban, Bảng, lọc chi nhánh…) như admin. */
+const laDieuPhoi = () => !!SESSION && !isKyThuat() && (coQ('BAOTRI.TIEPNHAN') || coQ('BAOTRI.DIEUPHOI') || coQ('BAOTRI.DONG'));
+/** Phía chi nhánh: xem sự cố theo chi nhánh nhưng không điều phối (quản lý chi nhánh, quản lý vùng…). */
+const laChiNhanh = () => !!SESSION && !isKyThuat() && !laDieuPhoi() && coQ('BAOTRI.XEM');
+/** Có quyền mới từ máy chủ: lưu lại; khác bản đang dùng thì dựng lại mọi chỗ phụ thuộc quyền. */
+function datQuyen(q, danhMuc){
+  if(!q || typeof q !== 'object') return;
+  // Worker CŨ (chưa có quyền Bảo trì/Đặt phòng trong danh mục) → giữ phần Bảo trì/Đặt phòng theo vai trò, không làm mất tab
+  if(danhMuc && !danhMuc['BAOTRI.XEM']){
+    const md = quyenMacDinhVaiTro();
+    q = Object.assign({}, q);
+    Object.keys(md).forEach(k => { if(/^(BAOTRI|DATPHONG)\./.test(k)) q[k] = md[k]; });
+  }
+  const cu = JSON.stringify(QUYEN);
+  QUYEN = q;
+  if(SESSION && JSON.stringify(QUYEN) !== cu) apDungQuyenGiaoDien();
+}
+let DA_CO_CAI_DAT = false;   // đã nạp cài đặt thật từ máy chủ (công tắc giữ phòng) — xem capNhatHienTabDatPhong
+function apDungQuyenGiaoDien(){
+  if(!SESSION) return;
+  const tBt = document.querySelector('.tab[data-t="baotri"]'), coBt = isKyThuat() || coQ('BAOTRI.XEM');
+  tBt.style.display = coBt ? '' : 'none';
+  $('fBranch').style.display = qNhieuCN('DATPHONG.XEM') ? '' : 'none';
+  capNhatHienTabDatPhong(DA_CO_CAI_DAT);
+  apDungDanhSachChiNhanh();
+  capNhatNutChuyenView();
+  veOChonXemSuCo();
+  taoLichDon();
+  if(TAB==='baotri'){ if(!coBt) switchTab(document.querySelector('.tab[data-t="caidat"]')); else { toggleBaoTriView(kieuXemMacDinh()); drawSuCo(); } }
+  else if(TAB==='dat-phong') draw();
+}
 function moTabDanhGia(){ diToi('danhgia'); }   // giữ tên cũ cho chỗ nào còn gọi
 async function napQuyenDanhGia(){
   const tab = $('tabDanhGia'); tab.style.display = 'none';
@@ -2255,8 +2308,8 @@ async function napQuyenDanhGia(){
   if(sq) sq.style.display = 'none'; if(sd) sd.style.display = 'none';
   try{
     const j = await api({ action:'quyen_cua_toi' }, { nen:true });
-    QUYEN = (j && j.ok && j.quyen) || {};
-  }catch(e){ QUYEN = {}; }   // Worker chưa cập nhật / mất mạng → đơn giản là không hiện tab
+    if(j && j.ok && j.quyen) datQuyen(j.quyen, j.danhMuc || {});
+  }catch(e){}   // Worker chưa cập nhật / mất mạng → giữ quyền đang có (mặc định theo vai trò hoặc bản khoi_dong)
   if(!SESSION) return;
   const xem = !!QUYEN['DANHGIA.XEM'], qr = !!QUYEN['DANHGIA.QR_XEM'];
   tab.style.display = (xem || qr) ? '' : 'none';
@@ -2310,10 +2363,11 @@ function dongBoDemThanhBen(){
 const KIEU_XEM = {table:'📊 Bảng', kanban:'🗂️ Kanban', map:'🗺️ Bản đồ', list:'📋 Danh sách'};
 function kieuXemDuocPhep(){
   if(!SESSION) return ['list'];
-  if(SESSION.role==='admin' || isKyThuat()) return ['table','kanban','map','list'];
+  // Điều phối, kỹ thuật, và người theo dõi NHIỀU chi nhánh (quản lý vùng…) có đủ 4 kiểu xem; 1 chi nhánh: Danh sách
+  if(laDieuPhoi() || isKyThuat() || qNhieuCN('BAOTRI.XEM')) return ['table','kanban','map','list'];
   return ['list'];   // quản lý chi nhánh: chỉ Danh sách (nhóm theo việc cần làm)
 }
-function kieuXemMacDinhVaiTro(){ return SESSION && SESSION.role==='admin' ? 'kanban' : (SESSION && isKyThuat() ? 'table' : 'list'); }
+function kieuXemMacDinhVaiTro(){ return SESSION && laDieuPhoi() ? 'kanban' : (SESSION && isKyThuat() ? 'table' : 'list'); }
 function kieuXemMacDinh(){
   let v = null;
   try{ v = localStorage.getItem(CFG.PREFIX+'xem_suco'); }catch(e){}
@@ -2739,7 +2793,7 @@ function taoLichSuCo(){
 let donTimerId = null;
 function taoLichDon(){
   if(donTimerId){ clearTimeout(donTimerId); donTimerId = null; }
-  if(isKyThuat()) return;   // kỹ thuật viên không có tab Đặt phòng
+  if(!coQ('DATPHONG.XEM')) return;   // không có quyền xem đơn (kỹ thuật, giám sát…) → không tải đơn
   donTimerId = setTimeout(async () => {
     if(!document.hidden && PUBLIC_SETTINGS.datPhongBat && !mayChuDangBan()) await loadBookings(false, true);
     taoLichDon();
@@ -2769,7 +2823,10 @@ async function enterApp(){
   // đăng nhập admin xong đăng xuất, đăng nhập lại bằng vai trò khác vẫn thấy nguyên khung Cài đặt/Chi
   // nhánh/Telegram của admin trên máy đó, phải bấm F5 mới hết. Sửa: luôn gán cả 2 nhánh mỗi lần vào.
   const laAdmin = SESSION.role === 'admin';
-  $('fBranch').style.display = laAdmin ? '' : 'none';
+  QUYEN = quyenMacDinhVaiTro();   // tạm theo vai trò cho tới khi máy chủ trả quyền thật (khoi_dong)
+  DA_CO_CAI_DAT = false;
+  $('fBranch').style.display = qNhieuCN('DATPHONG.XEM') ? '' : 'none';
+  document.querySelector('.tab[data-t="baotri"]').style.display = (isKyThuat() || coQ('BAOTRI.XEM')) ? '' : 'none';
   document.querySelectorAll('.caidat-admin-only').forEach(el => el.style.display = laAdmin ? '' : 'none');
   $('cfgTelegramWrap').style.display = laAdmin ? '' : 'none';
   // Các nút chuyển view (Bảng/Bản đồ/Danh sách/Báo sự cố) được dựng trong capNhatNutChuyenView(),
@@ -2787,7 +2844,7 @@ async function enterApp(){
   document.body.classList.toggle('vt-gs', laGiamSat);   // đặt cả 2 chiều (bài học 19/09/2026)
   // Admin mở đầu ở Tổng quan (12/11/2026); kỹ thuật & quản lý vẫn vào thẳng Bảo trì như cũ; giám sát chỉ có Tài khoản + Đánh giá.
   CD_LOC = '';
-  switchTab(document.querySelector('.tab[data-t="'+(laAdmin ? 'tongquan' : laGiamSat ? 'caidat' : 'baotri')+'"]'), true);
+  switchTab(document.querySelector('.tab[data-t="'+(laAdmin ? 'tongquan' : (isKyThuat() || coQ('BAOTRI.XEM')) ? 'baotri' : 'caidat')+'"]'), true);
   napQuyenDanhGia();   // hiện tab Đánh giá nếu tài khoản có quyền xem (không chặn việc vào app)
   if(isKyThuat()){
     batDauChiaSeViTri();   // định kỳ nhẹ mỗi 5 phút trong lúc còn mở app — xem thêm ở nhanViec/batDauXuLy/submitBaoXong
@@ -2815,7 +2872,7 @@ async function enterApp(){
   // Đặt phòng: giữ nguyên 30 giây bất kể đang xem tab nào (đơn khách chờ duyệt, ít tài khoản quản lý
   // hơn hẳn Bảo trì nên không đáng giãn) — nhưng tắt hẳn nếu tính năng đặt phòng đang bị khoá, vì khi
   // đó chắc chắn không có đơn mới nào phát sinh được nữa, gọi chỉ tốn vô ích (mới, 18/09/2026).
-  if(!isKyThuat()) taoLichDon();   // Đặt phòng: ~30 giây, giãn cách ngẫu nhiên — xem taoLichDon()
+  taoLichDon();   // Đặt phòng: ~30 giây, giãn cách ngẫu nhiên — chỉ khi có quyền xem đơn, xem taoLichDon()
 
   taoLichSuCo();   // Bảo trì: nhịp THAY ĐỔI theo vai trò/tab đang xem — xem ghi chú trong hàm
 
@@ -2826,7 +2883,7 @@ async function enterApp(){
     // Vừa hiện lại tab: làm mới ngay cho hết cũ — nhưng vẫn nhường đường nếu máy chủ đang báo bận
     // (đầu ca nhiều máy cùng mở màn hình một lúc sẽ tạo đúng cụm dồn cần tránh).
     if(!mayChuDangBan()){
-      if(!isKyThuat() && PUBLIC_SETTINGS.datPhongBat) loadBookings(false,true);
+      if(coQ('DATPHONG.XEM') && PUBLIC_SETTINGS.datPhongBat) loadBookings(false,true);
       loadSuCo(true);
     }
     taoLichSuCo();   // tab vừa hiện lại — đặt lại lịch Bảo trì (trước đó bị huỷ hẳn lúc ẩn)
@@ -2851,6 +2908,8 @@ async function khoiDongDuLieu(){
     khoiDongLanThu = 0;
 
     if(j.settings) PUBLIC_SETTINGS = j.settings;
+    const quyenCu = JSON.stringify(QUYEN);
+    if(j.quyen) QUYEN = j.quyen;   // quyền thật (24/11/2026) — trước mọi chỗ dựng giao diện theo quyền bên dưới
     BRANCHES = j.branches || [];
     apDungDanhSachChiNhanh();
 
@@ -2870,6 +2929,8 @@ async function khoiDongDuLieu(){
     // Các nút chuyển view phụ thuộc PUBLIC_SETTINGS nên phải dựng SAU khi đã có dữ liệu cài đặt.
     capNhatNutChuyenView();
     if(SESSION.role === 'admin') capNhatUIBookingSetting();
+    // Quyền thật khác bộ mặc định theo vai trò (vd được cấp thêm điều phối / chi nhánh khác) → dựng lại theo quyền
+    if(j.quyen && JSON.stringify(QUYEN) !== quyenCu) apDungQuyenGiaoDien();
   }catch(e){
     console.warn('Khởi động gộp không thành công:', e.message);
     // Đây là lượt tải ĐẦU TIÊN của phiên làm việc — chưa từng có dữ liệu nào để gọi là "dữ liệu cũ"
@@ -2904,9 +2965,9 @@ function capNhatNutChuyenView(){
   [['btnBtTableView','table'],['btnBtKanbanView','kanban'],['btnBtMapView','map'],['btnBtListView','list']]
     .forEach(([id,v]) => $(id).style.display = (ds.length>1 && ds.includes(v)) ? '' : 'none');
   // Quản lý chi nhánh dùng nút to ở đầu trang (ctaBaoSuCo) thay cho nút nhỏ này (12/11/2026).
-  $('btnTaoSuCo').style.display = SESSION.role === 'admin' ? '' : 'none';
+  $('btnTaoSuCo').style.display = (laDieuPhoi() && coQ('BAOTRI.BAO')) ? '' : 'none';
   // Quản lý chi nhánh: nút to "Báo sự cố mới" đầu trang (12/11/2026) — nút nhỏ trên thanh công cụ vẫn giữ.
-  $('ctaBaoSuCo').style.display = SESSION.role === 'manager' ? '' : 'none';
+  $('ctaBaoSuCo').style.display = (laChiNhanh() && coQ('BAOTRI.BAO')) ? '' : 'none';
   $('tabBanDo').style.display = isKyThuat() ? '' : 'none';
 }
 
@@ -2951,14 +3012,16 @@ async function loadBranches(){
  *  dùng lại được với dữ liệu lấy từ action gộp `khoi_dong` (mới, 18/09/2026), không phải gọi lại
  *  máy chủ thêm 1 lượt chỉ để dựng giao diện. */
 function apDungDanhSachChiNhanh(){
-  if(SESSION && SESSION.role==='admin'){
-    const optCN = '<option value="">Tất cả chi nhánh</option>' +
-      BRANCHES.slice().sort((a,b)=>a.short.localeCompare(b.short)).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.short)+'</option>').join('');
-    $('fMoiCN').innerHTML = optCN; $('fMoiCN').style.display='';
-    $('fXongCN').innerHTML = optCN; $('fXongCN').style.display='';
-    $('fBangCN').innerHTML = optCN; $('fBangCN').style.display='';
-    $('fKbCN').innerHTML = optCN; $('fKbCN').style.display='';
-  }
+  // Lọc theo chi nhánh: ai xem sự cố của NHIỀU chi nhánh (điều phối, quản lý vùng…) — chỉ liệt kê chi nhánh trong phạm vi.
+  // Gán cả 2 chiều (bài học 19/09/2026). Kỹ thuật dùng ô lọc riêng (#fCNKT).
+  const nhieu = !!SESSION && !isKyThuat() && qNhieuCN('BAOTRI.XEM');
+  const optCN = '<option value="">Tất cả chi nhánh</option>' + (nhieu ?
+    cnTheoQuyen('BAOTRI.XEM').sort((a,b)=>a.short.localeCompare(b.short)).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.short)+'</option>').join('') : '');
+  ['fMoiCN','fXongCN','fBangCN','fKbCN'].forEach(id => {
+    const el = $(id), cu = el.value;
+    el.innerHTML = optCN; el.style.display = nhieu ? '' : 'none';
+    if(cu && [...el.options].some(o => o.value === cu)) el.value = cu;
+  });
   buildScChiNhanhSelect();
 }
 
@@ -3448,7 +3511,7 @@ async function loadBookings(manual, silent){
 /** Phần xử lý SAU KHI đã có dữ liệu DATA (đơn đặt phòng): dựng dropdown chi nhánh, đếm đơn chờ duyệt,
  *  vẽ lại danh sách. Tách riêng để action gộp `khoi_dong` dùng lại (mới, 18/09/2026). */
 function xuLyDonSauKhiTai(){
-  if(SESSION && SESSION.role === 'admin'){
+  if(SESSION && qNhieuCN('DATPHONG.XEM')){
     const bs=[...new Set(DATA.map(d=>d.branchName))].sort();
     $('fBranch').innerHTML='<option value="">Tất cả chi nhánh</option>'+bs.map(b=>'<option>'+esc(b)+'</option>').join('');
   }
@@ -3593,12 +3656,12 @@ function bkHTML(d){
     (d.handledBy?'<div style="font-size:12.5px;color:var(--txt-mute);margin-bottom:10px">Xử lý bởi '+esc(d.handledBy)+' · '+esc(String(d.handledAt||'').replace('T',' ').slice(0,16))+'</div>':'')+
     '<div class="bk-act">'+
       '<a class="btn btn-ghost btn-sm" href="tel:'+esc(d.phone)+'">📞 Gọi khách</a>'+
-      (d.status==='pending' ?
+      (d.status==='pending' && coQCN('DATPHONG.DUYET', d.branchId) ?
         '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,act,\''+esc(d.code)+'\',\'approved\')">✓ Duyệt</button>'+
         '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,act,\''+esc(d.code)+'\',\'rejected\')">✕ Từ chối</button>' : '')+
       (d.status==='approved' ?
         '<a class="btn btn-y btn-sm" href="sms:'+esc(d.phone)+'?body='+smsOK+'">💬 Nhắn xác nhận</a>'+
-        '<button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,act,\''+esc(d.code)+'\',\'done\')">🎤 Khách đã tới</button>' : '')+
+        (coQCN('DATPHONG.DUYET', d.branchId) ? '<button class="btn btn-ghost btn-sm" onclick="chanBamKep(this,act,\''+esc(d.code)+'\',\'done\')">🎤 Khách đã tới</button>' : '') : '')+
       (d.status==='rejected' ? '<a class="btn btn-ghost btn-sm" href="sms:'+esc(d.phone)+'?body='+smsNo+'">💬 Nhắn xin lỗi</a>' : '')+
       '<a class="btn btn-ghost btn-sm" href="https://zalo.me/'+esc(d.phone)+'" target="_blank" rel="noopener">Zalo</a>'+
     '</div></article>';
@@ -3872,9 +3935,10 @@ document.addEventListener('visibilitychange', () => {
 
 /* ─── tạo sự cố ─── */
 function buildScChiNhanhSelect(){
-  if(SESSION && SESSION.role==='admin'){
+  // Ô chọn chi nhánh khi báo sự cố: chỉ khi được báo cho NHIỀU chi nhánh; liệt kê đúng các chi nhánh có quyền BAOTRI.BAO.
+  if(SESSION && qNhieuCN('BAOTRI.BAO')){
     $('scChiNhanh').innerHTML = '<option value="">— Chọn chi nhánh —</option>' +
-      BRANCHES.slice().sort((a,b)=>a.short.localeCompare(b.short)).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.short)+'</option>').join('');
+      cnTheoQuyen('BAOTRI.BAO').sort((a,b)=>a.short.localeCompare(b.short)).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.short)+'</option>').join('');
   }
 }
 let scMucDoChon = null;
@@ -3883,8 +3947,8 @@ function openTaoSuCo(){
   scDangSuaMa = null;
   SC_ANH = []; $('scPhotoBox').innerHTML = '';
   $('scPhong').value=''; $('scMoTa').value='';
-  $('fldChiNhanhSuCo').style.display = SESSION.role==='admin' ? '' : 'none';
-  if(SESSION.role==='admin') $('scChiNhanh').value='';
+  $('fldChiNhanhSuCo').style.display = qNhieuCN('BAOTRI.BAO') ? '' : 'none';
+  if(qNhieuCN('BAOTRI.BAO')) $('scChiNhanh').value='';
   // KHÔNG để loại sự cố mặc định chọn sẵn dòng đầu tiên — bắt buộc người báo tự chọn, tránh báo nhầm
   // loại lỗi do lười đổi (mới, 11/09/2026, theo phản hồi thực tế "để mặc định toàn bị báo nhầm").
   $('scLoai').innerHTML = '<option value="">— Chọn loại sự cố —</option>' +
@@ -3945,7 +4009,7 @@ function pickMucDo(m){ scMucDoChon = m; renderMucDoPick(); }
 async function submitSuCo(guiTrung){
   const loaiCode = $('scLoai').value;
   const moTa = $('scMoTa').value.trim();
-  if(!scDangSuaMa && SESSION.role==='admin' && !$('scChiNhanh').value) return toast('Chọn chi nhánh trước đã nhé.','bad');
+  if(!scDangSuaMa && qNhieuCN('BAOTRI.BAO') && !$('scChiNhanh').value) return toast('Chọn chi nhánh trước đã nhé.','bad');
   if(!loaiCode) return toast('Chọn loại sự cố trước đã nhé.','bad');
   if(!scMucDoChon) return toast('Chưa xác định được mức độ ưu tiên — chọn lại loại sự cố hoặc bấm chọn mức độ.','bad');
   if(!moTa) return toast('Nhập mô tả chi tiết — giúp admin/kỹ thuật điều phối đúng người, đúng việc.','bad');
@@ -3962,7 +4026,7 @@ async function submitSuCo(guiTrung){
       j = await api({
         action:'suco_tao', loaiLoi:loaiCode, mucDo:scMucDoChon,
         phong:$('scPhong').value.trim(), moTa:moTa,
-        chinhanhId: SESSION.role==='admin' ? $('scChiNhanh').value : undefined,
+        chinhanhId: qNhieuCN('BAOTRI.BAO') ? $('scChiNhanh').value : undefined,
         anh: SC_ANH, buaTrung: guiTrung===true
       });
     }
@@ -4024,13 +4088,13 @@ function xuLySuCoSauKhiTai(){
   $('nSuCo').className = 'n' + (nOpen?'':' zero');
   if(lastSuCoOpenSeen !== null && nOpen > lastSuCoOpenSeen){
     const soMoi = nOpen - lastSuCoOpenSeen;
-    const msg = SESSION.role==='admin'
+    const msg = laDieuPhoi()
       ? (soMoi===1 ? 'Có 1 sự cố mới cần tiếp nhận!' : 'Có '+soMoi+' sự cố mới cần tiếp nhận!')
       : isKyThuat()
         ? (soMoi===1 ? 'Bạn vừa được điều phối 1 việc mới!' : 'Bạn vừa được điều phối '+soMoi+' việc mới!')
         : 'Ticket bảo trì của chi nhánh vừa có cập nhật mới!';
     playPing();
-    toast('🛠️ '+msg, SESSION.role==='admin' ? 'bad' : 'ok');
+    toast('🛠️ '+msg, laDieuPhoi() ? 'bad' : 'ok');
     if(thongBaoHeThongBat()){
       const n = new Notification('🛠️ Boom Music Box — Bảo trì', { body: msg, icon:'Logo_BoomBox.png', tag:'boom-suco' });
       n.onclick = () => { window.focus(); n.close(); };
@@ -4126,15 +4190,16 @@ function drawSuCo(){
     const moiGiao = demTT(['da_dieu_phoi']);
     $('statsSuCo').innerHTML = o('y','Đang làm',demTT(['da_nhan','dang_xu_ly']))+o(moiGiao?'r':'','Mới giao cho bạn',moiGiao)+
       o('g','Chờ chi nhánh xác nhận',demTT(['cho_xac_nhan','cho_dong']))+o('','Đã xong',demTT(['dong']));
-  } else if(SESSION.role==='manager'){
+  } else if(laChiNhanh()){
     const canXN = demTT(['cho_xac_nhan']);
-    $('statsSuCo').innerHTML = o(canXN?'r':'','Cần bạn xác nhận',canXN)+o('y','Kỹ thuật đang xử lý',demTT(['da_dieu_phoi','da_nhan','dang_xu_ly']))+
+    // Người chỉ theo dõi (không có quyền xác nhận, vd giám sát được cấp xem) → nhãn trung tính, không "Cần bạn…"
+    $('statsSuCo').innerHTML = o(canXN && coQ('BAOTRI.XACNHAN')?'r':'',coQ('BAOTRI.XACNHAN')?'Cần bạn xác nhận':'Chờ chi nhánh xác nhận',canXN)+o('y','Kỹ thuật đang xử lý',demTT(['da_dieu_phoi','da_nhan','dang_xu_ly']))+
       o('w','Chờ tiếp nhận',demTT(['moi','da_tiep_nhan']))+o('','Đã đóng',demTT(['dong']));
   } else {
     $('statsSuCo').innerHTML = o('r','Khẩn cấp đang mở',p1)+o('y','Đang mở',open.length)+
       o('g','Chờ chi nhánh xác nhận',demTT(['cho_xac_nhan']))+o('','Đã đóng',demTT(['dong']));
   }
-  $('tdChuaXuLy').textContent = isKyThuat() ? '🔧 Việc của tôi' : SESSION.role==='manager' ? '🔧 Sự cố của chi nhánh' : '🔧 Sự cố chưa xử lý';
+  $('tdChuaXuLy').textContent = isKyThuat() ? '🔧 Việc của tôi' : laChiNhanh() ? '🔧 Sự cố của chi nhánh' : '🔧 Sự cố chưa xử lý';
 
   capNhatDsKyThuatLoc('fMoiKT');
   capNhatDsKyThuatLoc('fXongKT');
@@ -4172,8 +4237,8 @@ function drawSuCo(){
       {ten:'Mới giao cho bạn', tt:['da_dieu_phoi']},
       {ten:'Có thể tự nhận', tt:['da_tiep_nhan']},
       {ten:'Chờ chi nhánh xác nhận', tt:['cho_xac_nhan','cho_dong']}
-    ] : SESSION.role==='manager' ? [
-      {ten:'Cần anh/chị xác nhận', tt:['cho_xac_nhan']},
+    ] : laChiNhanh() ? [
+      {ten: coQ('BAOTRI.XACNHAN') ? 'Cần anh/chị xác nhận' : 'Chờ chi nhánh xác nhận', tt:['cho_xac_nhan']},
       {ten:'Kỹ thuật đang xử lý', tt:['da_dieu_phoi','da_nhan','dang_xu_ly']},
       {ten:'Mới báo — chờ tiếp nhận', tt:['moi','da_tiep_nhan']},
       {ten:'Chờ đóng', tt:['cho_dong']}
@@ -4324,10 +4389,11 @@ function sucoHTML(t){
   const slaBadge = (sla && sla.text) ? ' <span class="pri pri-'+slaCls+'">'+sla.text+'</span>' : '';
   let acts = '';
 
-  if(SESSION.role==='admin'){
-    if(t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,tiepNhan,\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
-    if(['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi kỹ thuật':'Điều phối')+'</button>';
-    if(t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,dongTicket,\''+t.maSuCo+'\')">🔒 Đóng ticket</button>';
+  // Nút điều phối theo QUYỀN ở đúng chi nhánh của phiếu (24/11/2026) — admin có đủ toàn chuỗi như trước
+  if(!isKyThuat()){
+    if(t.trangThai==='moi' && coQCN('BAOTRI.TIEPNHAN', t.chinhanhId)) acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,tiepNhan,\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
+    if(['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai) && coQCN('BAOTRI.DIEUPHOI', t.chinhanhId)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi kỹ thuật':'Điều phối')+'</button>';
+    if(t.trangThai==='cho_dong' && coQCN('BAOTRI.DONG', t.chinhanhId)) acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,dongTicket,\''+t.maSuCo+'\')">🔒 Đóng ticket</button>';
   }
   /* Kỹ thuật & quản lý (12/11/2026): bước kế tiếp là 1 nút TO đầy ngang (chinh) + thanh tiến độ các bước,
      các nút phụ (chỉ đường, trao đổi, lịch sử…) xếp nhỏ bên dưới. Cùng hàm/action như trước. */
@@ -4344,8 +4410,8 @@ function sucoHTML(t){
     if(t.trangThai!=='dong') buoc = {ten:['Nhận việc','Đang xử lý','Báo xong'],
       n:{da_tiep_nhan:0, da_dieu_phoi:0, da_nhan:1, dang_xu_ly:2, cho_xac_nhan:3, cho_dong:3}[t.trangThai] ?? 0};
   }
-  if(SESSION.role==='manager'){
-    if(t.trangThai==='cho_xac_nhan')
+  if(laChiNhanh()){
+    if(t.trangThai==='cho_xac_nhan' && coQCN('BAOTRI.XACNHAN', t.chinhanhId))
       chinh = '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">'+
         '<button class="btn btn-ok btn-lg" onclick="chanBamKep(this,xacNhan,\''+t.maSuCo+'\',true)">✅ Đã xong</button>'+
         '<button class="btn btn-bad btn-lg" onclick="chanBamKep(this,xacNhan,\''+t.maSuCo+'\',false)">❌ Chưa xong</button></div>';
@@ -4411,13 +4477,12 @@ const HANHDONG_LABEL = {
    ảnh/thư viện với form báo sự cố & báo xong (moCamera / onPickAnh / drawPhotoBox) — 1 nguồn duy nhất. */
 function coTheTraoDoi(t){
   if(!t || !SESSION || t.trangThai==='dong') return false;
-  if(SESSION.role==='admin') return true;
-  if(SESSION.role==='manager') return t.chinhanhId===SESSION.branchId;
+  if(coQCN('BAOTRI.BAO', t.chinhanhId)) return true;     // quyền Báo & trao đổi ở chi nhánh của phiếu (giống Worker)
   if(isKyThuat()) return t.kyThuatDuocGiao===SESSION.user;
   return false;
 }
 function nguoiNhanTraoDoi(t){
-  if(SESSION.role==='manager') return t.kyThuatDuocGiao ? 'kỹ thuật đang phụ trách ('+esc(t.kyThuatTen||t.kyThuatDuocGiao)+')' : 'admin (chưa có kỹ thuật phụ trách)';
+  if(laChiNhanh()) return t.kyThuatDuocGiao ? 'kỹ thuật đang phụ trách ('+esc(t.kyThuatTen||t.kyThuatDuocGiao)+')' : 'admin (chưa có kỹ thuật phụ trách)';
   if(isKyThuat()) return 'quản lý chi nhánh '+esc(t.chinhanhTen);
   return 'quản lý chi nhánh'+(t.kyThuatDuocGiao ? ' và kỹ thuật '+esc(t.kyThuatTen||t.kyThuatDuocGiao) : '');
 }
@@ -4720,7 +4785,7 @@ function toggleBaoTriView(view){
    cách sắp xếp người dùng đã chọn ở khung Danh sách (mặc định mới nhất trước). Nút trên thẻ = đúng các
    hành động admin sẵn có (tiepNhan/openDieuPhoi/dongTicket), không thêm logic mới. */
 const COT_KANBAN = [
-  { ma:'moi',      ten:'🆕 Mới báo',                tt:['moi'],                      goiY:'Chờ admin tiếp nhận' },
+  { ma:'moi',      ten:'🆕 Mới báo',                tt:['moi'],                      goiY:'Chờ tiếp nhận' },
   { ma:'tiepnhan', ten:'📥 Đã tiếp nhận',           tt:['da_tiep_nhan'],             goiY:'Chờ điều phối kỹ thuật' },
   { ma:'giao',     ten:'👷 Đã giao kỹ thuật',       tt:['da_dieu_phoi','da_nhan'],   goiY:'Kỹ thuật chưa bắt đầu xử lý' },
   { ma:'xuly',     ten:'🔧 Đang xử lý',             tt:['dang_xu_ly'],               goiY:'' },
@@ -4803,9 +4868,9 @@ function theKanbanHTML(t, dem){
   const slaCls = {ok:4, warn:2, bad:1}[sla&&sla.cls] || 3;
   const ma = esc(t.maSuCo);
   let acts = isKyThuat() ? nutKyThuat(t, true) : '';
-  if(!isKyThuat() && t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();chanBamKep(this,tiepNhan,\''+ma+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
-  if(!isKyThuat() && ['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="event.stopPropagation();openDieuPhoi(\''+ma+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
-  if(!isKyThuat() && t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();chanBamKep(this,dongTicket,\''+ma+'\')">🔒 Đóng</button>';
+  if(!isKyThuat() && t.trangThai==='moi' && coQCN('BAOTRI.TIEPNHAN', t.chinhanhId)) acts += '<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();chanBamKep(this,tiepNhan,\''+ma+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
+  if(!isKyThuat() && ['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai) && coQCN('BAOTRI.DIEUPHOI', t.chinhanhId)) acts += '<button class="btn btn-y btn-sm" onclick="event.stopPropagation();openDieuPhoi(\''+ma+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
+  if(!isKyThuat() && t.trangThai==='cho_dong' && coQCN('BAOTRI.DONG', t.chinhanhId)) acts += '<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();chanBamKep(this,dongTicket,\''+ma+'\')">🔒 Đóng</button>';
   acts += '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();xemLichSu(\''+ma+'\',true)">💬'+(t.soTraoDoi?' <span class="td-dem">'+t.soTraoDoi+'</span>':'')+'</button>';
   return '<article class="kb-the" data-p="'+t.mucDo+'" data-cn="'+esc(t.chinhanhId)+'" data-ten="'+esc(t.chinhanhTen)+'" id="kb-'+ma+'" onclick="xemLichSu(\''+ma+'\')" title="Bấm để xem lịch sử & trao đổi">'+
     '<div class="kb-dau"><span class="sc-code">'+ma+'</span><span class="pri pri-'+t.mucDo+'">'+MUC_DO_LABEL[t.mucDo]+'</span></div>'+
@@ -4863,9 +4928,9 @@ function drawSuCoTable(){
     // Cùng đúng 3 hành động của admin bên khung Danh sách (sucoHTML) — tái dùng y hệt hàm cũ
     // (tiepNhan/openDieuPhoi/dongTicket), không viết logic mới, không thêm action nào ở Code.gs.
     let acts = isKyThuat() ? nutKyThuat(t, false) : '';
-    if(!isKyThuat() && t.trangThai==='moi') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,tiepNhan,\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
-    if(!isKyThuat() && ['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
-    if(!isKyThuat() && t.trangThai==='cho_dong') acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,dongTicket,\''+t.maSuCo+'\')">🔒 Đóng</button>';
+    if(!isKyThuat() && t.trangThai==='moi' && coQCN('BAOTRI.TIEPNHAN', t.chinhanhId)) acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,tiepNhan,\''+t.maSuCo+'\','+t.mucDo+')">✓ Tiếp nhận</button>';
+    if(!isKyThuat() && ['da_tiep_nhan','da_dieu_phoi'].includes(t.trangThai) && coQCN('BAOTRI.DIEUPHOI', t.chinhanhId)) acts += '<button class="btn btn-y btn-sm" onclick="openDieuPhoi(\''+t.maSuCo+'\')">📍 '+(t.trangThai==='da_dieu_phoi'?'Đổi KT':'Điều phối')+'</button>';
+    if(!isKyThuat() && t.trangThai==='cho_dong' && coQCN('BAOTRI.DONG', t.chinhanhId)) acts += '<button class="btn btn-ok btn-sm" onclick="chanBamKep(this,dongTicket,\''+t.maSuCo+'\')">🔒 Đóng</button>';
     acts += '<button class="btn btn-ghost btn-sm" onclick="xemLichSu(\''+t.maSuCo+'\','+(t.trangThai!=='dong')+')" title="Lịch sử & trao đổi">🕘'+(t.soTraoDoi?' <span class="td-dem">'+t.soTraoDoi+'</span>':'')+'</button>';
     if(SESSION.sieuAdmin) acts += '<button class="btn btn-bad btn-sm" onclick="chanBamKep(this,xoaSuCo,\''+t.maSuCo+'\')">🗑️</button>';
     return '<tr>'+
@@ -5036,7 +5101,7 @@ async function veBanDoBaoTri(){
 
   // Vị trí kỹ thuật viên — admin luôn xem được; kỹ thuật viên chỉ xem được lẫn nhau khi admin đã bật
   // riêng cờ "Cho xem vị trí đồng nghiệp" (cờ này TÁCH RIÊNG khỏi 2 cờ kia, xem readPublicSettings).
-  if(SESSION.role==='admin' || PUBLIC_SETTINGS.kythuatXemViTriDongNghiep) try{
+  if(coQ('BAOTRI.DIEUPHOI') || (isKyThuat() && PUBLIC_SETTINGS.kythuatXemViTriDongNghiep)) try{
     const j = await api({action:'kythuat_vitri_list'});
     if(j.ok) j.data.forEach(v=>{
       const icon = L.divIcon({html:'👷', className:'kt-marker', iconSize:[30,30]});
@@ -5156,9 +5221,11 @@ async function dongTicket(maSuCo){
  *  Đang đứng ở tab Đặt phòng mà tab bị ẩn đi → tự chuyển về Bảo trì. */
 function capNhatHienTabDatPhong(daCoCaiDat){
   if(!SESSION) return;
+  if(daCoCaiDat) DA_CO_CAI_DAT = true;
   const tab = document.querySelector('.tab[data-t="dat-phong"]');
-  const hien = SESSION.role === 'admin'
-    || (!isKyThuat() && daCoCaiDat && !!(PUBLIC_SETTINGS && PUBLIC_SETTINGS.datPhongBat));
+  // Theo quyền DATPHONG.XEM (24/11/2026); admin luôn thấy (kể cả khi tắt) như trước, người khác chỉ khi công tắc đang bật.
+  const hien = coQ('DATPHONG.XEM') && (SESSION.role === 'admin'
+    || (daCoCaiDat && !!(PUBLIC_SETTINGS && PUBLIC_SETTINGS.datPhongBat)));
   tab.style.display = hien ? '' : 'none';
   if($('sideDatPhong')) $('sideDatPhong').style.display = hien ? '' : 'none';
   if(!hien && TAB === 'dat-phong') switchTab(document.querySelector('.tab[data-t="baotri"]'));
