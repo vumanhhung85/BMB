@@ -63,7 +63,8 @@ async function dangNhapUI(trang, user) {
   await trang.fill('#uPass', '1234');
   await trang.click('#loginBtn');
   await trang.waitForSelector('#app .main', { state: 'visible', timeout: 15000 });
-  await trang.waitForFunction(() => !document.querySelector('#statsSuCo').innerHTML.includes('—') || true);
+  // #statsSuCo nằm trong module Bảo trì (24/11/2026) — tài khoản không thấy Bảo trì thì không có phần tử này
+  await trang.waitForFunction(() => !(document.querySelector('#statsSuCo') || { innerHTML: '' }).innerHTML.includes('—') || true);
   await trang.waitForTimeout(800);
 }
 /** Admin vào trang Sự cố: máy tính bấm thanh bên, điện thoại bấm tab dưới. */
@@ -777,6 +778,37 @@ kb('Module Đặt phòng (mod/datphong.js): tải lười 1 lần; lọc, báo c
     await trang.waitForSelector('#mdpList .bk', { timeout: 8000 });
     dung(!(await trang.isVisible('#mdpCN')), 'quản lý: không có ô lọc chi nhánh');
     bang(await trang.$$eval('#mdpList .bk', d => d.length), 2, 'quản lý CN02 thấy 2 đơn của mình');
+    bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
+  } finally { await trinh.close(); }
+});
+
+kb('Module Bảo trì (mod/baotri.js): tải đúng 1 lần trước khi vẽ cho người thấy Bảo trì; giám sát không quyền không tải; nút Back đóng hộp Lịch sử trước', async () => {
+  const { m, ma } = await duLieu();
+  await themTKUI(m, 'gs1', 'giamsat');
+  const { trinh, trang, loiJS } = await moTrinhDuyet(m, { width: 390, height: 844 });
+  const nap = [], canhBao = [];
+  trang.on('request', r => { if (/mod\/baotri\.js/.test(r.url())) nap.push(r.url()); });
+  trang.on('console', c => { if (/không thành công/i.test(c.text())) canhBao.push(c.text()); });
+  try {
+    await dangNhapUI(trang, 'gs1');
+    bang(nap.length, 0, 'giám sát chưa có quyền: không tải module Bảo trì');
+    await trang.waitForTimeout(800);
+    bang(canhBao.length, 0, 'khởi động không lỗi khi không có module Bảo trì: ' + canhBao.join(' | '));
+    dung(!(await trang.evaluate(() => document.getElementById('offlineMsg').classList.contains('show'))), 'không hiện báo lỗi tải');
+    dung(!(await trang.$('#statsSuCo')), 'không có giao diện Sự cố');
+    await trang.evaluate(() => localStorage.removeItem(CFG.PREFIX + 's'));
+    await dangNhapUI(trang, 'ql01');
+    bang(nap.length, 1, 'quản lý: tải module 1 lần');
+    dung(await trang.isVisible('#ctaBaoSuCo'), 'trang Sự cố hiện ngay sau đăng nhập');
+    await trang.evaluate(() => { diToi('caidat'); diToi('baotri'); });
+    bang(nap.length, 1, 'qua lại tab không tải lại');
+    // Back điện thoại: mở Lịch sử rồi lùi → hộp đóng, vẫn ở app
+    await trang.click('#sc-' + ma.xl + ' button:has-text("Lịch sử")');
+    await trang.waitForSelector('#modalOverlay', { state: 'visible' });
+    await trang.goBack();
+    await trang.waitForSelector('#modalOverlay', { state: 'hidden' });
+    dung(await trang.isVisible('#ctaBaoSuCo'), 'vẫn ở trang Sự cố sau khi lùi');
+    dung(await trang.evaluate(() => !!document.getElementById('modBaoTriCss')), 'CSS của module đã gắn');
     bang(loiJS.length, 0, 'lỗi JS: ' + loiJS.join(' | '));
   } finally { await trinh.close(); }
 });
